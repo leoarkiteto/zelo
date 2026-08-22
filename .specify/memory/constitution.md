@@ -1,50 +1,109 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Version change: unversioned template scaffold → 1.0.0
+- Modified principles: n/a (template placeholders [PRINCIPLE_1..5_*] replaced on initial ratification)
+- Added sections: Core Principles (I–V), Repository Layout & Conventions,
+  Development Workflow & Quality Gates, Governance
+- Removed sections: n/a (template placeholder tokens removed)
+- Follow-up TODOs: none
+-->
+
+# zelo Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. GOTTH Stack
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+zelo is a condominium management web application. All application functionality
+MUST be delivered on the GOTTH stack: Go (server), Templ (templates),
+Tailwind CSS (styling), and HTMX (interactivity). The server renders HTML with
+progressive enhancement; no client-side SPA framework is permitted. The Go
+module is `github.com/leoarkiteto/zelo` and the only binary entrypoint is
+`cmd/web`. Rationale: a single, composable stack keeps the codebase small,
+fast, and maintainable.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### II. Modular Monolith with Hexagonal Architecture
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+The application MUST be a single deployable modular monolith. Business logic in
+`internal/service` MUST NOT depend on web frameworks, databases, or external
+clients; it communicates only through ports (interfaces) implemented by
+adapters in `internal/store`, `internal/auth`, and `internal/handler`. Domain
+models live in `internal/model` and MUST be shared across layers without
+leaking infrastructure concerns. Rationale: the core stays independently
+testable and adapters remain swappable.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### III. Vertical Slice Feature Isolation
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Each feature MUST be fully self-contained within its own vertical slice,
+spanning handler → service → store for that feature only. A slice MUST NOT
+reach into another slice's internals; shared functionality MAY only be used
+through explicit shared modules (`internal/model`, `internal/middleware`,
+`internal/config`). Rationale: self-contained slices keep changes local and
+make feature behavior predictable.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Test-First Development (NON-NEGOTIABLE)
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+TDD is mandatory for all feature implementations: tests are written first,
+approved by the user, seen to fail, and only then is the implementation added.
+The red-green-refactor cycle is strictly enforced. Handlers, services, and
+store adapters MUST have automated tests; new contracts and contract changes
+MUST add integration tests. Rationale: tests written first lock in intent and
+prevent untested behavior from shipping.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### V. SOLID, Design Patterns & Generated Code
+
+All code MUST adhere to industry best practice, the SOLID principles, and
+established design patterns; complexity MUST be justified. Generated artifacts
+(`*_templ.go` from Templ, sqlc queries, compiled Tailwind output) MUST be
+produced by the scripts in `scripts/` and never hand-edited. Rationale:
+generation sources are the single source of truth for generated output.
+
+## Repository Layout & Conventions
+
+The repository MUST follow the golang-standards/project-layout conventions
+documented in `README.md`:
+
+- `cmd/web`: main entrypoint; everything else is in `internal/`.
+- `internal/`: private packages — `handler`, `service`, `store`, `model`,
+  `auth`, `middleware`, `config`.
+- `assets/`: source assets (CSS/JS) compiled into `web/static`.
+- `web/templates`: Templ sources (`*.templ`) plus generated `*_templ.go`.
+- `migrations/`: SQL migrations, committed and forward-only.
+- `scripts/`: build/dev helpers (Tailwind watch, templ generate, migrate).
+- `build/`: packaging and CI (Dockerfile, .dockerignore).
+- `tools/`: helper tooling pinned via `tools.go`.
+
+Configuration MUST be environment-based, loaded and validated by
+`internal/config`, and documented in `.env.example`. OAuth2 flows (Google /
+GitHub) live in `internal/auth`; route protection, CSRF, request logging,
+panic recovery, and security headers are applied in `internal/middleware`.
+Root-level tooling files (`Makefile`, `.air.toml`, `tailwind.config.js`) MUST
+be added before feature work begins so every developer uses the same commands.
+
+## Development Workflow & Quality Gates
+
+No feature MAY merge until all of the following hold:
+
+- `go test ./...` passes.
+- `templ generate` has been run and the generated `*_templ.go` files are
+  committed.
+- Tailwind output has been rebuilt and committed (or explicitly gitignored).
+- New migrations are committed and forward-only.
+- A code review confirms compliance with this constitution: SOLID, TDD,
+  vertical-slice isolation, and hexagonal boundaries.
+
+New features MUST be built through the Spec Kit workflow — spec, plan, tasks,
+then implementation — with user approval at each gate. Complexity MUST be
+justified in the review.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other practices where they conflict.
+Amendments MUST be documented, approved through PR review, and accompanied by a
+migration plan when behavior changes. Versioning follows semantic versioning:
+MAJOR for principle removals or redefinitions, MINOR for added or materially
+expanded guidance, PATCH for clarifications and wording fixes. Every PR and
+review MUST verify compliance; runtime development guidance is captured per
+feature in `.specify/memory` (spec, plan, tasks).
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22
