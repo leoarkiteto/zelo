@@ -1,0 +1,11 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "go build -o ./tmp/main ./cmd/web"
+bin = "./tmp/main"
+include_ext = ["go", "templ", "css"]
+exclude_dir = ["web/static", "bin", "tmp", ".git", "specs"]
+
+[log]
+time = true

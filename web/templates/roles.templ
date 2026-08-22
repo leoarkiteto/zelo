@@ -1,0 +1,65 @@
+package templates
+
+type UserRoleView struct {
+	UserID string
+	Email  string
+	Roles  string
+}
+
+type RolesPageData struct {
+	CSRF  string
+	Users []UserRoleView
+	Error string
+}
+
+templ RolesPage(data RolesPageData) {
+	@Layout("Role management", rolesBody(data))
+}
+
+templ rolesBody(data RolesPageData) {
+	<div class="max-w-3xl mx-auto mt-12 p-6 bg-white rounded-lg shadow">
+		<h1 class="text-2xl font-bold mb-6">Role management</h1>
+		if data.Error != "" {
+			<p class="text-red-600 text-sm mb-3">{ data.Error }</p>
+		}
+		<table class="w-full text-sm">
+			<thead>
+				<tr class="text-left border-b">
+					<th class="py-2">User</th>
+					<th>Roles</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, u := range data.Users {
+					<tr class="border-b align-top">
+						<td class="py-2">{ u.Email }</td>
+						<td>{ u.Roles }</td>
+						<td class="py-2">
+							<form method="POST" action="/roles/assign" class="inline-block mr-2">
+								<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+								<input type="hidden" name="user_id" value={ u.UserID }/>
+								<select name="role">
+									<option value="owner">owner</option>
+									<option value="tenant">tenant</option>
+									<option value="syndic">syndic</option>
+								</select>
+								<button class="bg-blue-600 text-white px-2 py-1 rounded" type="submit">Grant</button>
+							</form>
+							<form method="POST" action="/roles/revoke" class="inline-block">
+								<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+								<input type="hidden" name="user_id" value={ u.UserID }/>
+								<select name="role">
+									<option value="owner">owner</option>
+									<option value="tenant">tenant</option>
+									<option value="syndic">syndic</option>
+								</select>
+								<button class="bg-gray-200 px-2 py-1 rounded" type="submit">Revoke</button>
+							</form>
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}

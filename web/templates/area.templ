@@ -1,0 +1,25 @@
+package templates
+
+type AreaPageData struct {
+	Title   string
+	Message string
+	Links   []DashboardLink
+}
+
+templ AreaPage(data AreaPageData) {
+	@Layout(data.Title, areaBody(data))
+}
+
+templ areaBody(data AreaPageData) {
+	<div class="max-w-3xl mx-auto mt-12 p-6 bg-white rounded-lg shadow">
+		<h1 class="text-2xl font-bold mb-2">{ data.Title }</h1>
+		<p class="text-gray-600 mb-6">{ data.Message }</p>
+		<ul class="space-y-2">
+			for _, link := range data.Links {
+				<li>
+					<a class="text-blue-600" href={ link.Path }>{ link.Label }</a>
+				</li>
+			}
+		</ul>
+	</div>
+}

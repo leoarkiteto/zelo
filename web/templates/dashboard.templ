@@ -1,0 +1,37 @@
+package templates
+
+import "strings"
+
+type DashboardData struct {
+	Email string
+	Roles []string
+	Links []DashboardLink
+}
+
+type DashboardLink struct {
+	Label string
+	Path  string
+}
+
+templ DashboardPage(data DashboardData) {
+	@Layout("Dashboard", dashboardBody(data))
+}
+
+templ dashboardBody(data DashboardData) {
+	<div class="max-w-3xl mx-auto mt-12 p-6 bg-white rounded-lg shadow">
+		<div class="flex items-center justify-between mb-6">
+			<h1 class="text-2xl font-bold">Welcome, { data.Email }</h1>
+			<form method="POST" action="/logout">
+				<button class="bg-gray-200 hover:bg-gray-300 font-medium px-4 py-2 rounded" type="submit">Sign out</button>
+			</form>
+		</div>
+		<p class="text-sm text-gray-600 mb-4">Your roles: { strings.Join(data.Roles, ", ") }</p>
+		<ul class="space-y-2">
+			for _, link := range data.Links {
+				<li>
+					<a class="block border rounded px-4 py-3 hover:bg-gray-50" href={ link.Path }>{ link.Label }</a>
+				</li>
+			}
+		</ul>
+	</div>
+}

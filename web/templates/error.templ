@@ -1,0 +1,18 @@
+package templates
+
+type ErrorPageData struct {
+	Status  int
+	Message string
+}
+
+templ ErrorPage(data ErrorPageData) {
+	@Layout("Error", errorBody(data))
+}
+
+templ errorBody(data ErrorPageData) {
+	<div class="max-w-md mx-auto mt-24 p-6 bg-white rounded-lg shadow text-center">
+		<h1 class="text-4xl font-bold mb-2">{ data.Status }</h1>
+		<p class="text-gray-600 mb-4">{ data.Message }</p>
+		<a class="text-blue-600" href="/">Go to dashboard</a>
+	</div>
+}
