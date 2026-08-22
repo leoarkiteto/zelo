@@ -1,3 +1,189 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-canvas font-sans text-ink-900 antialiased;
+  }
+}
+
+@layer components {
+  /* ---------- Buttons ---------- */
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-md border border-transparent px-4 py-2 text-sm font-semibold transition-colors;
+  }
+  .btn-primary {
+    @apply bg-steel-500 text-white hover:bg-steel-600;
+  }
+  .btn-secondary {
+    @apply border-chrome-200 bg-white text-ink-800 hover:bg-chrome-100;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-steel-600 hover:bg-steel-50;
+  }
+  .btn-outline {
+    @apply border-steel-500 bg-white text-steel-600 hover:bg-steel-50;
+  }
+  .btn-danger {
+    @apply bg-red-50 text-red-600 hover:bg-red-100;
+  }
+  .btn-sm {
+    @apply px-2.5 py-1.5 text-xs;
+  }
+  .btn-block {
+    @apply w-full;
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    @apply rounded-lg border border-chrome-200 bg-white shadow-card;
+  }
+  .card-pad {
+    @apply p-6;
+  }
+
+  /* ---------- Page header ---------- */
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-ink-900;
+  }
+  .page-subtitle {
+    @apply mt-1 text-sm text-ink-500;
+  }
+  .page-head {
+    @apply flex flex-wrap items-center justify-between gap-3;
+  }
+
+  /* ---------- Forms ---------- */
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-ink-800;
+  }
+  .input {
+    @apply w-full rounded-md border border-chrome-200 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:border-steel-500 focus:outline-none focus:ring-2 focus:ring-steel-200;
+  }
+  .select {
+    @apply w-full rounded-md border border-chrome-200 bg-white px-3 py-2 text-sm text-ink-900 focus:border-steel-500 focus:outline-none focus:ring-2 focus:ring-steel-200;
+  }
+
+  /* ---------- Badges ---------- */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge::before {
+    content: "";
+    @apply inline-block h-1.5 w-1.5 rounded-full bg-current opacity-70;
+  }
+  .badge-neutral {
+    @apply bg-chrome-100 text-ink-700;
+  }
+  .badge-info {
+    @apply bg-steel-100 text-steel-700;
+  }
+  .badge-success {
+    @apply bg-green-100 text-green-700;
+  }
+  .badge-warning {
+    @apply bg-amber-100 text-amber-700;
+  }
+  .badge-danger {
+    @apply bg-red-100 text-red-700;
+  }
+
+  /* ---------- Alerts ---------- */
+  .alert {
+    @apply mb-4 rounded-md border px-4 py-3 text-sm;
+  }
+  .alert-error {
+    @apply border-red-200 bg-red-50 text-red-700;
+  }
+  .alert-success {
+    @apply border-green-200 bg-green-50 text-green-800;
+  }
+  .alert-info {
+    @apply border-steel-200 bg-steel-50 text-steel-800;
+  }
+
+  /* ---------- Tables ---------- */
+  .table-wrap {
+    @apply overflow-x-auto;
+  }
+  .table {
+    @apply w-full text-sm;
+  }
+  .table thead th {
+    @apply border-b border-chrome-200 bg-chrome-50 px-4 py-3 text-left font-semibold text-ink-700;
+  }
+  .table tbody td {
+    @apply border-b border-chrome-100 px-4 py-3 align-middle;
+  }
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .table tbody tr {
+    @apply transition-colors hover:bg-chrome-50;
+  }
+
+  /* ---------- App shell ---------- */
+  .topbar {
+    @apply flex h-16 shrink-0 items-center gap-3 bg-chrome-700 px-4 text-white md:px-6;
+  }
+  .sidebar {
+    @apply w-64 overflow-y-auto border-r border-chrome-200 bg-chrome-100;
+  }
+  .nav-group {
+    @apply px-4 pb-2 pt-5 text-[11px] font-semibold uppercase tracking-wider text-ink-500;
+  }
+  .nav-link {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-ink-800 transition-colors hover:bg-white hover:text-steel-600;
+  }
+  .nav-link-active {
+    @apply bg-white font-semibold text-steel-600 shadow-sm;
+  }
+
+  /* ---------- Breadcrumb ---------- */
+  .breadcrumb {
+    @apply mb-4 flex items-center gap-2 text-sm text-ink-500;
+  }
+  .breadcrumb a {
+    @apply text-steel-600 hover:text-steel-700;
+  }
+
+  /* ---------- Quick action card ---------- */
+  .quick-card {
+    @apply flex items-start gap-3 rounded-lg border border-chrome-200 bg-white p-4 transition-all hover:-translate-y-0.5 hover:border-steel-300 hover:shadow-card;
+  }
+  .quick-card-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-steel-50 text-steel-600;
+  }
+
+  /* ---------- Empty state ---------- */
+  .empty-state {
+    @apply flex flex-col items-center justify-center gap-2 px-6 py-12 text-center;
+  }
+  .empty-state-title {
+    @apply text-sm font-semibold text-ink-800;
+  }
+  .empty-state-copy {
+    @apply text-sm text-ink-500;
+  }
+
+  /* ---------- Stepper (multi-step flows) ---------- */
+  .stepper {
+    @apply flex items-center gap-2;
+  }
+  .stepper-item {
+    @apply flex items-center gap-2 text-sm text-ink-500;
+  }
+  .stepper-dot {
+    @apply flex h-7 w-7 items-center justify-center rounded-full border border-chrome-200 bg-white text-xs font-semibold text-ink-500;
+  }
+  .stepper-dot-active {
+    @apply border-steel-500 bg-steel-500 text-white;
+  }
+  .stepper-dot-done {
+    @apply border-steel-500 bg-steel-500 text-white;
+  }
+  .stepper-line {
+    @apply h-px w-6 bg-chrome-300;
+  }
+}

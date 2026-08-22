@@ -76,6 +76,10 @@ func (h *Handler) renderInvitationsWithError(w http.ResponseWriter, r *http.Requ
 
 func (h *Handler) invitationsData(r *http.Request, flash string) (templates.InvitationsPageData, error) {
 	sess := currentSession(r)
+	shell, err := h.shellData(r, "/invitations")
+	if err != nil {
+		return templates.InvitationsPageData{}, err
+	}
 	units, err := h.deps.Units.ListUnitsForCondominium(r.Context(), sess.CondominiumID)
 	if err != nil {
 		return templates.InvitationsPageData{}, err
@@ -104,6 +108,7 @@ func (h *Handler) invitationsData(r *http.Request, flash string) (templates.Invi
 		})
 	}
 	return templates.InvitationsPageData{
+		Shell:       shell,
 		CSRF:        sess.CSRFToken,
 		Units:       unitOptions,
 		Invitations: views,

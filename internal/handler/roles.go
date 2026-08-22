@@ -3,7 +3,6 @@ package handler
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/leoarkiteto/zelo/internal/model"
 	"github.com/leoarkiteto/zelo/internal/service"
@@ -68,6 +67,10 @@ func (h *Handler) renderRolesWithError(w http.ResponseWriter, r *http.Request, m
 
 func (h *Handler) rolesData(r *http.Request, message string) (templates.RolesPageData, error) {
 	sess := currentSession(r)
+	shell, err := h.shellData(r, "/roles")
+	if err != nil {
+		return templates.RolesPageData{}, err
+	}
 	rows, err := h.deps.Roles.ListUsersWithRoles(r.Context(), sess.CondominiumID)
 	if err != nil {
 		return templates.RolesPageData{}, err
@@ -81,8 +84,8 @@ func (h *Handler) rolesData(r *http.Request, message string) (templates.RolesPag
 		views = append(views, templates.UserRoleView{
 			UserID: row.UserID,
 			Email:  row.Email,
-			Roles:  strings.Join(roles, ", "),
+			Roles:  roles,
 		})
 	}
-	return templates.RolesPageData{CSRF: sess.CSRFToken, Users: views, Error: message}, nil
+	return templates.RolesPageData{Shell: shell, CSRF: sess.CSRFToken, Users: views, Error: message}, nil
 }

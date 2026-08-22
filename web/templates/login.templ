@@ -6,27 +6,30 @@ type LoginPageData struct {
 }
 
 templ LoginPage(data LoginPageData) {
-	@Layout("Sign in", loginBody(data))
+	@Layout("Sign in", nil, loginBody(data))
 }
 
 templ loginBody(data LoginPageData) {
-	<div class="max-w-md mx-auto mt-16 p-6 bg-white rounded-lg shadow">
-		<h1 class="text-2xl font-bold mb-4">Sign in</h1>
-		if data.Error != "" {
-			<p class="text-red-600 text-sm mb-3">{ data.Error }</p>
-		}
-		<form method="POST" action="/login" class="space-y-4">
-			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
-			<div>
-				<label class="block text-sm font-medium mb-1" for="email">Email</label>
-				<input class="w-full border rounded px-3 py-2" type="email" id="email" name="email" required/>
-			</div>
-			<div>
-				<label class="block text-sm font-medium mb-1" for="password">Password</label>
-				<input class="w-full border rounded px-3 py-2" type="password" id="password" name="password" required/>
-			</div>
-			<button class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded" type="submit">Sign in</button>
-		</form>
-		<p class="mt-4 text-sm"><a class="text-blue-600" href="/password/forgot">Forgot password?</a></p>
-	</div>
+	@AuthShell("Sign in to your account", "Welcome back — manage your condominium.", loginForm(data))
+}
+
+templ loginForm(data LoginPageData) {
+	if data.Error != "" {
+		<p class="alert alert-error">{ data.Error }</p>
+	}
+	<form method="POST" action="/login" class="space-y-4">
+		<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+		<div>
+			<label class="label" for="email">Email</label>
+			<input class="input" type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required/>
+		</div>
+		<div>
+			<label class="label" for="password">Password</label>
+			<input class="input" type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required/>
+		</div>
+		<button class="btn btn-primary btn-block" type="submit">Sign in</button>
+	</form>
+	<p class="mt-4 text-center text-sm text-ink-500">
+		Forgot your password? <a class="font-medium text-steel-600 hover:text-steel-700" href="/password/forgot">Reset it</a>
+	</p>
 }

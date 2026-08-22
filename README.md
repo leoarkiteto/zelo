@@ -39,9 +39,10 @@ Layout follows the [golang-standards/project-layout](https://github.com/golang-s
 
 - **Go**: server-side app in `cmd/web` + `internal/*`; module is `github.com/leoarkiteto/zelo`.
 - **OAuth**: auth flows live in `internal/auth`; protect routes via `internal/middleware`.
-- **Tailwind**: edit sources in `assets/css`, output the compiled stylesheet to `web/static/css` (keep built artifacts out of git or gitignore them).
+- **Tailwind**: edit sources in `assets/css`, output the compiled stylesheet to `web/static/css` (keep built artifacts out of git or gitignore them). Tailwind is pinned as an npm devDependency — run `npm install` once, then `make tailwind`.
 - **HTMX**: vendored/bundled under `assets/js`, served from `web/static/js`.
 - **Templ**: `*.templ` files in `web/templates`; run `templ generate` and commit the generated `*_templ.go`.
+- **Design system**: tokens and reusable components are documented in [`docs/design-system.md`](docs/design-system.md); the UI follows the reference screenshots in `docs/ui`.
 
 ## Root files to add next
 

@@ -1,25 +1,42 @@
 package templates
 
+// DashboardLink is a simple labeled link shown on area pages.
+type DashboardLink struct {
+	Label string
+	Path  string
+}
+
 type AreaPageData struct {
+	Shell   *ShellData
 	Title   string
 	Message string
 	Links   []DashboardLink
 }
 
 templ AreaPage(data AreaPageData) {
-	@Layout(data.Title, areaBody(data))
+	@Layout(data.Title, data.Shell, areaBody(data))
 }
 
 templ areaBody(data AreaPageData) {
-	<div class="max-w-3xl mx-auto mt-12 p-6 bg-white rounded-lg shadow">
-		<h1 class="text-2xl font-bold mb-2">{ data.Title }</h1>
-		<p class="text-gray-600 mb-6">{ data.Message }</p>
-		<ul class="space-y-2">
-			for _, link := range data.Links {
-				<li>
-					<a class="text-blue-600" href={ link.Path }>{ link.Label }</a>
-				</li>
-			}
-		</ul>
+	<div class="space-y-4">
+		<nav class="breadcrumb" aria-label="Breadcrumb">
+			<a href="/">Dashboard</a>
+			<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+			<span class="font-medium text-ink-700">{ data.Title }</span>
+		</nav>
+		<div class="card card-pad">
+			<h1 class="page-title">{ data.Title }</h1>
+			<p class="page-subtitle mb-6">{ data.Message }</p>
+			<ul class="space-y-2">
+				for _, link := range data.Links {
+					<li>
+						<a class="flex items-center justify-between rounded-md border border-chrome-200 px-4 py-3 text-sm font-medium text-ink-800 transition-colors hover:border-steel-300 hover:bg-steel-50" href={ link.Path }>
+							<span>{ link.Label }</span>
+							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-steel-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+						</a>
+					</li>
+				}
+			</ul>
+		</div>
 	</div>
 }

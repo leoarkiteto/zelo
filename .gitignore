@@ -20,6 +20,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Node tooling
+node_modules/
+
 # Local build output
 /bin/
 /tmp/
