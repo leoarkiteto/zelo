@@ -11,7 +11,7 @@ import (
 
 // seedFirstCondominium bootstraps a development condominium with one unit and
 // a syndic user. It is idempotent: it exits cleanly if the seed user exists.
-func seedFirstCondominium(ctx context.Context, logger *slog.Logger, db *sql.DB) error {
+func seedFirstCondominium(ctx context.Context, logger *slog.Logger, db *sql.DB, passwordPepper string) error {
 	email := "syndic@example.com"
 	var existing string
 	err := db.QueryRowContext(ctx,
@@ -24,7 +24,7 @@ func seedFirstCondominium(ctx context.Context, logger *slog.Logger, db *sql.DB) 
 		return fmt.Errorf("check seed user: %w", err)
 	}
 
-	hasher := auth.PasswordHasher{}
+	hasher := auth.NewPasswordHasher(passwordPepper)
 	hash, err := hasher.Hash("syndic-password-123")
 	if err != nil {
 		return fmt.Errorf("hash seed password: %w", err)

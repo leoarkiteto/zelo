@@ -2,7 +2,9 @@
 package auth
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"errors"
@@ -32,8 +34,23 @@ var (
 	ErrPasswordTooLong = errors.New("password must be at most 256 characters")
 )
 
-// PasswordHasher hashes and verifies passwords with Argon2id.
-type PasswordHasher struct{}
+// PasswordHasher hashes and verifies passwords with Argon2id and a site pepper.
+//
+// The pepper (a secret kept out of the database, e.g. in .env) is applied to
+// the password via HMAC-SHA256 before Argon2id, per the OWASP Password Storage
+// Cheat Sheet, so a database leak alone does not allow offline guessing.
+// Hashes are stored in PHC string format and contain no pepper material.
+type PasswordHasher struct {
+	pepper []byte
+}
+
+// NewPasswordHasher returns a PasswordHasher bound to the given site pepper.
+// Pass the same secret from configuration on every boot; changing it makes all
+// previously stored password hashes unverifiable. Config validation enforces a
+// non-empty pepper at startup.
+func NewPasswordHasher(pepper string) PasswordHasher {
+	return PasswordHasher{pepper: []byte(pepper)}
+}
 
 // ValidatePassword checks the password policy.
 func (PasswordHasher) ValidatePassword(password string) error {
@@ -46,13 +63,22 @@ func (PasswordHasher) ValidatePassword(password string) error {
 	return nil
 }
 
+// derive applies the pepper to the password using HMAC-SHA256, with the pepper
+// as the key. This binds every hash to the secret without altering the PHC
+// string stored in the database.
+func (h PasswordHasher) derive(password string) []byte {
+	mac := hmac.New(sha256.New, h.pepper)
+	mac.Write([]byte(password))
+	return mac.Sum(nil)
+}
+
 // Hash returns a PHC-formatted Argon2id hash for the password.
-func (PasswordHasher) Hash(password string) (string, error) {
+func (h PasswordHasher) Hash(password string) (string, error) {
 	salt := make([]byte, argonSaltLen)
 	if _, err := rand.Read(salt); err != nil {
 		return "", fmt.Errorf("generate salt: %w", err)
 	}
-	key := argon2.IDKey([]byte(password), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
+	key := argon2.IDKey(h.derive(password), salt, argonTime, argonMemory, argonThreads, argonKeyLen)
 	enc := base64.RawStdEncoding
 	return fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
 		argon2.Version, argonMemory, argonTime, argonThreads,
@@ -60,7 +86,7 @@ func (PasswordHasher) Hash(password string) (string, error) {
 }
 
 // Verify checks a password against a PHC hash using a constant-time compare.
-func (PasswordHasher) Verify(hash, password string) (bool, error) {
+func (h PasswordHasher) Verify(hash, password string) (bool, error) {
 	parts := strings.Split(hash, "$")
 	if len(parts) != 6 || parts[1] != "argon2id" {
 		return false, errors.New("malformed password hash")
@@ -86,6 +112,6 @@ func (PasswordHasher) Verify(hash, password string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("decode hash: %w", err)
 	}
-	actual := argon2.IDKey([]byte(password), salt, uint32(params["t"]), uint32(params["m"]), uint8(params["p"]), uint32(len(expected)))
+	actual := argon2.IDKey(h.derive(password), salt, uint32(params["t"]), uint32(params["m"]), uint8(params["p"]), uint32(len(expected)))
 	return subtle.ConstantTimeCompare(expected, actual) == 1, nil
 }

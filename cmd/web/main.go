@@ -47,7 +47,7 @@ func main() {
 		return
 	}
 	if *seed {
-		if err := seedFirstCondominium(ctx, logger, db); err != nil {
+		if err := seedFirstCondominium(ctx, logger, db, cfg.PasswordPepper); err != nil {
 			logger.Error("seed failed", "error", err)
 			os.Exit(1)
 		}
@@ -62,7 +62,7 @@ func main() {
 	sessions := store.NewSessionStore(db)
 	audit := store.NewAuditStore(db)
 
-	hasher := auth.PasswordHasher{}
+	hasher := auth.NewPasswordHasher(cfg.PasswordPepper)
 	tokens := handler.TokenHasher{}
 	sessMgr := auth.NewSessionManager(sessions, cfg.IsProduction())
 

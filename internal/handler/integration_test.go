@@ -51,7 +51,7 @@ func newIntegrationRouter(t *testing.T) http.Handler {
 	invitations := store.NewInvitationStore(db)
 	sessions := store.NewSessionStore(db)
 	audit := store.NewAuditStore(db)
-	hasher := auth.PasswordHasher{}
+	hasher := auth.NewPasswordHasher("integration-test-pepper")
 	tokens := TokenHasher{}
 	sessMgr := auth.NewSessionManager(sessions, false)
 
@@ -82,7 +82,7 @@ func newIntegrationRouter(t *testing.T) http.Handler {
 
 func seedIntegration(t *testing.T, ctx context.Context, db *sql.DB) {
 	t.Helper()
-	hasher := auth.PasswordHasher{}
+	hasher := auth.NewPasswordHasher("integration-test-pepper")
 	hash, err := hasher.Hash("syndic-pass-123")
 	if err != nil {
 		t.Fatalf("hash: %v", err)

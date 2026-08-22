@@ -9,19 +9,21 @@ import (
 
 // Config holds all runtime configuration loaded from the environment.
 type Config struct {
-	DatabaseURL   string
-	SessionSecret []byte
-	AppEnv        string
-	HTTPAddr      string
+	DatabaseURL    string
+	SessionSecret  []byte
+	PasswordPepper string
+	AppEnv         string
+	HTTPAddr       string
 }
 
 // Load reads configuration from the environment and validates required values.
 func Load() (Config, error) {
 	cfg := Config{
-		DatabaseURL:   os.Getenv("DATABASE_URL"),
-		SessionSecret: []byte(os.Getenv("SESSION_SECRET")),
-		AppEnv:        os.Getenv("APP_ENV"),
-		HTTPAddr:      os.Getenv("HTTP_ADDR"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		SessionSecret:  []byte(os.Getenv("SESSION_SECRET")),
+		PasswordPepper: os.Getenv("PASSWORD_PEPPER"),
+		AppEnv:         os.Getenv("APP_ENV"),
+		HTTPAddr:       os.Getenv("HTTP_ADDR"),
 	}
 	if cfg.HTTPAddr == "" {
 		cfg.HTTPAddr = ":8080"
@@ -36,6 +38,9 @@ func Load() (Config, error) {
 	}
 	if len(cfg.SessionSecret) == 0 {
 		errs = append(errs, errors.New("SESSION_SECRET is required"))
+	}
+	if len(cfg.PasswordPepper) == 0 {
+		errs = append(errs, errors.New("PASSWORD_PEPPER is required"))
 	}
 	if cfg.AppEnv != "development" && cfg.AppEnv != "production" {
 		errs = append(errs, fmt.Errorf("APP_ENV must be development or production, got %q", cfg.AppEnv))
