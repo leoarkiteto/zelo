@@ -19,11 +19,14 @@ type Dependencies struct {
 	Roles         *store.RoleStore
 	Units         *store.UnitStore
 	Invitations   *store.InvitationStore
+	Listings      *store.ListingStore
+	Categories    *store.CategoryStore
 	Audit         *store.AuditStore
 	Registration  *service.RegistrationService
 	AuthService   *service.AuthService
 	PasswordReset *service.PasswordResetService
 	RoleService   *service.RoleService
+	Directory     *service.DirectoryService
 }
 
 // TokenHasher adapts auth.HashToken to the service TokenHasher port.

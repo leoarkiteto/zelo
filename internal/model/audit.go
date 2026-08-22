@@ -6,20 +6,28 @@ import "time"
 type AuditEventType string
 
 const (
-	AuditSignIn        AuditEventType = "sign_in"
-	AuditFailedSignIn  AuditEventType = "failed_sign_in"
-	AuditSignOut       AuditEventType = "sign_out"
-	AuditAccountLocked AuditEventType = "account_locked"
-	AuditRoleGranted   AuditEventType = "role_granted"
-	AuditRoleRevoked   AuditEventType = "role_revoked"
-	AuditAccessDenied  AuditEventType = "access_denied"
+	AuditSignIn              AuditEventType = "sign_in"
+	AuditFailedSignIn        AuditEventType = "failed_sign_in"
+	AuditSignOut             AuditEventType = "sign_out"
+	AuditAccountLocked       AuditEventType = "account_locked"
+	AuditRoleGranted         AuditEventType = "role_granted"
+	AuditRoleRevoked         AuditEventType = "role_revoked"
+	AuditAccessDenied        AuditEventType = "access_denied"
+	AuditListingCreated      AuditEventType = "listing_created"
+	AuditListingEdited       AuditEventType = "listing_edited"
+	AuditListingDeleted      AuditEventType = "listing_deleted"
+	AuditCategoryCreated     AuditEventType = "category_created"
+	AuditCategoryRenamed     AuditEventType = "category_renamed"
+	AuditCategoryDeactivated AuditEventType = "category_deactivated"
 )
 
 // Valid reports whether t is a supported audit event type.
 func (t AuditEventType) Valid() bool {
 	switch t {
 	case AuditSignIn, AuditFailedSignIn, AuditSignOut, AuditAccountLocked,
-		AuditRoleGranted, AuditRoleRevoked, AuditAccessDenied:
+		AuditRoleGranted, AuditRoleRevoked, AuditAccessDenied,
+		AuditListingCreated, AuditListingEdited, AuditListingDeleted,
+		AuditCategoryCreated, AuditCategoryRenamed, AuditCategoryDeactivated:
 		return true
 	default:
 		return false

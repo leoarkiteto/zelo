@@ -48,7 +48,7 @@ func navFor(roles []model.Role, active string) []templates.NavItem {
 		}
 		return false
 	}
-	items := []templates.NavItem{{Label: "Dashboard", Path: "/"}}
+	items := []templates.NavItem{{Label: "Dashboard", Path: "/"}, {Label: "Service directory", Path: "/directory"}}
 	if has(model.RoleSyndic) {
 		items = append(items,
 			templates.NavItem{Label: "Condominium management", Path: "/condominium"},

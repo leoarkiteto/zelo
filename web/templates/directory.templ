@@ -1,0 +1,364 @@
+package templates
+
+type CategoryOption struct {
+	ID   string
+	Name string
+}
+
+type ListingView struct {
+	ID           string
+	Name         string
+	CategoryName string
+	Phone        string
+	Notes        string
+	UnitCode     string
+}
+
+type DirectoryPageData struct {
+	Shell            *ShellData
+	CSRF             string
+	Listings         []ListingView
+	Categories       []CategoryOption
+	Query            string
+	SelectedCategory string
+	IsSyndic         bool
+	Flash            string
+}
+
+type ListingFormValues struct {
+	Name       string
+	CategoryID string
+	Phone      string
+	Notes      string
+}
+
+type ListingFormData struct {
+	Shell            *ShellData
+	CSRF             string
+	Categories       []CategoryOption
+	Values           ListingFormValues
+	IsEdit           bool
+	ListingID        string
+	Error            string
+	DuplicateWarning string
+}
+
+type CategoryView struct {
+	ID     string
+	Name   string
+	Active bool
+}
+
+type CategoriesPageData struct {
+	Shell      *ShellData
+	CSRF       string
+	Categories []CategoryView
+	Error      string
+	Flash      string
+}
+
+type DeleteConfirmData struct {
+	Shell   *ShellData
+	CSRF    string
+	Listing ListingView
+	Error   string
+}
+
+func listingFormAction(data ListingFormData) string {
+	if data.IsEdit {
+		return "/directory/" + data.ListingID + "/edit"
+	}
+	return "/directory"
+}
+
+func listingSubmitLabel(data ListingFormData) string {
+	if data.IsEdit {
+		return "Save changes"
+	}
+	return "Add to directory"
+}
+
+templ DirectoryPage(data DirectoryPageData) {
+	@Layout("Service directory", data.Shell, directoryBody(data))
+}
+
+templ directoryBody(data DirectoryPageData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">Service directory</h1>
+				<p class="page-subtitle">Recommended service professionals shared by residents.</p>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				if data.IsSyndic {
+					<a class="btn btn-secondary" href="/directory/categories">Manage categories</a>
+				}
+				<a class="btn btn-primary" href="/directory/new">Recommend a professional</a>
+			</div>
+		</div>
+		if data.Flash != "" {
+			<p class="alert alert-success">{ data.Flash }</p>
+		}
+		<form method="GET" action="/directory" class="card card-pad grid gap-4 md:grid-cols-2 lg:grid-cols-3 lg:items-end">
+			<div>
+				<label class="label" for="q">Search</label>
+				<input class="input" type="search" id="q" name="q" value={ data.Query } placeholder="Name, category, or notes"/>
+			</div>
+			<div>
+				<label class="label" for="category">Category</label>
+				<select class="select" id="category" name="category">
+					<option value="">All categories</option>
+					for _, c := range data.Categories {
+						<option value={ c.ID } selected={ c.ID == data.SelectedCategory }>{ c.Name }</option>
+					}
+				</select>
+			</div>
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">Search</button>
+				<a class="btn btn-secondary" href="/directory">Clear</a>
+			</div>
+		</form>
+		<section class="card">
+			<div class="border-b border-chrome-200 px-6 py-4">
+				<h2 class="text-lg font-bold text-ink-900">Listings</h2>
+			</div>
+			if len(data.Listings) == 0 {
+				<div class="empty-state">
+					<span class="flex h-12 w-12 items-center justify-center rounded-full bg-chrome-100 text-chrome-400">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg>
+					</span>
+					<p class="empty-state-title">No listings found</p>
+					<p class="empty-state-copy">Adjust your search, or be the first to recommend a professional.</p>
+					<a class="btn btn-primary btn-sm mt-2" href="/directory/new">Recommend a professional</a>
+				</div>
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Professional</th>
+								<th>Category</th>
+								<th>Phone</th>
+								<th>Notes</th>
+								<th>Recommended by</th>
+								if data.IsSyndic {
+									<th class="text-right">Actions</th>
+								}
+							</tr>
+						</thead>
+						<tbody>
+							for _, l := range data.Listings {
+								<tr>
+									<td class="font-medium text-ink-800">{ l.Name }</td>
+									<td><span class="badge badge-info">{ l.CategoryName }</span></td>
+									<td class="text-ink-700">{ l.Phone }</td>
+									<td class="text-ink-500">{ l.Notes }</td>
+									<td class="text-ink-500">Unit { l.UnitCode }</td>
+									if data.IsSyndic {
+										<td>
+											<div class="flex flex-wrap items-center justify-end gap-2">
+												<a class="btn btn-secondary btn-sm" href={ templ.URL("/directory/" + l.ID + "/edit") }>Edit</a>
+												<a class="btn btn-danger btn-sm" href={ templ.URL("/directory/" + l.ID + "/delete") }>Delete</a>
+											</div>
+										</td>
+									}
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	</div>
+}
+
+templ ListingFormPage(data ListingFormData) {
+	@Layout("Recommend a professional", data.Shell, listingFormBody(data))
+}
+
+templ listingFormBody(data ListingFormData) {
+	<div class="max-w-2xl space-y-4">
+		<div class="page-head">
+			<div>
+				if data.IsEdit {
+					<h1 class="page-title">Edit listing</h1>
+					<p class="page-subtitle">Update this recommended professional.</p>
+				} else {
+					<h1 class="page-title">Recommend a professional</h1>
+					<p class="page-subtitle">Share a service professional you trust with your condominium.</p>
+				}
+			</div>
+		</div>
+		if data.Error != "" {
+			<p class="alert alert-error">{ data.Error }</p>
+		}
+		if data.DuplicateWarning != "" {
+			<p class="alert alert-info">{ data.DuplicateWarning }</p>
+		}
+		<form method="POST" action={ templ.URL(listingFormAction(data)) } class="card card-pad grid gap-4">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			if data.IsEdit {
+				<input type="hidden" name="listing_id" value={ data.ListingID }/>
+			}
+			<div>
+				<label class="label" for="name">Professional name</label>
+				<input class="input" type="text" id="name" name="name" value={ data.Values.Name } required maxlength="120" placeholder="e.g. Ana's Plumbing"/>
+			</div>
+			<div>
+				<label class="label" for="category_id">Category</label>
+				<select class="select" id="category_id" name="category_id" required>
+					for _, c := range data.Categories {
+						<option value={ c.ID } selected={ c.ID == data.Values.CategoryID }>{ c.Name }</option>
+					}
+				</select>
+			</div>
+			<div>
+				<label class="label" for="phone">Phone number</label>
+				<input class="input" type="tel" id="phone" name="phone" value={ data.Values.Phone } required placeholder="+55 11 91234-5678"/>
+			</div>
+			<div>
+				<label class="label" for="notes">Notes (optional)</label>
+				<textarea class="input" id="notes" name="notes" rows="3" maxlength="500">{ data.Values.Notes }</textarea>
+			</div>
+			if data.DuplicateWarning != "" {
+				<div class="flex items-center gap-2">
+					<input type="checkbox" id="confirm_duplicate" name="confirm_duplicate" value="1"/>
+					<label class="text-sm text-ink-700" for="confirm_duplicate">I still want to save this listing</label>
+				</div>
+			}
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">{ listingSubmitLabel(data) }</button>
+				<a class="btn btn-secondary" href="/directory">Cancel</a>
+			</div>
+		</form>
+	</div>
+}
+
+templ CategoriesPage(data CategoriesPageData) {
+	@Layout("Directory categories", data.Shell, categoriesBody(data))
+}
+
+templ categoriesBody(data CategoriesPageData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">Directory categories</h1>
+				<p class="page-subtitle">Maintain the specialities residents can choose from.</p>
+			</div>
+			<a class="btn btn-secondary" href="/directory">Back to directory</a>
+		</div>
+		if data.Flash != "" {
+			<p class="alert alert-success">{ data.Flash }</p>
+		}
+		if data.Error != "" {
+			<p class="alert alert-error">{ data.Error }</p>
+		}
+		<section class="card card-pad">
+			<h2 class="mb-4 text-lg font-bold text-ink-900">Add category</h2>
+			<form method="POST" action="/directory/categories" class="flex flex-col gap-2 sm:flex-row sm:items-end">
+				<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+				<div class="flex-1">
+					<label class="label" for="name">Category name</label>
+					<input class="input" type="text" id="name" name="name" required maxlength="80" placeholder="e.g. Carpenter"/>
+				</div>
+				<button class="btn btn-primary" type="submit">Add category</button>
+			</form>
+		</section>
+		<section class="card">
+			<div class="border-b border-chrome-200 px-6 py-4">
+				<h2 class="text-lg font-bold text-ink-900">Categories</h2>
+			</div>
+			if len(data.Categories) == 0 {
+				<div class="empty-state">
+					<span class="flex h-12 w-12 items-center justify-center rounded-full bg-chrome-100 text-chrome-400">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1 1 0 0 1 .7.3l9 9a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-9-9A1 1 0 0 1 3 12V7a4 4 0 0 1 4-4z"/></svg>
+					</span>
+					<p class="empty-state-title">No categories yet</p>
+					<p class="empty-state-copy">Add the first category residents can pick from.</p>
+				</div>
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>Name</th>
+								<th>Status</th>
+								<th class="text-right">Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, c := range data.Categories {
+								<tr>
+									<td class="font-medium text-ink-800">{ c.Name }</td>
+									<td>
+										if c.Active {
+											<span class="badge badge-success">active</span>
+										} else {
+											<span class="badge badge-neutral">deactivated</span>
+										}
+									</td>
+									<td>
+										<div class="flex flex-wrap items-center justify-end gap-2">
+											<form method="POST" action={ templ.URL("/directory/categories/" + c.ID + "/rename") } class="flex items-center gap-1.5">
+												<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+												<input class="input" type="text" name="name" value={ c.Name } maxlength="80" aria-label="New name"/>
+												<button class="btn btn-secondary btn-sm" type="submit">Rename</button>
+											</form>
+											if c.Active {
+												<form method="POST" action={ templ.URL("/directory/categories/" + c.ID + "/deactivate") }>
+													<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+													<button class="btn btn-danger btn-sm" type="submit">Deactivate</button>
+												</form>
+											}
+										</div>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	</div>
+}
+
+templ DeleteConfirmPage(data DeleteConfirmData) {
+	@Layout("Delete listing", data.Shell, deleteConfirmBody(data))
+}
+
+templ deleteConfirmBody(data DeleteConfirmData) {
+	<div class="max-w-2xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">Delete listing</h1>
+				<p class="page-subtitle">Remove a recommended professional from the directory.</p>
+			</div>
+		</div>
+		<p class="alert alert-error">Deleting "{ data.Listing.Name }" removes it from the directory. This cannot be undone.</p>
+		<section class="card card-pad">
+			<dl class="grid gap-3 text-sm">
+				<div class="grid grid-cols-3 gap-2">
+					<dt class="font-medium text-ink-500">Professional</dt>
+					<dd class="col-span-2 text-ink-800">{ data.Listing.Name }</dd>
+				</div>
+				<div class="grid grid-cols-3 gap-2">
+					<dt class="font-medium text-ink-500">Category</dt>
+					<dd class="col-span-2 text-ink-800">{ data.Listing.CategoryName }</dd>
+				</div>
+				<div class="grid grid-cols-3 gap-2">
+					<dt class="font-medium text-ink-500">Phone</dt>
+					<dd class="col-span-2 text-ink-800">{ data.Listing.Phone }</dd>
+				</div>
+				<div class="grid grid-cols-3 gap-2">
+					<dt class="font-medium text-ink-500">Recommended by</dt>
+					<dd class="col-span-2 text-ink-800">Unit { data.Listing.UnitCode }</dd>
+				</div>
+			</dl>
+			<form method="POST" action={ templ.URL("/directory/" + data.Listing.ID + "/delete") } class="mt-6 flex gap-2">
+				<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+				<button class="btn btn-danger" type="submit">Delete listing</button>
+				<a class="btn btn-secondary" href="/directory">Cancel</a>
+			</form>
+		</section>
+	</div>
+}

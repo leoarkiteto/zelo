@@ -61,6 +61,8 @@ func main() {
 	invitations := store.NewInvitationStore(db)
 	sessions := store.NewSessionStore(db)
 	audit := store.NewAuditStore(db)
+	listings := store.NewListingStore(db)
+	categories := store.NewCategoryStore(db)
 
 	hasher := auth.NewPasswordHasher(cfg.PasswordPepper)
 	tokens := handler.TokenHasher{}
@@ -75,6 +77,8 @@ func main() {
 		Roles:       roles,
 		Units:       units,
 		Invitations: invitations,
+		Listings:    listings,
+		Categories:  categories,
 		Audit:       audit,
 		Registration: &service.RegistrationService{
 			Users: users, Roles: roles, Invitations: invitations,
@@ -87,6 +91,9 @@ func main() {
 			Users: users, Passwords: hasher, Tokens: tokens, Now: time.Now,
 		},
 		RoleService: &service.RoleService{Roles: roles, Audit: audit},
+		Directory: &service.DirectoryService{
+			Listings: listings, Categories: categories, Units: units, Audit: audit,
+		},
 	}
 
 	srv := &http.Server{

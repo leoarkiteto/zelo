@@ -30,10 +30,24 @@ func NewRouter(deps Dependencies) http.Handler {
 	syndicOnly := middleware.RequireRole(deps.Roles, deps.Audit, model.RoleSyndic)
 	ownerOrSyndic := middleware.RequireRole(deps.Roles, deps.Audit, model.RoleOwner, model.RoleSyndic)
 	tenantOnly := middleware.RequireRole(deps.Roles, deps.Audit, model.RoleTenant)
+	memberOnly := middleware.RequireRole(deps.Roles, deps.Audit, model.RoleOwner, model.RoleTenant, model.RoleSyndic)
 
 	mux.Handle("GET /condominium", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.condominium))))
 	mux.Handle("GET /unit", middleware.RequireAuth(ownerOrSyndic(http.HandlerFunc(h.unit))))
 	mux.Handle("GET /tenancy", middleware.RequireAuth(tenantOnly(http.HandlerFunc(h.tenancy))))
+
+	// Service directory (member access + syndic moderation).
+	mux.Handle("GET /directory", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.directoryGET))))
+	mux.Handle("GET /directory/new", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.directoryNewGET))))
+	mux.Handle("POST /directory", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.directoryCreatePOST))))
+	mux.Handle("GET /directory/{id}/edit", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.directoryEditGET))))
+	mux.Handle("POST /directory/{id}/edit", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.directoryEditPOST))))
+	mux.Handle("GET /directory/{id}/delete", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.directoryDeleteConfirmGET))))
+	mux.Handle("POST /directory/{id}/delete", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.directoryDeletePOST))))
+	mux.Handle("GET /directory/categories", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.categoriesGET))))
+	mux.Handle("POST /directory/categories", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.categoriesCreatePOST))))
+	mux.Handle("POST /directory/categories/{id}/rename", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.categoriesRenamePOST))))
+	mux.Handle("POST /directory/categories/{id}/deactivate", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.categoriesDeactivatePOST))))
 
 	// Syndic-only management (US4).
 	mux.Handle("GET /invitations", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.invitationsGET))))

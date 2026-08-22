@@ -17,13 +17,14 @@ import (
 	"github.com/leoarkiteto/zelo/internal/auth"
 	"github.com/leoarkiteto/zelo/internal/service"
 	"github.com/leoarkiteto/zelo/internal/store"
+	"github.com/leoarkiteto/zelo/internal/testutil"
 )
 
 // Integration tests exercise the full router against PostgreSQL. They are
 // skipped unless TEST_DATABASE_URL is set (see quickstart.md).
 func newIntegrationRouter(t *testing.T) http.Handler {
 	t.Helper()
-	url := os.Getenv("TEST_DATABASE_URL")
+	url := testutil.TestDatabaseURL("handler")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL not set; skipping integration test")
 	}
@@ -34,13 +35,14 @@ func newIntegrationRouter(t *testing.T) http.Handler {
 	}
 	t.Cleanup(func() { _ = db.Close() })
 
-	if _, err := db.ExecContext(ctx, `
-		TRUNCATE audit_events, sessions, invitations, unit_occupancies,
-		user_roles, units, condominiums, users RESTART IDENTITY CASCADE`); err != nil {
-		t.Fatalf("truncate: %v", err)
-	}
 	if err := store.Migrate(ctx, db, "../../migrations"); err != nil {
 		t.Fatalf("migrate: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `
+		TRUNCATE audit_events, sessions, invitations, service_provider_listings,
+		service_categories, unit_occupancies, user_roles, units, condominiums,
+		users RESTART IDENTITY CASCADE`); err != nil {
+		t.Fatalf("truncate: %v", err)
 	}
 	seedIntegration(t, ctx, db)
 
@@ -51,6 +53,8 @@ func newIntegrationRouter(t *testing.T) http.Handler {
 	invitations := store.NewInvitationStore(db)
 	sessions := store.NewSessionStore(db)
 	audit := store.NewAuditStore(db)
+	listings := store.NewListingStore(db)
+	categories := store.NewCategoryStore(db)
 	hasher := auth.NewPasswordHasher("integration-test-pepper")
 	tokens := TokenHasher{}
 	sessMgr := auth.NewSessionManager(sessions, false)
@@ -64,6 +68,8 @@ func newIntegrationRouter(t *testing.T) http.Handler {
 		Roles:       roles,
 		Units:       units,
 		Invitations: invitations,
+		Listings:    listings,
+		Categories:  categories,
 		Audit:       audit,
 		Registration: &service.RegistrationService{
 			Users: users, Roles: roles, Invitations: invitations,
@@ -76,6 +82,9 @@ func newIntegrationRouter(t *testing.T) http.Handler {
 			Users: users, Passwords: hasher, Tokens: tokens, Now: time.Now,
 		},
 		RoleService: &service.RoleService{Roles: roles, Audit: audit},
+		Directory: &service.DirectoryService{
+			Listings: listings, Categories: categories, Units: units, Audit: audit,
+		},
 	}
 	return NewRouter(deps)
 }
@@ -103,6 +112,11 @@ func seedIntegration(t *testing.T, ctx context.Context, db *sql.DB) {
 		if _, err := db.ExecContext(ctx, `INSERT INTO user_roles (user_id, condominium_id, role) VALUES ($1, $2, $3)`, syndicID, condoID, role); err != nil {
 			t.Fatalf("seed role: %v", err)
 		}
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO unit_occupancies (user_id, unit_id, occupancy_type) VALUES ($1, $2, 'owner')`,
+		syndicID, unitID); err != nil {
+		t.Fatalf("seed occupancy: %v", err)
 	}
 	t.Setenv("TEST_CONDOMINIUM", condoID)
 	t.Setenv("TEST_UNIT", unitID)
@@ -181,7 +195,7 @@ func rawTokenFromBody(body string) string {
 
 func userIDFor(t *testing.T, email, condoID string) string {
 	t.Helper()
-	url := os.Getenv("TEST_DATABASE_URL")
+	url := testutil.TestDatabaseURL("handler")
 	db, err := store.Open(url)
 	if err != nil {
 		t.Fatalf("open db: %v", err)

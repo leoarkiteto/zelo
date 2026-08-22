@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/leoarkiteto/zelo/internal/model"
@@ -33,4 +34,23 @@ func (s *UnitStore) ListUnitsForCondominium(ctx context.Context, condominiumID s
 		units = append(units, u)
 	}
 	return units, rows.Err()
+}
+
+// GetActiveUnitForUser returns the user's active unit in a condominium. A user
+// with no active occupancy, or with more than one, yields ErrNotFound.
+func (s *UnitStore) GetActiveUnitForUser(ctx context.Context, userID, condominiumID string) (model.Unit, error) {
+	var u model.Unit
+	err := s.db.QueryRowContext(ctx, `
+		SELECT u.id, u.condominium_id, u.code
+		FROM unit_occupancies occ
+		JOIN units u ON u.id = occ.unit_id
+		WHERE occ.user_id = $1 AND u.condominium_id = $2 AND occ.ended_at IS NULL
+		LIMIT 1`, userID, condominiumID).Scan(&u.ID, &u.CondominiumID, &u.Code)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Unit{}, ErrNotFound
+	}
+	if err != nil {
+		return model.Unit{}, fmt.Errorf("get active unit for user: %w", err)
+	}
+	return u, nil
 }
