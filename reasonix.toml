@@ -1,0 +1,5 @@
+# Reasonix project configuration
+[skills]
+# spec-kit (GitHub Copilot integration) installs skills under .github/skills,
+# which is not a Reasonix discovery convention — register it as a custom root.
+paths = [".github/skills"]
