@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/leoarkiteto/zelo/internal/auth"
+	"github.com/leoarkiteto/zelo/internal/shared/security"
 )
 
 // seedFirstCondominium bootstraps a development condominium with one unit and
@@ -24,7 +24,7 @@ func seedFirstCondominium(ctx context.Context, logger *slog.Logger, db *sql.DB, 
 		return fmt.Errorf("check seed user: %w", err)
 	}
 
-	hasher := auth.NewPasswordHasher(passwordPepper)
+	hasher := security.NewPasswordHasher(passwordPepper)
 	hash, err := hasher.Hash("syndic-password-123")
 	if err != nil {
 		return fmt.Errorf("hash seed password: %w", err)

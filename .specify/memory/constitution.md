@@ -1,8 +1,8 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 1.1.0 (MINOR: new section + new principle)
-- Modified principles: n/a (no renaming; Principle I–V retained)
-- Added sections: Project Overview & Technology Stack, Principle VI (Standard Library First & CSS-First)
+- Version change: 1.1.0 → 1.2.0 (MINOR: repository layout rewritten)
+- Modified principles: Principle III wording updated (shared modules live under internal/shared/)
+- Added sections: n/a
 - Removed sections: n/a
 - Follow-up TODOs: none
 -->
@@ -48,11 +48,15 @@ testable and adapters remain swappable.
 ### III. Vertical Slice Feature Isolation
 
 Each feature MUST be fully self-contained within its own vertical slice,
-spanning handler → service → store for that feature only. A slice MUST NOT
-reach into another slice's internals; shared functionality MAY only be used
-through explicit shared modules (`internal/model`, `internal/middleware`,
-`internal/config`). Rationale: self-contained slices keep changes local and
-make feature behavior predictable.
+spanning handler → service → store for that feature only, organized under
+`internal/features/<feature>/` (`core/{domain,ports,services}` + `handlers/` +
+`repositories/` + `templates/`). A slice MUST NOT reach into another slice's
+internals; shared functionality MAY only be used through explicit shared
+modules under `internal/shared/` (`internal/shared/model`,
+`internal/shared/middleware`, `internal/shared/config`, `internal/shared/security`,
+`internal/shared/store`, `internal/shared/templates`, `internal/shared/httpx`).
+Rationale: self-contained slices keep changes local and make feature behavior
+predictable.
 
 ### IV. Test-First Development (NON-NEGOTIABLE)
 
@@ -87,22 +91,31 @@ keep the codebase small, auditable, and maintainable.
 ## Repository Layout & Conventions
 
 The repository MUST follow the golang-standards/project-layout conventions
-documented in `README.md`:
+documented in `README.md`, extended with feature-first vertical slices:
 
-- `cmd/web`: main entrypoint; everything else is in `internal/`.
-- `internal/`: private packages — `handler`, `service`, `store`, `model`,
-  `auth`, `middleware`, `config`.
+- `cmd/web`: main entrypoint and composition root; everything else is in
+  `internal/`.
+- `internal/features/<feature>/`: one folder per user-facing feature — a
+  self-contained vertical slice with `core/{domain,ports,services}`,
+  `handlers/`, `repositories/` (feature-exclusive persistence), and
+  `templates/` (feature-exclusive Templ views).
+- `internal/shared/`: cross-feature modules — `config`, `model`, `middleware`,
+  `security`, `store`, `templates`, `httpx`, `testutil`.
 - `assets/`: source assets (CSS/JS) compiled into `web/static`.
-- `web/templates`: Templ sources (`*.templ`) plus generated `*_templ.go`.
+- `web/static`: built assets served by the web server.
+- `tests/`: full-app integration tests.
 - `migrations/`: SQL migrations, committed and forward-only.
-- `scripts/`: build/dev helpers (Tailwind watch, templ generate, migrate).
+- `scripts/`: build/dev helpers (Tailwind watch, templ generate, migrate,
+  `new-feature.sh`, `check-feature-boundaries.sh`).
 - `build/`: packaging and CI (Dockerfile, .dockerignore).
 - `tools/`: helper tooling pinned via `tools.go`.
 
 Configuration MUST be environment-based, loaded and validated by
-`internal/config`, and documented in `.env.example`. OAuth2 flows (Google /
-GitHub) live in `internal/auth`; route protection, CSRF, request logging,
-panic recovery, and security headers are applied in `internal/middleware`.
+`internal/shared/config`, and documented in `.env.example`. OAuth2 flows,
+sessions, CSRF, and token primitives live in `internal/shared/security`; route
+protection, CSRF, request logging, panic recovery, and security headers are
+applied in `internal/shared/middleware`. Features MUST NOT import another
+feature's internals — verified by `scripts/check-feature-boundaries.sh`.
 Root-level tooling files (`Makefile`, `.air.toml`, `tailwind.config.js`) MUST
 be added before feature work begins so every developer uses the same commands.
 
@@ -133,4 +146,4 @@ expanded guidance, PATCH for clarifications and wording fixes. Every PR and
 review MUST verify compliance; runtime development guidance is captured per
 feature in `.specify/memory` (spec, plan, tasks).
 
-**Version**: 1.1.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22
+**Version**: 1.2.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22

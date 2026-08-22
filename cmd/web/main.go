@@ -11,11 +11,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/leoarkiteto/zelo/internal/auth"
-	"github.com/leoarkiteto/zelo/internal/config"
-	"github.com/leoarkiteto/zelo/internal/handler"
-	"github.com/leoarkiteto/zelo/internal/service"
-	"github.com/leoarkiteto/zelo/internal/store"
+	authhandlers "github.com/leoarkiteto/zelo/internal/features/auth/handlers"
+	authservices "github.com/leoarkiteto/zelo/internal/features/auth/core/services"
+	directoryhandlers "github.com/leoarkiteto/zelo/internal/features/directory/handlers"
+	dirservices "github.com/leoarkiteto/zelo/internal/features/directory/core/services"
+	"github.com/leoarkiteto/zelo/internal/features/directory/repositories"
+	homehandlers "github.com/leoarkiteto/zelo/internal/features/home/handlers"
+	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
+	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/core/services"
+	"github.com/leoarkiteto/zelo/internal/shared/config"
+	"github.com/leoarkiteto/zelo/internal/shared/middleware"
+	"github.com/leoarkiteto/zelo/internal/shared/security"
+	"github.com/leoarkiteto/zelo/internal/shared/store"
 )
 
 func main() {
@@ -61,44 +68,66 @@ func main() {
 	invitations := store.NewInvitationStore(db)
 	sessions := store.NewSessionStore(db)
 	audit := store.NewAuditStore(db)
-	listings := store.NewListingStore(db)
-	categories := store.NewCategoryStore(db)
+	listings := repositories.NewListingStore(db)
+	categories := repositories.NewCategoryStore(db)
 
-	hasher := auth.NewPasswordHasher(cfg.PasswordPepper)
-	tokens := handler.TokenHasher{}
-	sessMgr := auth.NewSessionManager(sessions, cfg.IsProduction())
+	hasher := security.NewPasswordHasher(cfg.PasswordPepper)
+	tokens := security.TokenHasher{}
+	sessMgr := security.NewSessionManager(sessions, cfg.IsProduction())
 
-	deps := handler.Dependencies{
-		Logger:      logger,
-		Sessions:    sessMgr,
-		Passwords:   hasher,
-		Tokens:      tokens,
-		Users:       users,
-		Roles:       roles,
-		Units:       units,
-		Invitations: invitations,
-		Listings:    listings,
-		Categories:  categories,
-		Audit:       audit,
-		Registration: &service.RegistrationService{
+	authDeps := authhandlers.Deps{
+		Logger:        logger,
+		Sessions:      sessMgr,
+		Invitations:   invitations,
+		Tokens:        tokens,
+		Audit:         audit,
+		Registration: &authservices.RegistrationService{
 			Users: users, Roles: roles, Invitations: invitations,
 			Passwords: hasher, Tokens: tokens, Now: time.Now,
 		},
-		AuthService: &service.AuthService{
+		AuthService: &authservices.AuthService{
 			Users: users, Roles: roles, Passwords: hasher, Audit: audit, Now: time.Now,
 		},
-		PasswordReset: &service.PasswordResetService{
+		PasswordReset: &authservices.PasswordResetService{
 			Users: users, Passwords: hasher, Tokens: tokens, Now: time.Now,
 		},
-		RoleService: &service.RoleService{Roles: roles, Audit: audit},
-		Directory: &service.DirectoryService{
+	}
+	directoryDeps := directoryhandlers.Deps{
+		Roles:      roles,
+		Audit:      audit,
+		Listings:   listings,
+		Categories: categories,
+		Directory: &dirservices.DirectoryService{
 			Listings: listings, Categories: categories, Units: units, Audit: audit,
 		},
 	}
+	managementDeps := managementhandlers.Deps{
+		Roles:       roles,
+		Audit:       audit,
+		Tokens:      tokens,
+		Invitations: invitations,
+		Units:       units,
+		RoleService: &mgmtservices.RoleService{Roles: roles, Audit: audit},
+	}
+	homeDeps := homehandlers.Deps{Roles: roles, Audit: audit}
+
+	mux := http.NewServeMux()
+	authhandlers.RegisterRoutes(mux, authDeps)
+	homehandlers.RegisterRoutes(mux, homeDeps)
+	directoryhandlers.RegisterRoutes(mux, directoryDeps)
+	managementhandlers.RegisterRoutes(mux, managementDeps)
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
+
+	var root http.Handler = mux
+	root = middleware.Recover(logger)(root)
+	root = middleware.Logging(logger)(root)
+	root = middleware.SecurityHeaders(root)
+	root = middleware.WithUser(sessMgr, users)(root)
+	root = middleware.CSRF(sessMgr)(root)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           handler.NewRouter(deps),
+		Handler:           root,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
