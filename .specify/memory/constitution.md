@@ -1,14 +1,27 @@
 <!--
 Sync Impact Report
-- Version change: unversioned template scaffold → 1.0.0
-- Modified principles: n/a (template placeholders [PRINCIPLE_1..5_*] replaced on initial ratification)
-- Added sections: Core Principles (I–V), Repository Layout & Conventions,
-  Development Workflow & Quality Gates, Governance
-- Removed sections: n/a (template placeholder tokens removed)
+- Version change: 1.0.0 → 1.1.0 (MINOR: new section + new principle)
+- Modified principles: n/a (no renaming; Principle I–V retained)
+- Added sections: Project Overview & Technology Stack, Principle VI (Standard Library First & CSS-First)
+- Removed sections: n/a
 - Follow-up TODOs: none
 -->
 
 # zelo Constitution
+
+## Project Overview & Technology Stack
+
+- **Domain**: Condominium Management Web Application
+- **Tech Stack**: GOTTH (Go, Templ, TailwindCSS, HTMX)
+- **Architecture**: Modular Monolith using Hexagonal Architecture (Ports &
+  Adapters) combined with Vertical Slice Architecture
+- **Feature Isolation**: Each feature MUST be fully self-contained within its
+  own vertical slice.
+- **Development Standard**: Adhere strictly to industry best practice, SOLID,
+  Design Patterns, and Test-Driven Development (TDD) for all feature
+  implementations.
+- **Directive**: Use the Go standard library as much as possible (no web
+  frameworks and no ORM); prefer CSS-first over JavaScript.
 
 ## Core Principles
 
@@ -58,6 +71,19 @@ established design patterns; complexity MUST be justified. Generated artifacts
 produced by the scripts in `scripts/` and never hand-edited. Rationale:
 generation sources are the single source of truth for generated output.
 
+### VI. Standard Library First & CSS-First
+
+Application functionality MUST prefer the Go standard library. Web frameworks,
+ORMs, and session/migration/validation frameworks are NOT permitted; database
+access uses `database/sql` with a plain SQL driver and hand-written SQL, and
+migrations are plain forward-only SQL files applied by a minimal runner.
+Front-end interaction MUST be CSS-first: presentation and interaction state
+come from Tailwind CSS; JavaScript is limited to the minimal HTMX
+progressive-enhancement required by the GOTTH stack, with no JS frameworks or
+SPA tooling. Approved exceptions (e.g., `golang.org/x/crypto` for Argon2id
+password hashing) MUST be justified in review. Rationale: fewer dependencies
+keep the codebase small, auditable, and maintainable.
+
 ## Repository Layout & Conventions
 
 The repository MUST follow the golang-standards/project-layout conventions
@@ -90,7 +116,8 @@ No feature MAY merge until all of the following hold:
 - Tailwind output has been rebuilt and committed (or explicitly gitignored).
 - New migrations are committed and forward-only.
 - A code review confirms compliance with this constitution: SOLID, TDD,
-  vertical-slice isolation, and hexagonal boundaries.
+  vertical-slice isolation, hexagonal boundaries, and the standard-library /
+  CSS-first directive.
 
 New features MUST be built through the Spec Kit workflow — spec, plan, tasks,
 then implementation — with user approval at each gate. Complexity MUST be
@@ -106,4 +133,4 @@ expanded guidance, PATCH for clarifications and wording fixes. Every PR and
 review MUST verify compliance; runtime development guidance is captured per
 feature in `.specify/memory` (spec, plan, tasks).
 
-**Version**: 1.0.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22
+**Version**: 1.1.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22
