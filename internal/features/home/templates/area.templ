@@ -1,6 +1,10 @@
 package templates
 
-import sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+import (
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
 
 // DashboardLink is a simple labeled link shown on area pages.
 type DashboardLink struct {
@@ -10,19 +14,20 @@ type DashboardLink struct {
 
 type AreaPageData struct {
 	Shell   *sharedtemplates.ShellData
+	Locale  i18n.Language
 	Title   string
 	Message string
 	Links   []DashboardLink
 }
 
 templ AreaPage(data AreaPageData) {
-	@sharedtemplates.Layout(data.Title, data.Shell, areaBody(data))
+	@sharedtemplates.Layout(data.Title, data.Locale, data.Shell, areaBody(data))
 }
 
 templ areaBody(data AreaPageData) {
 	<div class="space-y-4">
-		<nav class="breadcrumb" aria-label="Breadcrumb">
-			<a href="/">Dashboard</a>
+		<nav class="breadcrumb" aria-label={ i18n.T(data.Locale, "area.breadcrumb_label") }>
+			<a href="/">{ i18n.T(data.Locale, "common.dashboard") }</a>
 			<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
 			<span class="font-medium text-ink-700">{ data.Title }</span>
 		</nav>

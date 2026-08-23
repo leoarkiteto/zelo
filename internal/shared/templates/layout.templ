@@ -1,6 +1,10 @@
 package templates
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
 
 // NavItem is a single sidebar navigation entry.
 type NavItem struct {
@@ -19,13 +23,14 @@ type UserView struct {
 // ShellData carries everything the authenticated app shell needs to render.
 // A nil shell renders the page without the topbar/sidebar (auth pages).
 type ShellData struct {
-	User *UserView
-	Nav  []NavItem
-	CSRF string
+	User   *UserView
+	Nav    []NavItem
+	CSRF   string
+	Locale i18n.Language
 }
 
-templ Layout(title string, shell *ShellData, body templ.Component) {
-	<html lang="en">
+templ Layout(title string, locale i18n.Language, shell *ShellData, body templ.Component) {
+	<html lang={ locale }>
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -44,7 +49,7 @@ templ Layout(title string, shell *ShellData, body templ.Component) {
 }
 
 templ Shell(shell *ShellData, body templ.Component) {
-	<div class="flex min-h-screen flex-col">
+	<div id="app-shell" lang={ shell.Locale } class="flex min-h-screen flex-col">
 		<header class="topbar sticky top-0 z-40">
 			<label for="nav-toggle" class="-ml-2 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-chrome-100 hover:bg-chrome-600 md:hidden" aria-label="Toggle navigation">
 				<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -55,7 +60,7 @@ templ Shell(shell *ShellData, body templ.Component) {
 				<span class="flex h-9 w-9 items-center justify-center rounded-md bg-steel-500 text-base font-bold text-white">Z</span>
 				<span class="leading-tight">
 					<span class="block text-base font-bold tracking-wide">zelo</span>
-					<span class="block text-[10px] font-medium uppercase tracking-widest text-chrome-200">Condominium</span>
+					<span class="block text-[10px] font-medium uppercase tracking-widest text-chrome-200">{ i18n.T(shell.Locale, "topbar.brand_subtitle") }</span>
 				</span>
 			</a>
 			<div class="flex-1"></div>
@@ -69,7 +74,7 @@ templ Shell(shell *ShellData, body templ.Component) {
 				</div>
 				<form method="POST" action="/logout" class="ml-1">
 					<input type="hidden" name="csrf_token" value={ shell.CSRF }/>
-					<button class="btn btn-sm bg-white/10 text-white hover:bg-white/20" type="submit">Sign out</button>
+					<button class="btn btn-sm bg-white/10 text-white hover:bg-white/20" type="submit">{ i18n.T(shell.Locale, "topbar.sign_out") }</button>
 				</form>
 			}
 		</header>
@@ -77,7 +82,7 @@ templ Shell(shell *ShellData, body templ.Component) {
 			<input type="checkbox" id="nav-toggle" class="peer sr-only"/>
 			<aside class="sidebar fixed inset-y-0 left-0 top-16 z-30 -translate-x-full transition-transform duration-200 peer-checked:translate-x-0 md:static md:z-auto md:translate-x-0">
 				<nav class="py-3">
-					<p class="nav-group">Main navigations</p>
+					<p class="nav-group">{ i18n.T(shell.Locale, "nav.group") }</p>
 					<ul class="mx-2 space-y-1">
 						for _, item := range shell.Nav {
 							<li>

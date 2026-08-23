@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"net/http"
 
 	"github.com/leoarkiteto/zelo/internal/features/management/core/services"
@@ -13,7 +14,7 @@ import (
 func (h *Handler) rolesGET(w http.ResponseWriter, r *http.Request) {
 	data, err := h.rolesData(r, "")
 	if err != nil {
-		http.Error(w, "Failed to load roles", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "roles.error.load"), http.StatusInternalServerError)
 		return
 	}
 	httpx.Render(w, r, templates.RolesPage(data))
@@ -33,7 +34,7 @@ func (h *Handler) changeRole(w http.ResponseWriter, r *http.Request, grant bool)
 	targetID := r.FormValue("user_id")
 	role := model.Role(r.FormValue("role"))
 	if !role.Valid() {
-		h.renderRolesWithError(w, r, "Unknown role.")
+		h.renderRolesWithError(w, r, i18n.T(i18n.LanguageFrom(r.Context()), "roles.error.unknown_role"))
 		return
 	}
 	var err error
@@ -44,13 +45,13 @@ func (h *Handler) changeRole(w http.ResponseWriter, r *http.Request, grant bool)
 	}
 	switch {
 	case errors.Is(err, services.ErrNotSyndic):
-		h.renderRolesWithError(w, r, "Only the syndic can manage roles.")
+		h.renderRolesWithError(w, r, i18n.T(i18n.LanguageFrom(r.Context()), "roles.error.not_syndic"))
 	case errors.Is(err, services.ErrTargetNotOwner):
-		h.renderRolesWithError(w, r, "The syndic role can only be granted to an owner.")
+		h.renderRolesWithError(w, r, i18n.T(i18n.LanguageFrom(r.Context()), "roles.error.syndic_owner"))
 	case errors.Is(err, services.ErrTenantNotEligible):
-		h.renderRolesWithError(w, r, "A tenant cannot be the syndic.")
+		h.renderRolesWithError(w, r, i18n.T(i18n.LanguageFrom(r.Context()), "roles.error.tenant_not_eligible"))
 	case err != nil:
-		http.Error(w, "Failed to change role", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "roles.error.change"), http.StatusInternalServerError)
 	default:
 		http.Redirect(w, r, "/roles", http.StatusSeeOther)
 	}
@@ -59,7 +60,7 @@ func (h *Handler) changeRole(w http.ResponseWriter, r *http.Request, grant bool)
 func (h *Handler) renderRolesWithError(w http.ResponseWriter, r *http.Request, message string) {
 	data, err := h.rolesData(r, message)
 	if err != nil {
-		http.Error(w, "Failed to load roles", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "roles.error.load"), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusBadRequest)
@@ -88,5 +89,5 @@ func (h *Handler) rolesData(r *http.Request, message string) (templates.RolesPag
 			Roles:  roles,
 		})
 	}
-	return templates.RolesPageData{Shell: shell, CSRF: sess.CSRFToken, Users: views, Error: message}, nil
+	return templates.RolesPageData{Shell: shell, Locale: i18n.LanguageFrom(r.Context()), CSRF: sess.CSRFToken, Users: views, Error: message}, nil
 }

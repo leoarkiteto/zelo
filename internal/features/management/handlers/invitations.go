@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"net/http"
 	"strings"
 	"time"
@@ -14,7 +15,7 @@ import (
 func (h *Handler) invitationsGET(w http.ResponseWriter, r *http.Request) {
 	data, err := h.invitationsData(r, "")
 	if err != nil {
-		http.Error(w, "Failed to load invitations", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "invitations.error.load"), http.StatusInternalServerError)
 		return
 	}
 	httpx.Render(w, r, templates.InvitationsPage(data))
@@ -26,12 +27,12 @@ func (h *Handler) invitationsPOST(w http.ResponseWriter, r *http.Request) {
 
 	role := model.Role(r.FormValue("invited_role"))
 	if role != model.RoleOwner && role != model.RoleTenant {
-		h.renderInvitationsWithError(w, r, "Invited role must be owner or tenant.")
+		h.renderInvitationsWithError(w, r, i18n.T(i18n.LanguageFrom(r.Context()), "invitations.error.role"))
 		return
 	}
 	rawToken, err := security.NewCSRFToken()
 	if err != nil {
-		http.Error(w, "Failed to create invitation", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "invitations.error.create"), http.StatusInternalServerError)
 		return
 	}
 	inv := model.Invitation{
@@ -44,12 +45,12 @@ func (h *Handler) invitationsPOST(w http.ResponseWriter, r *http.Request) {
 		CreatedBy:     u.ID,
 	}
 	if _, err := h.deps.Invitations.CreateInvitation(r.Context(), inv); err != nil {
-		http.Error(w, "Failed to create invitation", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "invitations.error.create"), http.StatusInternalServerError)
 		return
 	}
-	data, err := h.invitationsData(r, "Invitation created. Share this link with the invitee: /register?token="+rawToken)
+	data, err := h.invitationsData(r, i18n.T(i18n.LanguageFrom(r.Context()), "invitations.flash.created")+rawToken)
 	if err != nil {
-		http.Error(w, "Failed to load invitations", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "invitations.error.load"), http.StatusInternalServerError)
 		return
 	}
 	httpx.Render(w, r, templates.InvitationsPage(data))
@@ -58,7 +59,7 @@ func (h *Handler) invitationsPOST(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) invitationsRevoke(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if err := h.deps.Invitations.RevokeInvitation(r.Context(), id); err != nil {
-		http.Error(w, "Failed to revoke invitation", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "invitations.error.revoke"), http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/invitations", http.StatusSeeOther)
@@ -67,7 +68,7 @@ func (h *Handler) invitationsRevoke(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) renderInvitationsWithError(w http.ResponseWriter, r *http.Request, message string) {
 	data, err := h.invitationsData(r, "")
 	if err != nil {
-		http.Error(w, "Failed to load invitations", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "invitations.error.load"), http.StatusInternalServerError)
 		return
 	}
 	data.Error = message
@@ -98,6 +99,7 @@ func (h *Handler) invitationsData(r *http.Request, flash string) (templates.Invi
 		unitOptions = append(unitOptions, templates.UnitOption{ID: unit.ID, Code: unit.Code})
 	}
 	views := make([]templates.InvitationView, 0, len(invitations))
+	locale := i18n.LanguageFrom(r.Context())
 	for _, inv := range invitations {
 		views = append(views, templates.InvitationView{
 			ID:        inv.ID,
@@ -105,11 +107,12 @@ func (h *Handler) invitationsData(r *http.Request, flash string) (templates.Invi
 			Role:      string(inv.InvitedRole),
 			Email:     inv.InvitedEmail,
 			Status:    string(inv.Status),
-			ExpiresAt: inv.ExpiresAt.Format(time.RFC3339),
+			ExpiresAt: i18n.FormatDate(locale, inv.ExpiresAt),
 		})
 	}
 	return templates.InvitationsPageData{
 		Shell:       shell,
+		Locale:      locale,
 		CSRF:        sess.CSRFToken,
 		Units:       unitOptions,
 		Invitations: views,

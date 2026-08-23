@@ -2,16 +2,20 @@ package handlers
 
 import (
 	"errors"
-	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"net/http"
 
 	"github.com/leoarkiteto/zelo/internal/features/auth/core/services"
 	"github.com/leoarkiteto/zelo/internal/features/auth/templates"
+	"github.com/leoarkiteto/zelo/internal/shared/httpx"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
 )
 
 func (h *Handler) forgotGET(w http.ResponseWriter, r *http.Request) {
-	httpx.Render(w, r, templates.ForgotPasswordPage(templates.ForgotPasswordPageData{CSRF: httpx.SetAnonymousCSRF(w)}))
+	httpx.Render(w, r, templates.ForgotPasswordPage(templates.ForgotPasswordPageData{
+		CSRF:   httpx.SetAnonymousCSRF(w),
+		Locale: i18n.Default(),
+	}))
 }
 
 func (h *Handler) forgotPOST(w http.ResponseWriter, r *http.Request) {
@@ -28,8 +32,9 @@ func (h *Handler) forgotPOST(w http.ResponseWriter, r *http.Request) {
 		h.deps.Logger.Info("password reset link", "email", email, "token", token)
 	}
 	httpx.Render(w, r, templates.ForgotPasswordPage(templates.ForgotPasswordPageData{
-		CSRF: httpx.AnonymousCSRFValue(r),
-		Sent: true,
+		CSRF:   httpx.AnonymousCSRFValue(r),
+		Sent:   true,
+		Locale: i18n.Default(),
 	}))
 }
 
@@ -40,8 +45,9 @@ func (h *Handler) resetGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.Render(w, r, templates.ResetPasswordPage(templates.ResetPasswordPageData{
-		Token: token,
-		CSRF:  httpx.SetAnonymousCSRF(w),
+		Token:  token,
+		CSRF:   httpx.SetAnonymousCSRF(w),
+		Locale: i18n.Default(),
 	}))
 }
 

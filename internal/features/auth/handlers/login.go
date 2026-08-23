@@ -2,15 +2,19 @@ package handlers
 
 import (
 	"errors"
-	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"net/http"
 
 	"github.com/leoarkiteto/zelo/internal/features/auth/core/services"
 	"github.com/leoarkiteto/zelo/internal/features/auth/templates"
+	"github.com/leoarkiteto/zelo/internal/shared/httpx"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
 
 func (h *Handler) loginGET(w http.ResponseWriter, r *http.Request) {
-	httpx.Render(w, r, templates.LoginPage(templates.LoginPageData{CSRF: httpx.SetAnonymousCSRF(w)}))
+	httpx.Render(w, r, templates.LoginPage(templates.LoginPageData{
+		CSRF:   httpx.SetAnonymousCSRF(w),
+		Locale: i18n.Default(),
+	}))
 }
 
 func (h *Handler) loginPOST(w http.ResponseWriter, r *http.Request) {
@@ -22,15 +26,17 @@ func (h *Handler) loginPOST(w http.ResponseWriter, r *http.Request) {
 	case errors.Is(err, services.ErrAccountLocked):
 		w.WriteHeader(http.StatusLocked)
 		httpx.Render(w, r, templates.LoginPage(templates.LoginPageData{
-			CSRF:  httpx.AnonymousCSRFValue(r),
-			Error: "This account is temporarily locked. Please try again in 15 minutes.",
+			CSRF:   httpx.AnonymousCSRFValue(r),
+			Error:  "This account is temporarily locked. Please try again in 15 minutes.",
+			Locale: i18n.Default(),
 		}))
 		return
 	case err != nil:
 		w.WriteHeader(http.StatusUnauthorized)
 		httpx.Render(w, r, templates.LoginPage(templates.LoginPageData{
-			CSRF:  httpx.AnonymousCSRFValue(r),
-			Error: "Invalid email or password.",
+			CSRF:   httpx.AnonymousCSRFValue(r),
+			Error:  "Invalid email or password.",
+			Locale: i18n.Default(),
 		}))
 		return
 	}

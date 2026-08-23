@@ -19,6 +19,8 @@ import (
 	homehandlers "github.com/leoarkiteto/zelo/internal/features/home/handlers"
 	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
 	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/core/services"
+	profilehandlers "github.com/leoarkiteto/zelo/internal/features/profile/handlers"
+	profileservices "github.com/leoarkiteto/zelo/internal/features/profile/core/services"
 	"github.com/leoarkiteto/zelo/internal/shared/config"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
@@ -110,18 +112,28 @@ func main() {
 		RoleService: &mgmtservices.RoleService{Roles: roles, Audit: audit},
 	}
 	homeDeps := homehandlers.Deps{Roles: roles, Audit: audit}
+	profileDeps := profilehandlers.Deps{
+		Logger: logger,
+		Roles:  roles,
+		Profile: &profileservices.ProfileService{
+			Users:       users,
+			Preferences: users,
+		},
+	}
 
 	mux := http.NewServeMux()
 	authhandlers.RegisterRoutes(mux, authDeps)
 	homehandlers.RegisterRoutes(mux, homeDeps)
 	directoryhandlers.RegisterRoutes(mux, directoryDeps)
 	managementhandlers.RegisterRoutes(mux, managementDeps)
+	profilehandlers.RegisterRoutes(mux, profileDeps)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
 	var root http.Handler = mux
 	root = middleware.Recover(logger)(root)
 	root = middleware.Logging(logger)(root)
 	root = middleware.SecurityHeaders(root)
+	root = middleware.WithLocale(root)
 	root = middleware.WithUser(sessMgr, users)(root)
 	root = middleware.CSRF(sessMgr)(root)
 

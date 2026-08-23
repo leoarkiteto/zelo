@@ -8,9 +8,12 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import "github.com/leoarkiteto/zelo/internal/shared/i18n"
+
 type ErrorPageData struct {
 	Status  int
 	Message string
+	Locale  i18n.Language
 }
 
 func ErrorPage(data ErrorPageData) templ.Component {
@@ -34,7 +37,7 @@ func ErrorPage(data ErrorPageData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = Layout("Error", nil, errorBody(data)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = Layout(i18n.T(data.Locale, "error.title"), data.Locale, nil, errorBody(data)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -70,7 +73,7 @@ func errorBody(data ErrorPageData) templ.Component {
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(data.Status)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/error.templ`, Line: 15, Col: 74}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/error.templ`, Line: 18, Col: 74}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -83,13 +86,26 @@ func errorBody(data ErrorPageData) templ.Component {
 		var templ_7745c5c3_Var4 string
 		templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Message)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/error.templ`, Line: 16, Col: 90}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/error.templ`, Line: 19, Col: 90}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p><a class=\"btn btn-primary mt-6\" href=\"/\">Go to dashboard</a></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</p><a class=\"btn btn-primary mt-6\" href=\"/\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var5 string
+		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "error.go_to_dashboard"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/error.templ`, Line: 20, Col: 89}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</a></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

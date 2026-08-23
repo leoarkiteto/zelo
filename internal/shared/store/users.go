@@ -39,10 +39,11 @@ func (s *UserStore) CreateUser(ctx context.Context, u model.User) (string, error
 func (s *UserStore) GetUserByEmail(ctx context.Context, email string) (model.User, error) {
 	var u model.User
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, email, password_hash, status, failed_sign_in_count, locked_until, created_at, updated_at
+		SELECT id, email, password_hash, status, failed_sign_in_count, locked_until, created_at, updated_at,
+		       COALESCE(language_preference, '')
 		FROM users WHERE lower(email) = lower($1)`, email).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.Status, &u.FailedSignInCount, &u.LockedUntil,
-		&u.CreatedAt, &u.UpdatedAt)
+		&u.CreatedAt, &u.UpdatedAt, &u.LanguagePreference)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.User{}, ErrNotFound
 	}
@@ -56,10 +57,11 @@ func (s *UserStore) GetUserByEmail(ctx context.Context, email string) (model.Use
 func (s *UserStore) GetUserByID(ctx context.Context, id string) (model.User, error) {
 	var u model.User
 	err := s.db.QueryRowContext(ctx, `
-		SELECT id, email, password_hash, status, failed_sign_in_count, locked_until, created_at, updated_at
+		SELECT id, email, password_hash, status, failed_sign_in_count, locked_until, created_at, updated_at,
+		       COALESCE(language_preference, '')
 		FROM users WHERE id = $1`, id).Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.Status, &u.FailedSignInCount, &u.LockedUntil,
-		&u.CreatedAt, &u.UpdatedAt)
+		&u.CreatedAt, &u.UpdatedAt, &u.LanguagePreference)
 	if errors.Is(err, sql.ErrNoRows) {
 		return model.User{}, ErrNotFound
 	}
@@ -67,6 +69,22 @@ func (s *UserStore) GetUserByID(ctx context.Context, id string) (model.User, err
 		return model.User{}, fmt.Errorf("get user by id: %w", err)
 	}
 	return u, nil
+}
+
+// UpdateLanguagePreference saves the user's interface language preference.
+// The caller must pass a valid language code ('en' or 'pt-br').
+func (s *UserStore) UpdateLanguagePreference(ctx context.Context, userID, language string) error {
+	res, err := s.db.ExecContext(ctx,
+		`UPDATE users SET language_preference = $1, updated_at = now() WHERE id = $2`,
+		language, userID)
+	if err != nil {
+		return fmt.Errorf("update language preference: %w", err)
+	}
+	n, _ := res.RowsAffected()
+	if n == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // UpdatePassword replaces the password hash.

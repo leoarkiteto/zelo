@@ -1,6 +1,10 @@
 package templates
 
-import sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+import (
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
 
 type UnitOption struct {
 	ID   string
@@ -18,6 +22,7 @@ type InvitationView struct {
 
 type InvitationsPageData struct {
 	Shell       *sharedtemplates.ShellData
+	Locale      i18n.Language
 	CSRF        string
 	Units       []UnitOption
 	Invitations []InvitationView
@@ -25,16 +30,30 @@ type InvitationsPageData struct {
 	Flash       string
 }
 
+// invitationStatusLabel renders the localized status label for an invitation.
+func invitationStatusLabel(locale i18n.Language, status string) string {
+	switch status {
+	case "pending":
+		return i18n.T(locale, "invitations.status.pending")
+	case "used":
+		return i18n.T(locale, "invitations.status.used")
+	case "revoked":
+		return i18n.T(locale, "invitations.status.revoked")
+	default:
+		return status
+	}
+}
+
 templ InvitationsPage(data InvitationsPageData) {
-	@sharedtemplates.Layout("Invitations", data.Shell, invitationsBody(data))
+	@sharedtemplates.Layout(i18n.T(data.Locale, "invitations.title"), data.Locale, data.Shell, invitationsBody(data))
 }
 
 templ invitationsBody(data InvitationsPageData) {
 	<div class="space-y-6">
 		<div class="page-head">
 			<div>
-				<h1 class="page-title">Invitations</h1>
-				<p class="page-subtitle">Invite owners and tenants by email to join the condominium.</p>
+				<h1 class="page-title">{ i18n.T(data.Locale, "invitations.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "invitations.subtitle") }</p>
 			</div>
 		</div>
 		if data.Flash != "" {
@@ -45,11 +64,11 @@ templ invitationsBody(data InvitationsPageData) {
 		}
 
 		<section class="card card-pad">
-			<h2 class="mb-4 text-lg font-bold text-ink-900">Create invitation</h2>
+			<h2 class="mb-4 text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "invitations.create_heading") }</h2>
 			<form method="POST" action="/invitations" class="grid gap-4 md:grid-cols-2 lg:grid-cols-4 lg:items-end">
 				<input type="hidden" name="csrf_token" value={ data.CSRF }/>
 				<div>
-					<label class="label" for="unit_id">Unit</label>
+					<label class="label" for="unit_id">{ i18n.T(data.Locale, "common.unit") }</label>
 					<select class="select" id="unit_id" name="unit_id" required>
 						for _, unit := range data.Units {
 							<option value={ unit.ID }>{ unit.Code }</option>
@@ -57,43 +76,43 @@ templ invitationsBody(data InvitationsPageData) {
 					</select>
 				</div>
 				<div>
-					<label class="label" for="invited_role">Role</label>
+					<label class="label" for="invited_role">{ i18n.T(data.Locale, "common.role") }</label>
 					<select class="select" id="invited_role" name="invited_role" required>
-						<option value="owner">Owner</option>
-						<option value="tenant">Tenant</option>
+						<option value="owner">{ i18n.T(data.Locale, "common.owner") }</option>
+						<option value="tenant">{ i18n.T(data.Locale, "common.tenant") }</option>
 					</select>
 				</div>
 				<div>
-					<label class="label" for="invited_email">Email (optional)</label>
+					<label class="label" for="invited_email">{ i18n.T(data.Locale, "invitations.email_optional") }</label>
 					<input class="input" type="email" id="invited_email" name="invited_email" placeholder="person@example.com"/>
 				</div>
-				<button class="btn btn-primary" type="submit">Create invitation</button>
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "invitations.create_button") }</button>
 			</form>
 		</section>
 
 		<section class="card">
 			<div class="border-b border-chrome-200 px-6 py-4">
-				<h2 class="text-lg font-bold text-ink-900">Recent invitations</h2>
+				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "invitations.recent_heading") }</h2>
 			</div>
 			if len(data.Invitations) == 0 {
 				<div class="empty-state">
 					<span class="flex h-12 w-12 items-center justify-center rounded-full bg-chrome-100 text-chrome-400">
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2zm0 0l8 5 8-5"/></svg>
 					</span>
-					<p class="empty-state-title">No invitations yet</p>
-					<p class="empty-state-copy">Use the form above to invite your first owner or tenant.</p>
+					<p class="empty-state-title">{ i18n.T(data.Locale, "invitations.empty_title") }</p>
+					<p class="empty-state-copy">{ i18n.T(data.Locale, "invitations.empty_copy") }</p>
 				</div>
 			} else {
 				<div class="table-wrap">
 					<table class="table">
 						<thead>
 							<tr>
-								<th>Unit</th>
-								<th>Role</th>
-								<th>Email</th>
-								<th>Status</th>
-								<th>Expires</th>
-								<th class="text-right">Actions</th>
+								<th>{ i18n.T(data.Locale, "common.unit") }</th>
+								<th>{ i18n.T(data.Locale, "common.role") }</th>
+								<th>{ i18n.T(data.Locale, "common.email") }</th>
+								<th>{ i18n.T(data.Locale, "common.status") }</th>
+								<th>{ i18n.T(data.Locale, "invitations.col.expires") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -102,13 +121,13 @@ templ invitationsBody(data InvitationsPageData) {
 									<td class="font-medium text-ink-800">{ inv.UnitCode }</td>
 									<td><span class={ sharedtemplates.RoleBadgeClass(inv.Role) }>{ inv.Role }</span></td>
 									<td class="text-ink-700">{ inv.Email }</td>
-									<td><span class={ statusBadgeClass(inv.Status) }>{ inv.Status }</span></td>
+									<td><span class={ statusBadgeClass(inv.Status) }>{ invitationStatusLabel(data.Locale, inv.Status) }</span></td>
 									<td class="text-ink-500">{ inv.ExpiresAt }</td>
 									<td class="text-right">
 										if inv.Status == "pending" {
 											<form method="POST" action={ templ.URL("/invitations/" + inv.ID + "/revoke") }>
 												<input type="hidden" name="csrf_token" value={ data.CSRF }/>
-												<button class="btn btn-danger btn-sm" type="submit">Revoke</button>
+												<button class="btn btn-danger btn-sm" type="submit">{ i18n.T(data.Locale, "invitations.revoke") }</button>
 											</form>
 										}
 									</td>

@@ -1,18 +1,23 @@
 package templates
 
-import sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+import (
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
 
 type LoginPageData struct {
-	CSRF  string
-	Error string
+	CSRF   string
+	Error  string
+	Locale i18n.Language
 }
 
 templ LoginPage(data LoginPageData) {
-	@sharedtemplates.Layout("Sign in", nil, loginBody(data))
+	@sharedtemplates.Layout(i18n.T(data.Locale, "auth.sign_in"), data.Locale, nil, loginBody(data))
 }
 
 templ loginBody(data LoginPageData) {
-	@AuthShell("Sign in to your account", "Welcome back — manage your condominium.", loginForm(data))
+	@AuthShell(i18n.T(data.Locale, "auth.sign_in_title"), i18n.T(data.Locale, "auth.welcome_back"), loginForm(data))
 }
 
 templ loginForm(data LoginPageData) {
@@ -22,14 +27,14 @@ templ loginForm(data LoginPageData) {
 	<form method="POST" action="/login" class="space-y-4">
 		<input type="hidden" name="csrf_token" value={ data.CSRF }/>
 		<div>
-			<label class="label" for="email">Email</label>
+			<label class="label" for="email">{ i18n.T(data.Locale, "auth.email") }</label>
 			<input class="input" type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required/>
 		</div>
 		<div>
-			<label class="label" for="password">Password</label>
+			<label class="label" for="password">{ i18n.T(data.Locale, "auth.password") }</label>
 			<div class="relative" style="position:relative">
-				<input class="input pr-10" style="padding-right:2.5rem" type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password" required/>
-				<button type="button" data-password-toggle="#password" aria-label="Show password" aria-pressed="false" class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-400 transition-colors hover:text-ink-600" style="position:absolute;top:0;right:0;bottom:0;width:2.5rem;display:flex;align-items:center;justify-content:center">
+				<input class="input pr-10" style="padding-right:2.5rem" type="password" id="password" name="password" placeholder={ i18n.T(data.Locale, "auth.password_placeholder") } autocomplete="current-password" required/>
+				<button type="button" data-password-toggle="#password" aria-label={ i18n.T(data.Locale, "auth.show_password") } aria-pressed="false" class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-400 transition-colors hover:text-ink-600" style="position:absolute;top:0;right:0;bottom:0;width:2.5rem;display:flex;align-items:center;justify-content:center">
 					<svg class="h-5 w-5" style="width:1.25rem;height:1.25rem" data-icon="eye" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
 						<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"/>
 						<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
@@ -40,7 +45,7 @@ templ loginForm(data LoginPageData) {
 				</button>
 			</div>
 		</div>
-		<button class="btn btn-primary btn-block" type="submit">Sign in</button>
+		<button class="btn btn-primary btn-block" type="submit">{ i18n.T(data.Locale, "auth.sign_in") }</button>
 	</form>
 	<script>
 		(function () {
@@ -61,6 +66,6 @@ templ loginForm(data LoginPageData) {
 		})();
 	</script>
 	<p class="mt-4 text-center text-sm text-ink-500">
-		Forgot your password? <a class="font-medium text-steel-600 hover:text-steel-700" href="/password/forgot">Reset it</a>
+		{ i18n.T(data.Locale, "auth.forgot_password") } <a class="font-medium text-steel-600 hover:text-steel-700" href="/password/forgot">{ i18n.T(data.Locale, "auth.reset_link") }</a>
 	</p>
 }

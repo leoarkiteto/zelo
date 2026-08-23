@@ -1,6 +1,10 @@
 package templates
 
-import sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+import (
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
 
 type RegisterPageData struct {
 	Token        string
@@ -8,14 +12,15 @@ type RegisterPageData struct {
 	InvitedRole  string
 	CSRF         string
 	Error        string
+	Locale       i18n.Language
 }
 
 templ RegisterPage(data RegisterPageData) {
-	@sharedtemplates.Layout("Register", nil, registerBody(data))
+	@sharedtemplates.Layout(i18n.T(data.Locale, "auth.register"), data.Locale, nil, registerBody(data))
 }
 
 templ registerBody(data RegisterPageData) {
-	@AuthShell("Create your account", "Complete your registration to join the condominium.", registerForm(data))
+	@AuthShell(i18n.T(data.Locale, "auth.create_account"), i18n.T(data.Locale, "auth.complete_registration"), registerForm(data))
 }
 
 templ registerForm(data RegisterPageData) {
@@ -26,20 +31,20 @@ templ registerForm(data RegisterPageData) {
 		<input type="hidden" name="token" value={ data.Token }/>
 		<input type="hidden" name="csrf_token" value={ data.CSRF }/>
 		<div>
-			<label class="label" for="email">Email</label>
+			<label class="label" for="email">{ i18n.T(data.Locale, "auth.email") }</label>
 			<input class="input" type="email" id="email" name="email" value={ data.InvitedEmail } placeholder="you@example.com" autocomplete="email" required/>
 		</div>
 		<div>
-			<label class="label" for="password">Password</label>
-			<input class="input" type="password" id="password" name="password" minlength="12" placeholder="At least 12 characters" autocomplete="new-password" required/>
+			<label class="label" for="password">{ i18n.T(data.Locale, "auth.password") }</label>
+			<input class="input" type="password" id="password" name="password" minlength="12" placeholder={ i18n.T(data.Locale, "auth.password_hint") } autocomplete="new-password" required/>
 		</div>
 		<div>
-			<label class="label" for="password_confirm">Confirm password</label>
-			<input class="input" type="password" id="password_confirm" name="password_confirm" minlength="12" placeholder="Repeat your password" autocomplete="new-password" required/>
+			<label class="label" for="password_confirm">{ i18n.T(data.Locale, "auth.confirm_password") }</label>
+			<input class="input" type="password" id="password_confirm" name="password_confirm" minlength="12" placeholder={ i18n.T(data.Locale, "auth.repeat_password") } autocomplete="new-password" required/>
 		</div>
-		<button class="btn btn-primary btn-block" type="submit">Register</button>
+		<button class="btn btn-primary btn-block" type="submit">{ i18n.T(data.Locale, "auth.register") }</button>
 	</form>
 	<p class="mt-4 text-center text-sm text-ink-500">
-		Invited as <span class={ sharedtemplates.RoleBadgeClass(data.InvitedRole) }>{ data.InvitedRole }</span>
+		{ i18n.T(data.Locale, "auth.invited_as") } <span class={ sharedtemplates.RoleBadgeClass(data.InvitedRole) }>{ data.InvitedRole }</span>
 	</p>
 }

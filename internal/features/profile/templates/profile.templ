@@ -1,0 +1,54 @@
+package templates
+
+import (
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
+
+// ProfilePageData carries the profile page content.
+type ProfilePageData struct {
+	Shell           *sharedtemplates.ShellData
+	CurrentLanguage i18n.Language
+}
+
+templ ProfilePage(data ProfilePageData) {
+	@sharedtemplates.Layout(i18n.T(data.Shell.Locale, "profile.title"), data.Shell.Locale, data.Shell, ProfileBody(data))
+}
+
+templ ProfileBody(data ProfilePageData) {
+	<div class="space-y-6">
+		<div class="card card-pad">
+			<h1 class="page-title">{ i18n.T(data.Shell.Locale, "profile.title") }</h1>
+			<p class="page-subtitle mb-6">{ i18n.T(data.Shell.Locale, "profile.subtitle") }</p>
+			<section>
+				<h2 class="mb-3 text-lg font-bold text-ink-900">{ i18n.T(data.Shell.Locale, "profile.language_heading") }</h2>
+				<form hx-post="/profile/language" hx-target="#app-shell" hx-swap="outerHTML" class="space-y-4">
+					<input type="hidden" name="csrf_token" value={ data.Shell.CSRF }/>
+					<fieldset>
+						<legend class="sr-only">{ i18n.T(data.Shell.Locale, "profile.language_heading") }</legend>
+						<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+							@languageOption(data, "en", "🇺🇸", i18n.T(data.Shell.Locale, "profile.option_en"))
+							@languageOption(data, "pt-br", "🇧🇷", i18n.T(data.Shell.Locale, "profile.option_pt_br"))
+						</div>
+					</fieldset>
+					<p class="text-xs text-ink-500">{ i18n.T(data.Shell.Locale, "profile.language_hint") }</p>
+				</form>
+			</section>
+		</div>
+	</div>
+}
+
+// optionSelected reports whether value is the profile's current language.
+func optionSelected(data ProfilePageData, value string) bool {
+	return data.CurrentLanguage == i18n.Language(value)
+}
+
+templ languageOption(data ProfilePageData, value string, flag string, label string) {
+	<label for={ "language-" + value } class={ "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors", templ.KV("border-steel-400 bg-steel-50", optionSelected(data, value)), templ.KV("border-chrome-200 hover:border-steel-300", !optionSelected(data, value)) }>
+		<input id={ "language-" + value } type="radio" name="language" value={ value } checked={ optionSelected(data, value) } hx-trigger="change" class="peer sr-only"/>
+		<span aria-hidden="true" class="text-2xl leading-none">{ flag }</span>
+		<span class="text-sm font-medium text-ink-800">{ label }</span>
+		<span class={ "ml-auto text-sm font-semibold", templ.KV("text-steel-600", optionSelected(data, value)), templ.KV("text-transparent", !optionSelected(data, value)) }>✓</span>
+	</label>
+}

@@ -27,14 +27,15 @@ const (
 
 // User is a person with an account.
 type User struct {
-	ID                string
-	Email             string
-	PasswordHash      string
-	Status            UserStatus
-	FailedSignInCount int
-	LockedUntil       *time.Time
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
+	ID                 string
+	Email              string
+	PasswordHash       string
+	Status             UserStatus
+	LanguagePreference string // 'en' or 'pt-br'; empty means default (en)
+	FailedSignInCount  int
+	LockedUntil        *time.Time
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 // RoleAssignment is an RBAC assignment scoped to a condominium.

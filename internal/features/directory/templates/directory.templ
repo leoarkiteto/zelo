@@ -1,6 +1,10 @@
 package templates
 
-import sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+import (
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
 
 type CategoryOption struct {
 	ID   string
@@ -18,6 +22,7 @@ type ListingView struct {
 
 type DirectoryPageData struct {
 	Shell            *sharedtemplates.ShellData
+	Locale           i18n.Language
 	CSRF             string
 	Listings         []ListingView
 	Categories       []CategoryOption
@@ -36,6 +41,7 @@ type ListingFormValues struct {
 
 type ListingFormData struct {
 	Shell            *sharedtemplates.ShellData
+	Locale           i18n.Language
 	CSRF             string
 	Categories       []CategoryOption
 	Values           ListingFormValues
@@ -53,6 +59,7 @@ type CategoryView struct {
 
 type CategoriesPageData struct {
 	Shell      *sharedtemplates.ShellData
+	Locale     i18n.Language
 	CSRF       string
 	Categories []CategoryView
 	Error      string
@@ -61,6 +68,7 @@ type CategoriesPageData struct {
 
 type DeleteConfirmData struct {
 	Shell   *sharedtemplates.ShellData
+	Locale  i18n.Language
 	CSRF    string
 	Listing ListingView
 	Error   string
@@ -75,27 +83,35 @@ func listingFormAction(data ListingFormData) string {
 
 func listingSubmitLabel(data ListingFormData) string {
 	if data.IsEdit {
-		return "Save changes"
+		return i18n.T(data.Locale, "common.save_changes")
 	}
-	return "Add to directory"
+	return i18n.T(data.Locale, "directory.add_to_directory")
+}
+
+// categoryStatusLabel renders the localized status label for a category.
+func categoryStatusLabel(locale i18n.Language, active bool) string {
+	if active {
+		return i18n.T(locale, "directory.status.active")
+	}
+	return i18n.T(locale, "directory.status.deactivated")
 }
 
 templ DirectoryPage(data DirectoryPageData) {
-	@sharedtemplates.Layout("Service directory", data.Shell, directoryBody(data))
+	@sharedtemplates.Layout(i18n.T(data.Locale, "directory.title"), data.Locale, data.Shell, directoryBody(data))
 }
 
 templ directoryBody(data DirectoryPageData) {
 	<div class="space-y-6">
 		<div class="page-head">
 			<div>
-				<h1 class="page-title">Service directory</h1>
-				<p class="page-subtitle">Recommended service professionals shared by residents.</p>
+				<h1 class="page-title">{ i18n.T(data.Locale, "directory.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "directory.subtitle") }</p>
 			</div>
 			<div class="flex flex-wrap gap-2">
 				if data.IsSyndic {
-					<a class="btn btn-secondary" href="/directory/categories">Manage categories</a>
+					<a class="btn btn-secondary" href="/directory/categories">{ i18n.T(data.Locale, "directory.manage_categories") }</a>
 				}
-				<a class="btn btn-primary" href="/directory/new">Recommend a professional</a>
+				<a class="btn btn-primary" href="/directory/new">{ i18n.T(data.Locale, "directory.recommend") }</a>
 			</div>
 		</div>
 		if data.Flash != "" {
@@ -103,48 +119,48 @@ templ directoryBody(data DirectoryPageData) {
 		}
 		<form method="GET" action="/directory" class="card card-pad grid gap-4 md:grid-cols-2 lg:grid-cols-3 lg:items-end">
 			<div>
-				<label class="label" for="q">Search</label>
-				<input class="input" type="search" id="q" name="q" value={ data.Query } placeholder="Name, category, or notes"/>
+				<label class="label" for="q">{ i18n.T(data.Locale, "directory.search_label") }</label>
+				<input class="input" type="search" id="q" name="q" value={ data.Query } placeholder={ i18n.T(data.Locale, "directory.search_placeholder") }/>
 			</div>
 			<div>
-				<label class="label" for="category">Category</label>
+				<label class="label" for="category">{ i18n.T(data.Locale, "directory.category_label") }</label>
 				<select class="select" id="category" name="category">
-					<option value="">All categories</option>
+					<option value="">{ i18n.T(data.Locale, "directory.all_categories") }</option>
 					for _, c := range data.Categories {
 						<option value={ c.ID } selected={ c.ID == data.SelectedCategory }>{ c.Name }</option>
 					}
 				</select>
 			</div>
 			<div class="flex gap-2">
-				<button class="btn btn-primary" type="submit">Search</button>
-				<a class="btn btn-secondary" href="/directory">Clear</a>
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "common.search") }</button>
+				<a class="btn btn-secondary" href="/directory">{ i18n.T(data.Locale, "common.clear") }</a>
 			</div>
 		</form>
 		<section class="card">
 			<div class="border-b border-chrome-200 px-6 py-4">
-				<h2 class="text-lg font-bold text-ink-900">Listings</h2>
+				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "directory.listings") }</h2>
 			</div>
 			if len(data.Listings) == 0 {
 				<div class="empty-state">
 					<span class="flex h-12 w-12 items-center justify-center rounded-full bg-chrome-100 text-chrome-400">
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg>
 					</span>
-					<p class="empty-state-title">No listings found</p>
-					<p class="empty-state-copy">Adjust your search, or be the first to recommend a professional.</p>
-					<a class="btn btn-primary btn-sm mt-2" href="/directory/new">Recommend a professional</a>
+					<p class="empty-state-title">{ i18n.T(data.Locale, "directory.empty_title") }</p>
+					<p class="empty-state-copy">{ i18n.T(data.Locale, "directory.empty_copy") }</p>
+					<a class="btn btn-primary btn-sm mt-2" href="/directory/new">{ i18n.T(data.Locale, "directory.recommend") }</a>
 				</div>
 			} else {
 				<div class="table-wrap">
 					<table class="table">
 						<thead>
 							<tr>
-								<th>Professional</th>
-								<th>Category</th>
-								<th>Phone</th>
-								<th>Notes</th>
-								<th>Recommended by</th>
+								<th>{ i18n.T(data.Locale, "directory.col.professional") }</th>
+								<th>{ i18n.T(data.Locale, "common.category") }</th>
+								<th>{ i18n.T(data.Locale, "common.phone") }</th>
+								<th>{ i18n.T(data.Locale, "common.notes") }</th>
+								<th>{ i18n.T(data.Locale, "directory.col.recommended_by") }</th>
 								if data.IsSyndic {
-									<th class="text-right">Actions</th>
+									<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
 								}
 							</tr>
 						</thead>
@@ -155,12 +171,12 @@ templ directoryBody(data DirectoryPageData) {
 									<td><span class="badge badge-info">{ l.CategoryName }</span></td>
 									<td class="text-ink-700">{ l.Phone }</td>
 									<td class="text-ink-500">{ l.Notes }</td>
-									<td class="text-ink-500">Unit { l.UnitCode }</td>
+									<td class="text-ink-500">{ i18n.T(data.Locale, "directory.unit_prefix") } { l.UnitCode }</td>
 									if data.IsSyndic {
 										<td>
 											<div class="flex flex-wrap items-center justify-end gap-2">
-												<a class="btn btn-secondary btn-sm" href={ templ.URL("/directory/" + l.ID + "/edit") }>Edit</a>
-												<a class="btn btn-danger btn-sm" href={ templ.URL("/directory/" + l.ID + "/delete") }>Delete</a>
+												<a class="btn btn-secondary btn-sm" href={ templ.URL("/directory/" + l.ID + "/edit") }>{ i18n.T(data.Locale, "common.edit") }</a>
+												<a class="btn btn-danger btn-sm" href={ templ.URL("/directory/" + l.ID + "/delete") }>{ i18n.T(data.Locale, "common.delete") }</a>
 											</div>
 										</td>
 									}
@@ -175,7 +191,7 @@ templ directoryBody(data DirectoryPageData) {
 }
 
 templ ListingFormPage(data ListingFormData) {
-	@sharedtemplates.Layout("Recommend a professional", data.Shell, listingFormBody(data))
+	@sharedtemplates.Layout(i18n.T(data.Locale, "directory.recommend"), data.Locale, data.Shell, listingFormBody(data))
 }
 
 templ listingFormBody(data ListingFormData) {
@@ -183,11 +199,11 @@ templ listingFormBody(data ListingFormData) {
 		<div class="page-head">
 			<div>
 				if data.IsEdit {
-					<h1 class="page-title">Edit listing</h1>
-					<p class="page-subtitle">Update this recommended professional.</p>
+					<h1 class="page-title">{ i18n.T(data.Locale, "directory.edit_title") }</h1>
+					<p class="page-subtitle">{ i18n.T(data.Locale, "directory.edit_subtitle") }</p>
 				} else {
-					<h1 class="page-title">Recommend a professional</h1>
-					<p class="page-subtitle">Share a service professional you trust with your condominium.</p>
+					<h1 class="page-title">{ i18n.T(data.Locale, "directory.new_title") }</h1>
+					<p class="page-subtitle">{ i18n.T(data.Locale, "directory.new_subtitle") }</p>
 				}
 			</div>
 		</div>
@@ -203,11 +219,11 @@ templ listingFormBody(data ListingFormData) {
 				<input type="hidden" name="listing_id" value={ data.ListingID }/>
 			}
 			<div>
-				<label class="label" for="name">Professional name</label>
-				<input class="input" type="text" id="name" name="name" value={ data.Values.Name } required maxlength="120" placeholder="e.g. Ana's Plumbing"/>
+				<label class="label" for="name">{ i18n.T(data.Locale, "directory.professional_name") }</label>
+				<input class="input" type="text" id="name" name="name" value={ data.Values.Name } required maxlength="120" placeholder={ i18n.T(data.Locale, "directory.placeholder_name") }/>
 			</div>
 			<div>
-				<label class="label" for="category_id">Category</label>
+				<label class="label" for="category_id">{ i18n.T(data.Locale, "common.category") }</label>
 				<select class="select" id="category_id" name="category_id" required>
 					for _, c := range data.Categories {
 						<option value={ c.ID } selected={ c.ID == data.Values.CategoryID }>{ c.Name }</option>
@@ -215,39 +231,39 @@ templ listingFormBody(data ListingFormData) {
 				</select>
 			</div>
 			<div>
-				<label class="label" for="phone">Phone number</label>
+				<label class="label" for="phone">{ i18n.T(data.Locale, "directory.phone_number") }</label>
 				<input class="input" type="tel" id="phone" name="phone" value={ data.Values.Phone } required placeholder="+55 11 91234-5678"/>
 			</div>
 			<div>
-				<label class="label" for="notes">Notes (optional)</label>
+				<label class="label" for="notes">{ i18n.T(data.Locale, "directory.notes_optional") }</label>
 				<textarea class="input" id="notes" name="notes" rows="3" maxlength="500">{ data.Values.Notes }</textarea>
 			</div>
 			if data.DuplicateWarning != "" {
 				<div class="flex items-center gap-2">
 					<input type="checkbox" id="confirm_duplicate" name="confirm_duplicate" value="1"/>
-					<label class="text-sm text-ink-700" for="confirm_duplicate">I still want to save this listing</label>
+					<label class="text-sm text-ink-700" for="confirm_duplicate">{ i18n.T(data.Locale, "directory.confirm_duplicate") }</label>
 				</div>
 			}
 			<div class="flex gap-2">
 				<button class="btn btn-primary" type="submit">{ listingSubmitLabel(data) }</button>
-				<a class="btn btn-secondary" href="/directory">Cancel</a>
+				<a class="btn btn-secondary" href="/directory">{ i18n.T(data.Locale, "common.cancel") }</a>
 			</div>
 		</form>
 	</div>
 }
 
 templ CategoriesPage(data CategoriesPageData) {
-	@sharedtemplates.Layout("Directory categories", data.Shell, categoriesBody(data))
+	@sharedtemplates.Layout(i18n.T(data.Locale, "directory.categories_title"), data.Locale, data.Shell, categoriesBody(data))
 }
 
 templ categoriesBody(data CategoriesPageData) {
 	<div class="space-y-6">
 		<div class="page-head">
 			<div>
-				<h1 class="page-title">Directory categories</h1>
-				<p class="page-subtitle">Maintain the specialities residents can choose from.</p>
+				<h1 class="page-title">{ i18n.T(data.Locale, "directory.categories_title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "directory.categories_subtitle") }</p>
 			</div>
-			<a class="btn btn-secondary" href="/directory">Back to directory</a>
+			<a class="btn btn-secondary" href="/directory">{ i18n.T(data.Locale, "common.back_to_directory") }</a>
 		</div>
 		if data.Flash != "" {
 			<p class="alert alert-success">{ data.Flash }</p>
@@ -256,36 +272,36 @@ templ categoriesBody(data CategoriesPageData) {
 			<p class="alert alert-error">{ data.Error }</p>
 		}
 		<section class="card card-pad">
-			<h2 class="mb-4 text-lg font-bold text-ink-900">Add category</h2>
+			<h2 class="mb-4 text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "directory.add_category_heading") }</h2>
 			<form method="POST" action="/directory/categories" class="flex flex-col gap-2 sm:flex-row sm:items-end">
 				<input type="hidden" name="csrf_token" value={ data.CSRF }/>
 				<div class="flex-1">
-					<label class="label" for="name">Category name</label>
-					<input class="input" type="text" id="name" name="name" required maxlength="80" placeholder="e.g. Carpenter"/>
+					<label class="label" for="name">{ i18n.T(data.Locale, "directory.category_name") }</label>
+					<input class="input" type="text" id="name" name="name" required maxlength="80" placeholder={ i18n.T(data.Locale, "directory.placeholder_category") }/>
 				</div>
-				<button class="btn btn-primary" type="submit">Add category</button>
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "directory.add_category") }</button>
 			</form>
 		</section>
 		<section class="card">
 			<div class="border-b border-chrome-200 px-6 py-4">
-				<h2 class="text-lg font-bold text-ink-900">Categories</h2>
+				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "directory.categories_heading") }</h2>
 			</div>
 			if len(data.Categories) == 0 {
 				<div class="empty-state">
 					<span class="flex h-12 w-12 items-center justify-center rounded-full bg-chrome-100 text-chrome-400">
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1 1 0 0 1 .7.3l9 9a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-9-9A1 1 0 0 1 3 12V7a4 4 0 0 1 4-4z"/></svg>
 					</span>
-					<p class="empty-state-title">No categories yet</p>
-					<p class="empty-state-copy">Add the first category residents can pick from.</p>
+					<p class="empty-state-title">{ i18n.T(data.Locale, "directory.categories_empty_title") }</p>
+					<p class="empty-state-copy">{ i18n.T(data.Locale, "directory.categories_empty_copy") }</p>
 				</div>
 			} else {
 				<div class="table-wrap">
 					<table class="table">
 						<thead>
 							<tr>
-								<th>Name</th>
-								<th>Status</th>
-								<th class="text-right">Actions</th>
+								<th>{ i18n.T(data.Locale, "common.name") }</th>
+								<th>{ i18n.T(data.Locale, "common.status") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -294,22 +310,22 @@ templ categoriesBody(data CategoriesPageData) {
 									<td class="font-medium text-ink-800">{ c.Name }</td>
 									<td>
 										if c.Active {
-											<span class="badge badge-success">active</span>
+											<span class="badge badge-success">{ categoryStatusLabel(data.Locale, true) }</span>
 										} else {
-											<span class="badge badge-neutral">deactivated</span>
+											<span class="badge badge-neutral">{ categoryStatusLabel(data.Locale, false) }</span>
 										}
 									</td>
 									<td>
 										<div class="flex flex-wrap items-center justify-end gap-2">
 											<form method="POST" action={ templ.URL("/directory/categories/" + c.ID + "/rename") } class="flex items-center gap-1.5">
 												<input type="hidden" name="csrf_token" value={ data.CSRF }/>
-												<input class="input" type="text" name="name" value={ c.Name } maxlength="80" aria-label="New name"/>
-												<button class="btn btn-secondary btn-sm" type="submit">Rename</button>
+												<input class="input" type="text" name="name" value={ c.Name } maxlength="80" aria-label={ i18n.T(data.Locale, "directory.new_name_aria") }/>
+												<button class="btn btn-secondary btn-sm" type="submit">{ i18n.T(data.Locale, "directory.rename") }</button>
 											</form>
 											if c.Active {
 												<form method="POST" action={ templ.URL("/directory/categories/" + c.ID + "/deactivate") }>
 													<input type="hidden" name="csrf_token" value={ data.CSRF }/>
-													<button class="btn btn-danger btn-sm" type="submit">Deactivate</button>
+													<button class="btn btn-danger btn-sm" type="submit">{ i18n.T(data.Locale, "directory.deactivate") }</button>
 												</form>
 											}
 										</div>
@@ -325,41 +341,41 @@ templ categoriesBody(data CategoriesPageData) {
 }
 
 templ DeleteConfirmPage(data DeleteConfirmData) {
-	@sharedtemplates.Layout("Delete listing", data.Shell, deleteConfirmBody(data))
+	@sharedtemplates.Layout(i18n.T(data.Locale, "directory.delete_title"), data.Locale, data.Shell, deleteConfirmBody(data))
 }
 
 templ deleteConfirmBody(data DeleteConfirmData) {
 	<div class="max-w-2xl space-y-4">
 		<div class="page-head">
 			<div>
-				<h1 class="page-title">Delete listing</h1>
-				<p class="page-subtitle">Remove a recommended professional from the directory.</p>
+				<h1 class="page-title">{ i18n.T(data.Locale, "directory.delete_title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "directory.delete_subtitle") }</p>
 			</div>
 		</div>
-		<p class="alert alert-error">Deleting "{ data.Listing.Name }" removes it from the directory. This cannot be undone.</p>
+		<p class="alert alert-error">{ i18n.T(data.Locale, "directory.delete_warning_1") } "{ data.Listing.Name }" { i18n.T(data.Locale, "directory.delete_warning_2") }</p>
 		<section class="card card-pad">
 			<dl class="grid gap-3 text-sm">
 				<div class="grid grid-cols-3 gap-2">
-					<dt class="font-medium text-ink-500">Professional</dt>
+					<dt class="font-medium text-ink-500">{ i18n.T(data.Locale, "directory.col.professional") }</dt>
 					<dd class="col-span-2 text-ink-800">{ data.Listing.Name }</dd>
 				</div>
 				<div class="grid grid-cols-3 gap-2">
-					<dt class="font-medium text-ink-500">Category</dt>
+					<dt class="font-medium text-ink-500">{ i18n.T(data.Locale, "common.category") }</dt>
 					<dd class="col-span-2 text-ink-800">{ data.Listing.CategoryName }</dd>
 				</div>
 				<div class="grid grid-cols-3 gap-2">
-					<dt class="font-medium text-ink-500">Phone</dt>
+					<dt class="font-medium text-ink-500">{ i18n.T(data.Locale, "common.phone") }</dt>
 					<dd class="col-span-2 text-ink-800">{ data.Listing.Phone }</dd>
 				</div>
 				<div class="grid grid-cols-3 gap-2">
-					<dt class="font-medium text-ink-500">Recommended by</dt>
-					<dd class="col-span-2 text-ink-800">Unit { data.Listing.UnitCode }</dd>
+					<dt class="font-medium text-ink-500">{ i18n.T(data.Locale, "directory.col.recommended_by") }</dt>
+					<dd class="col-span-2 text-ink-800">{ i18n.T(data.Locale, "directory.unit_prefix") } { data.Listing.UnitCode }</dd>
 				</div>
 			</dl>
 			<form method="POST" action={ templ.URL("/directory/" + data.Listing.ID + "/delete") } class="mt-6 flex gap-2">
 				<input type="hidden" name="csrf_token" value={ data.CSRF }/>
-				<button class="btn btn-danger" type="submit">Delete listing</button>
-				<a class="btn btn-secondary" href="/directory">Cancel</a>
+				<button class="btn btn-danger" type="submit">{ i18n.T(data.Locale, "directory.delete_title") }</button>
+				<a class="btn btn-secondary" href="/directory">{ i18n.T(data.Locale, "common.cancel") }</a>
 			</form>
 		</section>
 	</div>

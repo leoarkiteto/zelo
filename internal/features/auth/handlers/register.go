@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"errors"
-	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"net/http"
 	"time"
 
 	"github.com/leoarkiteto/zelo/internal/features/auth/core/services"
 	"github.com/leoarkiteto/zelo/internal/features/auth/templates"
+	"github.com/leoarkiteto/zelo/internal/shared/httpx"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 )
 
@@ -28,6 +29,7 @@ func (h *Handler) registerGET(w http.ResponseWriter, r *http.Request) {
 		InvitedEmail: inv.InvitedEmail,
 		InvitedRole:  string(inv.InvitedRole),
 		CSRF:         csrf,
+		Locale:       i18n.Default(),
 	}))
 }
 
@@ -38,8 +40,9 @@ func (h *Handler) registerPOST(w http.ResponseWriter, r *http.Request) {
 	confirm := r.FormValue("password_confirm")
 
 	page := templates.RegisterPageData{
-		Token: token,
-		CSRF:  httpx.AnonymousCSRFValue(r),
+		Token:  token,
+		CSRF:   httpx.AnonymousCSRFValue(r),
+		Locale: i18n.Default(),
 	}
 	if password != confirm {
 		page.Error = "Passwords do not match."

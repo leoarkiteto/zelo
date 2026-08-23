@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"net/http"
 
 	"github.com/leoarkiteto/zelo/internal/features/directory/core/services"
@@ -14,9 +15,9 @@ import (
 func (h *Handler) directoryGET(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("q")
 	categoryID := r.URL.Query().Get("category")
-	data, err := h.directoryData(r, q, categoryID, flashMessage(r))
+	data, err := h.directoryData(r, q, categoryID, flashMessage(r, i18n.LanguageFrom(r.Context())))
 	if err != nil {
-		http.Error(w, "Failed to load directory", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.load_listings"), http.StatusInternalServerError)
 		return
 	}
 	httpx.Render(w, r, templates.DirectoryPage(data))
@@ -26,7 +27,7 @@ func (h *Handler) directoryGET(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) directoryNewGET(w http.ResponseWriter, r *http.Request) {
 	data, err := h.listingFormData(r, templates.ListingFormValues{}, false, "", "", "")
 	if err != nil {
-		http.Error(w, "Failed to load directory", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.load_listings"), http.StatusInternalServerError)
 		return
 	}
 	httpx.Render(w, r, templates.ListingFormPage(data))
@@ -54,22 +55,22 @@ func (h *Handler) directoryCreatePOST(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case duplicate:
 		h.renderListingForm(w, r, values, false, "",
-			"A listing with this phone number already exists. Tick the confirmation box to save it anyway.")
+			i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.duplicate"))
 		return
 	case errors.Is(err, services.ErrNoUnit):
-		h.renderListingForm(w, r, values, false, "You need an active unit in this condominium to recommend a professional.", "")
+		h.renderListingForm(w, r, values, false, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.no_unit"), "")
 		return
 	case errors.Is(err, services.ErrInvalidCategory):
-		h.renderListingForm(w, r, values, false, "Please choose a category from the list.", "")
+		h.renderListingForm(w, r, values, false, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.category"), "")
 		return
 	case errors.Is(err, services.ErrInvalidPhone):
-		h.renderListingForm(w, r, values, false, "Please enter a valid phone number (7-15 digits).", "")
+		h.renderListingForm(w, r, values, false, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.phone"), "")
 		return
 	case errors.Is(err, services.ErrInvalidListing):
-		h.renderListingForm(w, r, values, false, "Please complete all required fields.", "")
+		h.renderListingForm(w, r, values, false, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.required"), "")
 		return
 	case err != nil:
-		http.Error(w, "Failed to create listing", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.create_listing"), http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/directory?flash=listing-created", http.StatusSeeOther)
@@ -80,7 +81,7 @@ func (h *Handler) directoryEditGET(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	listing, err := h.directoryListingForCondominium(r, id)
 	if err != nil {
-		httpx.RenderError(w, r, http.StatusNotFound, "This listing is no longer available.")
+		httpx.RenderError(w, r, http.StatusNotFound, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.listing_gone"))
 		return
 	}
 	values := templates.ListingFormValues{
@@ -91,7 +92,7 @@ func (h *Handler) directoryEditGET(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := h.listingFormData(r, values, true, listing.ID, "", "")
 	if err != nil {
-		http.Error(w, "Failed to load directory", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.load_listings"), http.StatusInternalServerError)
 		return
 	}
 	httpx.Render(w, r, templates.ListingFormPage(data))
@@ -113,19 +114,19 @@ func (h *Handler) directoryEditPOST(w http.ResponseWriter, r *http.Request) {
 	})
 	switch {
 	case errors.Is(err, services.ErrNotFound):
-		httpx.RenderError(w, r, http.StatusNotFound, "This listing is no longer available.")
+		httpx.RenderError(w, r, http.StatusNotFound, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.listing_gone"))
 		return
 	case errors.Is(err, services.ErrInvalidCategory):
-		h.renderListingForm(w, r, values, true, "Please choose a category from the list.", "")
+		h.renderListingForm(w, r, values, true, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.category"), "")
 		return
 	case errors.Is(err, services.ErrInvalidPhone):
-		h.renderListingForm(w, r, values, true, "Please enter a valid phone number (7-15 digits).", "")
+		h.renderListingForm(w, r, values, true, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.phone"), "")
 		return
 	case errors.Is(err, services.ErrInvalidListing):
-		h.renderListingForm(w, r, values, true, "Please complete all required fields.", "")
+		h.renderListingForm(w, r, values, true, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.required"), "")
 		return
 	case err != nil:
-		http.Error(w, "Failed to update listing", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.update_listing"), http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/directory?flash=listing-updated", http.StatusSeeOther)
@@ -136,16 +137,17 @@ func (h *Handler) directoryDeleteConfirmGET(w http.ResponseWriter, r *http.Reque
 	id := r.PathValue("id")
 	listing, err := h.directoryListingForCondominium(r, id)
 	if err != nil {
-		httpx.RenderError(w, r, http.StatusNotFound, "This listing is no longer available.")
+		httpx.RenderError(w, r, http.StatusNotFound, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.listing_gone"))
 		return
 	}
 	shell, err := httpx.ShellData(r, h.deps.Roles, "/directory")
 	if err != nil {
-		http.Error(w, "Failed to load session", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.load_session"), http.StatusInternalServerError)
 		return
 	}
 	httpx.Render(w, r, templates.DeleteConfirmPage(templates.DeleteConfirmData{
 		Shell:   shell,
+		Locale:  i18n.LanguageFrom(r.Context()),
 		CSRF:    httpx.CurrentSession(r).CSRFToken,
 		Listing: listingView(listing),
 	}))
@@ -158,10 +160,10 @@ func (h *Handler) directoryDeletePOST(w http.ResponseWriter, r *http.Request) {
 	sess := httpx.CurrentSession(r)
 	if err := h.deps.Directory.DeleteListing(r.Context(), u.ID, id, sess.CondominiumID); err != nil {
 		if errors.Is(err, services.ErrNotFound) {
-			httpx.RenderError(w, r, http.StatusNotFound, "This listing is no longer available.")
+			httpx.RenderError(w, r, http.StatusNotFound, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.listing_gone"))
 			return
 		}
-		http.Error(w, "Failed to delete listing", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.delete_listing"), http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/directory?flash=listing-deleted", http.StatusSeeOther)
@@ -169,9 +171,9 @@ func (h *Handler) directoryDeletePOST(w http.ResponseWriter, r *http.Request) {
 
 // categoriesGET renders the syndic category management page.
 func (h *Handler) categoriesGET(w http.ResponseWriter, r *http.Request) {
-	data, err := h.categoriesData(r, "", flashMessage(r))
+	data, err := h.categoriesData(r, "", flashMessage(r, i18n.LanguageFrom(r.Context())))
 	if err != nil {
-		http.Error(w, "Failed to load categories", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.load_categories"), http.StatusInternalServerError)
 		return
 	}
 	httpx.Render(w, r, templates.CategoriesPage(data))
@@ -184,14 +186,14 @@ func (h *Handler) categoriesCreatePOST(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	if _, err := h.deps.Directory.CreateCategory(r.Context(), u.ID, sess.CondominiumID, name); err != nil {
 		if errors.Is(err, services.ErrDuplicate) {
-			h.renderCategoriesWithError(w, r, "A category with this name already exists.")
+			h.renderCategoriesWithError(w, r, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.category_duplicate"))
 			return
 		}
 		if errors.Is(err, services.ErrInvalidListing) {
-			h.renderCategoriesWithError(w, r, "Category name must be 1-80 characters.")
+			h.renderCategoriesWithError(w, r, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.category_name"))
 			return
 		}
-		http.Error(w, "Failed to add category", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.add_category"), http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/directory/categories?flash=category-added", http.StatusSeeOther)
@@ -206,13 +208,13 @@ func (h *Handler) categoriesRenamePOST(w http.ResponseWriter, r *http.Request) {
 	if err := h.deps.Directory.RenameCategory(r.Context(), u.ID, id, sess.CondominiumID, name); err != nil {
 		switch {
 		case errors.Is(err, services.ErrNotFound):
-			httpx.RenderError(w, r, http.StatusNotFound, "This category is no longer available.")
+			httpx.RenderError(w, r, http.StatusNotFound, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.category_gone"))
 		case errors.Is(err, services.ErrDuplicate):
-			h.renderCategoriesWithError(w, r, "A category with this name already exists.")
+			h.renderCategoriesWithError(w, r, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.category_duplicate"))
 		case errors.Is(err, services.ErrInvalidListing):
-			h.renderCategoriesWithError(w, r, "Category name must be 1-80 characters.")
+			h.renderCategoriesWithError(w, r, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.category_name"))
 		default:
-			http.Error(w, "Failed to rename category", http.StatusInternalServerError)
+			http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.rename_category"), http.StatusInternalServerError)
 		}
 		return
 	}
@@ -226,10 +228,10 @@ func (h *Handler) categoriesDeactivatePOST(w http.ResponseWriter, r *http.Reques
 	id := r.PathValue("id")
 	if err := h.deps.Directory.DeactivateCategory(r.Context(), u.ID, id, sess.CondominiumID); err != nil {
 		if errors.Is(err, services.ErrNotFound) {
-			httpx.RenderError(w, r, http.StatusNotFound, "This category is no longer available.")
+			httpx.RenderError(w, r, http.StatusNotFound, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.category_gone"))
 			return
 		}
-		http.Error(w, "Failed to deactivate category", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.deactivate_category"), http.StatusInternalServerError)
 		return
 	}
 	http.Redirect(w, r, "/directory/categories?flash=category-deactivated", http.StatusSeeOther)
@@ -261,6 +263,7 @@ func (h *Handler) directoryData(r *http.Request, query, categoryID, flash string
 	}
 	return templates.DirectoryPageData{
 		Shell:            shell,
+		Locale:           i18n.LanguageFrom(r.Context()),
 		CSRF:             sess.CSRFToken,
 		Listings:         views,
 		Categories:       categoryOptions(categories),
@@ -274,7 +277,7 @@ func (h *Handler) directoryData(r *http.Request, query, categoryID, flash string
 func (h *Handler) renderListingForm(w http.ResponseWriter, r *http.Request, values templates.ListingFormValues, isEdit bool, errorMsg, duplicateWarning string) {
 	data, err := h.listingFormData(r, values, isEdit, r.PathValue("id"), errorMsg, duplicateWarning)
 	if err != nil {
-		http.Error(w, "Failed to load directory", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.load_listings"), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusBadRequest)
@@ -293,6 +296,7 @@ func (h *Handler) listingFormData(r *http.Request, values templates.ListingFormV
 	}
 	return templates.ListingFormData{
 		Shell:            shell,
+		Locale:           i18n.LanguageFrom(r.Context()),
 		CSRF:             sess.CSRFToken,
 		Categories:       categoryOptions(categories),
 		Values:           values,
@@ -317,13 +321,13 @@ func (h *Handler) categoriesData(r *http.Request, errorMsg, flash string) (templ
 	for _, c := range categories {
 		views = append(views, templates.CategoryView{ID: c.ID, Name: c.Name, Active: c.Active})
 	}
-	return templates.CategoriesPageData{Shell: shell, CSRF: sess.CSRFToken, Categories: views, Error: errorMsg, Flash: flash}, nil
+	return templates.CategoriesPageData{Shell: shell, Locale: i18n.LanguageFrom(r.Context()), CSRF: sess.CSRFToken, Categories: views, Error: errorMsg, Flash: flash}, nil
 }
 
 func (h *Handler) renderCategoriesWithError(w http.ResponseWriter, r *http.Request, message string) {
 	data, err := h.categoriesData(r, message, "")
 	if err != nil {
-		http.Error(w, "Failed to load categories", http.StatusInternalServerError)
+		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "directory.error.load_categories"), http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusBadRequest)
@@ -377,20 +381,20 @@ func categoryOptions(categories []model.ServiceCategory) []templates.CategoryOpt
 }
 
 // flashMessage maps a ?flash= query value to a user-facing confirmation.
-func flashMessage(r *http.Request) string {
+func flashMessage(r *http.Request, locale i18n.Language) string {
 	switch r.URL.Query().Get("flash") {
 	case "listing-created":
-		return "Listing added to the directory."
+		return i18n.T(locale, "directory.flash.created")
 	case "listing-updated":
-		return "Listing updated."
+		return i18n.T(locale, "directory.flash.updated")
 	case "listing-deleted":
-		return "Listing deleted."
+		return i18n.T(locale, "directory.flash.deleted")
 	case "category-added":
-		return "Category added."
+		return i18n.T(locale, "directory.flash.category_added")
 	case "category-renamed":
-		return "Category renamed."
+		return i18n.T(locale, "directory.flash.category_renamed")
 	case "category-deactivated":
-		return "Category deactivated."
+		return i18n.T(locale, "directory.flash.category_deactivated")
 	default:
 		return ""
 	}

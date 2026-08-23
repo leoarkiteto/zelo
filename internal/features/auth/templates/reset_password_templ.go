@@ -8,12 +8,17 @@ package templates
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+import (
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
 
 type ResetPasswordPageData struct {
-	Token string
-	CSRF  string
-	Error string
+	Token  string
+	CSRF   string
+	Error  string
+	Locale i18n.Language
 }
 
 func ResetPasswordPage(data ResetPasswordPageData) templ.Component {
@@ -37,7 +42,7 @@ func ResetPasswordPage(data ResetPasswordPageData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = sharedtemplates.Layout("Reset password", nil, resetPasswordBody(data)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = sharedtemplates.Layout(i18n.T(data.Locale, "auth.reset_password"), data.Locale, nil, resetPasswordBody(data)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -66,7 +71,7 @@ func resetPasswordBody(data ResetPasswordPageData) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = AuthShell("Choose a new password", "Your new password must be at least 12 characters.", resetPasswordForm(data)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = AuthShell(i18n.T(data.Locale, "auth.choose_new_password"), i18n.T(data.Locale, "auth.password_min_hint"), resetPasswordForm(data)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -103,7 +108,7 @@ func resetPasswordForm(data ResetPasswordPageData) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(data.Error)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 21, Col: 43}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 26, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -121,7 +126,7 @@ func resetPasswordForm(data ResetPasswordPageData) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Token)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 24, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 29, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 		if templ_7745c5c3_Err != nil {
@@ -134,13 +139,78 @@ func resetPasswordForm(data ResetPasswordPageData) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CSRF)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 25, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 30, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"><div><label class=\"label\" for=\"password\">New password</label> <input class=\"input\" type=\"password\" id=\"password\" name=\"password\" minlength=\"12\" placeholder=\"At least 12 characters\" autocomplete=\"new-password\" required></div><button class=\"btn btn-primary btn-block\" type=\"submit\">Set new password</button></form><p class=\"mt-4 text-center text-sm text-ink-500\">Remembered it? <a class=\"font-medium text-steel-600 hover:text-steel-700\" href=\"/login\">Sign in</a></p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"><div><label class=\"label\" for=\"password\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var7 string
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "auth.new_password"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 32, Col: 81}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</label> <input class=\"input\" type=\"password\" id=\"password\" name=\"password\" minlength=\"12\" placeholder=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var8 string
+		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "auth.password_hint"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 33, Col: 140}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" autocomplete=\"new-password\" required></div><button class=\"btn btn-primary btn-block\" type=\"submit\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var9 string
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "auth.set_new_password"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 35, Col: 104}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</button></form><p class=\"mt-4 text-center text-sm text-ink-500\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var10 string
+		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "auth.remembered_it"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 38, Col: 45}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, " <a class=\"font-medium text-steel-600 hover:text-steel-700\" href=\"/login\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var11 string
+		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "auth.sign_in"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/reset_password.templ`, Line: 38, Col: 158}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</a></p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

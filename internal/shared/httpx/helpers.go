@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/a-h/templ"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
@@ -18,10 +19,15 @@ func Render(w http.ResponseWriter, r *http.Request, comp templ.Component) {
 	}
 }
 
-// RenderError renders the shared error page with the given status and message.
+// RenderError renders the shared error page with the given status and message
+// in the request's resolved interface language.
 func RenderError(w http.ResponseWriter, r *http.Request, status int, message string) {
 	w.WriteHeader(status)
-	Render(w, r, templates.ErrorPage(templates.ErrorPageData{Status: status, Message: message}))
+	Render(w, r, templates.ErrorPage(templates.ErrorPageData{
+		Status:  status,
+		Message: message,
+		Locale:  i18n.LanguageFrom(r.Context()),
+	}))
 }
 
 // SetAnonymousCSRF issues a double-submit CSRF cookie for public forms and

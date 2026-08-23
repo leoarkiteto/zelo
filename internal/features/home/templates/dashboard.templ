@@ -1,6 +1,10 @@
 package templates
 
-import sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+import (
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
 
 // QuickAction is a dashboard quick-action card.
 type QuickAction struct {
@@ -12,6 +16,7 @@ type QuickAction struct {
 
 type DashboardData struct {
 	Shell        *sharedtemplates.ShellData
+	Locale       i18n.Language
 	Greeting     string
 	Name         string
 	Date         string
@@ -20,7 +25,7 @@ type DashboardData struct {
 }
 
 templ DashboardPage(data DashboardData) {
-	@sharedtemplates.Layout("Dashboard", data.Shell, dashboardBody(data))
+	@sharedtemplates.Layout(i18n.T(data.Locale, "nav.dashboard"), data.Locale, data.Shell, dashboardBody(data))
 }
 
 templ dashboardBody(data DashboardData) {
@@ -28,14 +33,14 @@ templ dashboardBody(data DashboardData) {
 		<section class="rounded-lg border border-steel-200 bg-canvas-blue p-6 md:p-8">
 			<p class="text-sm font-medium text-steel-700">{ data.Greeting }, { data.Name }</p>
 			<p class="mt-0.5 text-xs text-ink-500">{ data.Date }</p>
-			<h1 class="mt-4 text-2xl font-bold tracking-tight text-ink-900">Manage your condominium in one place.</h1>
+			<h1 class="mt-4 text-2xl font-bold tracking-tight text-ink-900">{ i18n.T(data.Locale, "home.dashboard_title") }</h1>
 			<p class="mt-2 max-w-2xl text-sm leading-relaxed text-ink-600">
-				Access your areas, manage roles and invitations, and keep track of your unit or tenancy — all from one dashboard.
+				{ i18n.T(data.Locale, "home.dashboard_subtitle") }
 			</p>
 			<div class="mt-5">
 				if len(data.QuickActions) > 0 {
 					<a class="btn btn-primary" href={ data.QuickActions[0].Path }>
-						Get started
+						{ i18n.T(data.Locale, "home.get_started") }
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
 					</a>
 				}
@@ -43,7 +48,7 @@ templ dashboardBody(data DashboardData) {
 		</section>
 
 		<section>
-			<h2 class="mb-3 text-lg font-bold text-ink-900">Quick actions</h2>
+			<h2 class="mb-3 text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "home.quick_actions") }</h2>
 			<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				for _, action := range data.QuickActions {
 					<a class="quick-card" href={ action.Path }>
@@ -58,7 +63,7 @@ templ dashboardBody(data DashboardData) {
 		</section>
 
 		<section class="card card-pad">
-			<h2 class="mb-3 text-lg font-bold text-ink-900">Your roles</h2>
+			<h2 class="mb-3 text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "home.your_roles") }</h2>
 			<div class="flex flex-wrap gap-2">
 				for _, role := range data.Roles {
 					<span class={ sharedtemplates.RoleBadgeClass(role) }>{ role }</span>
