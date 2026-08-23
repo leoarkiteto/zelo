@@ -14,6 +14,7 @@ type Config struct {
 	PasswordPepper string
 	AppEnv         string
 	HTTPAddr       string
+	UploadDir      string
 }
 
 // Load reads configuration from the environment and validates required values.
@@ -24,12 +25,16 @@ func Load() (Config, error) {
 		PasswordPepper: os.Getenv("PASSWORD_PEPPER"),
 		AppEnv:         os.Getenv("APP_ENV"),
 		HTTPAddr:       os.Getenv("HTTP_ADDR"),
+		UploadDir:      os.Getenv("UPLOAD_DIR"),
 	}
 	if cfg.HTTPAddr == "" {
 		cfg.HTTPAddr = ":8080"
 	}
 	if cfg.AppEnv == "" {
 		cfg.AppEnv = "development"
+	}
+	if cfg.UploadDir == "" {
+		cfg.UploadDir = "uploads"
 	}
 
 	var errs []error

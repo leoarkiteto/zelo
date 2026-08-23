@@ -1,0 +1,402 @@
+package templates
+
+import (
+	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+)
+
+templ FinancePage(data FinancePageData) {
+	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.title"), data.Locale, data.Shell, financeBody(data))
+}
+
+templ financeBody(data FinancePageData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "finance.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "finance.subtitle") }</p>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<a class="btn btn-secondary" href="/finance/new?type=receivable">{ i18n.T(data.Locale, "finance.new_receivable") }</a>
+				<a class="btn btn-primary" href="/finance/new?type=payable">{ i18n.T(data.Locale, "finance.new_payable") }</a>
+			</div>
+		</div>
+		if data.Flash != "" {
+			<p class="alert alert-success">{ data.Flash }</p>
+		}
+		<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+			<div class="card card-pad">
+				<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "finance.dashboard.total_receivable") }</p>
+				<p class="text-2xl font-bold text-ink-900">{ data.Summary.TotalReceivable }</p>
+			</div>
+			<div class="card card-pad">
+				<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "finance.dashboard.total_payable") }</p>
+				<p class="text-2xl font-bold text-ink-900">{ data.Summary.TotalPayable }</p>
+			</div>
+			<div class="card card-pad">
+				<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "finance.dashboard.projected_balance") }</p>
+				<p class="text-2xl font-bold text-ink-900">{ data.Summary.ProjectedBalance }</p>
+			</div>
+			<div class="card card-pad">
+				<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "finance.dashboard.realized_balance") }</p>
+				<p class="text-2xl font-bold text-ink-900">{ data.Summary.RealizedBalance }</p>
+			</div>
+		</section>
+		<form method="GET" action="/finance" class="card card-pad grid gap-4 md:grid-cols-2 lg:grid-cols-5 lg:items-end">
+			<div>
+				<label class="label" for="q">{ i18n.T(data.Locale, "common.search") }</label>
+				<input class="input" type="search" id="q" name="q" value={ data.Query } placeholder={ i18n.T(data.Locale, "finance.search_placeholder") }/>
+			</div>
+			<div>
+				<label class="label" for="type">{ i18n.T(data.Locale, "finance.type") }</label>
+				<select class="select" id="type" name="type">
+					<option value="">{ i18n.T(data.Locale, "finance.type_all") }</option>
+					for _, t := range data.Types {
+						<option value={ t.Key } selected={ data.Type == t.Key }>{ t.Label }</option>
+					}
+				</select>
+			</div>
+			<div>
+				<label class="label" for="category">{ i18n.T(data.Locale, "common.category") }</label>
+				<select class="select" id="category" name="category">
+					<option value="">{ i18n.T(data.Locale, "finance.category_all") }</option>
+					for _, c := range data.Categories {
+						<option value={ c.Key } selected={ data.Category == c.Key }>{ c.Label }</option>
+					}
+				</select>
+			</div>
+			<div>
+				<label class="label" for="status">{ i18n.T(data.Locale, "common.status") }</label>
+				<select class="select" id="status" name="status">
+					<option value="">{ i18n.T(data.Locale, "finance.status_all") }</option>
+					for _, s := range data.Statuses {
+						<option value={ s.Key } selected={ data.Status == s.Key }>{ s.Label }</option>
+					}
+				</select>
+			</div>
+			<div>
+				<label class="label" for="period">{ i18n.T(data.Locale, "finance.period") }</label>
+				<input class="input" type="month" id="period" name="period" value={ data.Period }/>
+			</div>
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "common.search") }</button>
+				<a class="btn btn-secondary" href="/finance">{ i18n.T(data.Locale, "common.clear") }</a>
+			</div>
+		</form>
+		<section class="card">
+			<div class="border-b border-chrome-200 px-6 py-4">
+				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "finance.title") }</h2>
+			</div>
+			if len(data.Accounts) == 0 {
+				<div class="empty-state">
+					<p class="empty-state-title">{ i18n.T(data.Locale, "finance.empty_title") }</p>
+					<p class="empty-state-copy">{ i18n.T(data.Locale, "finance.empty_copy") }</p>
+					<a class="btn btn-primary btn-sm mt-2" href="/finance/new?type=payable">{ i18n.T(data.Locale, "finance.new_payable") }</a>
+				</div>
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "finance.col.title") }</th>
+								<th>{ i18n.T(data.Locale, "finance.col.category") }</th>
+								<th>{ i18n.T(data.Locale, "finance.col.amount") }</th>
+								<th>{ i18n.T(data.Locale, "finance.col.due_date") }</th>
+								<th>{ i18n.T(data.Locale, "finance.col.status") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, a := range data.Accounts {
+								<tr>
+									<td class="font-medium text-ink-800">{ a.Title }</td>
+									<td><span class="badge badge-info">{ a.CategoryLabel }</span></td>
+									<td class="text-ink-700">{ a.Amount }</td>
+									<td class="text-ink-700">{ a.DueDate }</td>
+									<td><span class={ "badge " + statusBadge(a.EffectiveStatus) }>{ a.StatusLabel }</span></td>
+									<td>
+										<div class="flex flex-wrap items-center justify-end gap-2">
+											if a.EffectiveStatus == domain.StatusPending || a.EffectiveStatus == domain.StatusOverdue {
+												<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/settle") }>{ i18n.T(data.Locale, "finance.settle") }</a>
+												<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/edit") }>{ i18n.T(data.Locale, "common.edit") }</a>
+												<a class="btn btn-danger btn-sm" href={ templ.URL("/finance/" + a.ID + "/cancel") }>{ i18n.T(data.Locale, "common.delete") }</a>
+											}
+											if a.HasReceipt {
+												<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/receipt") }>PDF</a>
+											}
+										</div>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	</div>
+}
+
+templ FinanceFormPage(data FinanceFormData) {
+	@sharedtemplates.Layout(formTitle(data), data.Locale, data.Shell, financeFormBody(data))
+}
+
+templ financeFormBody(data FinanceFormData) {
+	<div class="max-w-2xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ formTitle(data) }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "finance.subtitle") }</p>
+			</div>
+		</div>
+		if data.Error != "" {
+			<p class="alert alert-error">{ data.Error }</p>
+		}
+		<form method="POST" action={ templ.URL(formAction(data)) } enctype="multipart/form-data" class="card card-pad grid gap-4">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			if data.IsEdit {
+				<input type="hidden" name="type" value={ string(data.AccountType) }/>
+			} else {
+				<div>
+					<label class="label" for="type">{ i18n.T(data.Locale, "finance.type") }</label>
+					<select class="select" id="type" name="type" required>
+						for _, t := range typeOptions(data.Locale) {
+							<option value={ t.Key } selected={ data.Values.Type == t.Key }>{ t.Label }</option>
+						}
+					</select>
+				</div>
+			}
+			<div>
+				<label class="label" for="title">{ i18n.T(data.Locale, "finance.col.title") }</label>
+				<input class="input" type="text" id="title" name="title" value={ data.Values.Title } required maxlength="120"/>
+			</div>
+			<div>
+				<label class="label" for="category">{ i18n.T(data.Locale, "common.category") }</label>
+				<select class="select" id="category" name="category" required>
+					for _, c := range data.Categories {
+						<option value={ c.Key } selected={ data.Values.Category == c.Key }>{ c.Label }</option>
+					}
+				</select>
+			</div>
+			<div class="grid gap-4 md:grid-cols-2">
+				<div>
+					<label class="label" for="amount">{ i18n.T(data.Locale, "finance.amount") }</label>
+					<input class="input" type="text" id="amount" name="amount" value={ data.Values.Amount } required inputmode="decimal" placeholder="350.00"/>
+				</div>
+				<div>
+					<label class="label" for="due_date">{ i18n.T(data.Locale, "finance.due_date") }</label>
+					<input class="input" type="date" id="due_date" name="due_date" value={ data.Values.DueDate } required/>
+				</div>
+			</div>
+			if !data.IsEdit {
+				<div class="grid gap-4 md:grid-cols-2">
+					<div>
+						<label class="label" for="status">{ i18n.T(data.Locale, "finance.initial_status") }</label>
+						<select class="select" id="status" name="status">
+							<option value="pending" selected={ data.Values.Status == "" || data.Values.Status == "pending" }>{ i18n.T(data.Locale, "finance.status.pending") }</option>
+							<option value="settled" selected={ data.Values.Status == "settled" }>{ i18n.T(data.Locale, "finance.status.settled") }</option>
+						</select>
+					</div>
+					<div>
+						<label class="label" for="settlement_date">{ i18n.T(data.Locale, "finance.settlement_date") }</label>
+						<input class="input" type="date" id="settlement_date" name="settlement_date" value={ data.Values.SettlementDate }/>
+					</div>
+				</div>
+			}
+			if data.AccountType == domain.AccountTypePayable {
+				<div>
+					<label class="label" for="supplier_payee">{ i18n.T(data.Locale, "finance.supplier_payee") }</label>
+					<input class="input" type="text" id="supplier_payee" name="supplier_payee" value={ data.Values.SupplierPayee } maxlength="120"/>
+				</div>
+				<div>
+					<label class="label" for="receipt">{ i18n.T(data.Locale, "finance.receipt") }</label>
+					<input class="input" type="file" id="receipt" name="receipt" accept="application/pdf,image/jpeg,image/png"/>
+				</div>
+			} else {
+				<div>
+					<label class="label" for="unit_id">{ i18n.T(data.Locale, "finance.unit_responsible") }</label>
+					<select class="select" id="unit_id" name="unit_id">
+						<option value="">—</option>
+						for _, u := range data.Units {
+							<option value={ u.ID } selected={ data.Values.UnitID == u.ID }>{ u.Code }</option>
+						}
+					</select>
+				</div>
+				<div>
+					<label class="label" for="payment_code">{ i18n.T(data.Locale, "finance.payment_code") }</label>
+					<input class="input" type="text" id="payment_code" name="payment_code" value={ data.Values.PaymentCode } maxlength="200"/>
+				</div>
+			}
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">{ submitLabel(data) }</button>
+				<a class="btn btn-secondary" href="/finance">{ i18n.T(data.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+	</div>
+}
+
+templ SettlePage(data SettleData) {
+	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.settle"), data.Locale, data.Shell, settleBody(data))
+}
+
+templ settleBody(data SettleData) {
+	<div class="max-w-xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "finance.settle") }</h1>
+				<p class="page-subtitle">{ data.Account.Title } · { data.Account.Amount }</p>
+			</div>
+		</div>
+		if data.Error != "" {
+			<p class="alert alert-error">{ data.Error }</p>
+		}
+		<form method="POST" action={ templ.URL("/finance/" + data.Account.ID + "/settle") } class="card card-pad grid gap-4">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			<div>
+				<label class="label" for="settlement_date">{ i18n.T(data.Locale, "finance.settlement_date") }</label>
+				<input class="input" type="date" id="settlement_date" name="settlement_date" required/>
+			</div>
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "finance.settle_confirm") }</button>
+				<a class="btn btn-secondary" href="/finance">{ i18n.T(data.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+	</div>
+}
+
+templ CancelPage(data CancelData) {
+	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.cancel_confirm_title"), data.Locale, data.Shell, cancelBody(data))
+}
+
+templ cancelBody(data CancelData) {
+	<div class="max-w-xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "finance.cancel_confirm_title") }</h1>
+				<p class="page-subtitle">{ data.Account.Title } · { data.Account.Amount }</p>
+			</div>
+		</div>
+		if data.Error != "" {
+			<p class="alert alert-error">{ data.Error }</p>
+		}
+		<p class="text-ink-700">{ i18n.T(data.Locale, "finance.cancel_confirm_copy") }</p>
+		<form method="POST" action={ templ.URL("/finance/" + data.Account.ID + "/cancel") } class="card card-pad flex gap-2">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			<button class="btn btn-danger" type="submit">{ i18n.T(data.Locale, "finance.cancel") }</button>
+			<a class="btn btn-secondary" href="/finance">{ i18n.T(data.Locale, "common.cancel") }</a>
+		</form>
+	</div>
+}
+
+templ ChargesPage(data ChargesPageData) {
+	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.my_charges_title"), data.Locale, data.Shell, chargesBody(data))
+}
+
+templ chargesBody(data ChargesPageData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "finance.my_charges_title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "finance.my_charges_subtitle") }</p>
+			</div>
+		</div>
+		if data.NoUnit {
+			<p class="alert alert-info">{ i18n.T(data.Locale, "finance.no_unit") }</p>
+		} else if len(data.Charges) == 0 {
+			<div class="empty-state">
+				<p class="empty-state-title">{ i18n.T(data.Locale, "finance.my_charges_empty") }</p>
+			</div>
+		} else {
+			<section class="card">
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "finance.col.title") }</th>
+								<th>{ i18n.T(data.Locale, "finance.col.category") }</th>
+								<th>{ i18n.T(data.Locale, "finance.col.amount") }</th>
+								<th>{ i18n.T(data.Locale, "finance.col.due_date") }</th>
+								<th>{ i18n.T(data.Locale, "finance.col.status") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, c := range data.Charges {
+								<tr>
+									<td class="font-medium text-ink-800">{ c.Title }</td>
+									<td><span class="badge badge-info">{ c.CategoryLabel }</span></td>
+									<td class="text-ink-700">{ c.Amount }</td>
+									<td class="text-ink-700">{ c.DueDate }</td>
+									<td><span class={ "badge " + statusBadge(c.EffectiveStatus) }>{ c.StatusLabel }</span></td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</section>
+		}
+	</div>
+}
+
+templ HealthPage(data HealthPageData) {
+	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.health_title"), data.Locale, data.Shell, healthBody(data))
+}
+
+templ healthBody(data HealthPageData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "finance.health_title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "finance.health_subtitle") }</p>
+			</div>
+		</div>
+		<form method="GET" action="/finance/health" class="card card-pad flex flex-wrap items-end gap-2">
+			<div>
+				<label class="label" for="period">{ i18n.T(data.Locale, "finance.period") }</label>
+				<input class="input" type="month" id="period" name="period" value={ data.Period }/>
+			</div>
+			<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "common.search") }</button>
+		</form>
+		if data.Empty {
+			<p class="alert alert-info">{ i18n.T(data.Locale, "finance.health.empty") }</p>
+		} else {
+			<section class="grid gap-4 md:grid-cols-2">
+				<div class="card card-pad">
+					<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "finance.health.total_spent") }</p>
+					<p class="text-2xl font-bold text-ink-900">{ data.TotalSpent }</p>
+				</div>
+				<div class="card card-pad">
+					<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "finance.health.total_collected") }</p>
+					<p class="text-2xl font-bold text-ink-900">{ data.TotalCollected }</p>
+				</div>
+			</section>
+		}
+	</div>
+}
+
+func formAction(data FinanceFormData) string {
+	if data.IsEdit {
+		return "/finance/" + data.AccountID + "/edit"
+	}
+	return "/finance"
+}
+
+func formTitle(data FinanceFormData) string {
+	if data.IsEdit {
+		return i18n.T(data.Locale, "finance.edit")
+	}
+	if data.AccountType == domain.AccountTypeReceivable {
+		return i18n.T(data.Locale, "finance.new_title_receivable")
+	}
+	return i18n.T(data.Locale, "finance.new_title_payable")
+}
+
+func submitLabel(data FinanceFormData) string {
+	if data.IsEdit {
+		return i18n.T(data.Locale, "common.save_changes")
+	}
+	return i18n.T(data.Locale, "finance.create")
+}
+
+func typeOptions(locale i18n.Language) []TypeOption {
+	return TypeOptions(locale)
+}

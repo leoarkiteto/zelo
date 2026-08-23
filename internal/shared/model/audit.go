@@ -19,6 +19,10 @@ const (
 	AuditCategoryCreated     AuditEventType = "category_created"
 	AuditCategoryRenamed     AuditEventType = "category_renamed"
 	AuditCategoryDeactivated AuditEventType = "category_deactivated"
+	AuditAccountCreated      AuditEventType = "account_created"
+	AuditAccountEdited       AuditEventType = "account_edited"
+	AuditAccountSettled      AuditEventType = "account_settled"
+	AuditAccountCanceled     AuditEventType = "account_canceled"
 )
 
 // Valid reports whether t is a supported audit event type.
@@ -27,7 +31,8 @@ func (t AuditEventType) Valid() bool {
 	case AuditSignIn, AuditFailedSignIn, AuditSignOut, AuditAccountLocked,
 		AuditRoleGranted, AuditRoleRevoked, AuditAccessDenied,
 		AuditListingCreated, AuditListingEdited, AuditListingDeleted,
-		AuditCategoryCreated, AuditCategoryRenamed, AuditCategoryDeactivated:
+		AuditCategoryCreated, AuditCategoryRenamed, AuditCategoryDeactivated,
+		AuditAccountCreated, AuditAccountEdited, AuditAccountSettled, AuditAccountCanceled:
 		return true
 	default:
 		return false

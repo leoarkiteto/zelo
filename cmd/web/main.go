@@ -16,6 +16,9 @@ import (
 	directoryhandlers "github.com/leoarkiteto/zelo/internal/features/directory/handlers"
 	dirservices "github.com/leoarkiteto/zelo/internal/features/directory/core/services"
 	"github.com/leoarkiteto/zelo/internal/features/directory/repositories"
+	financehandlers "github.com/leoarkiteto/zelo/internal/features/finance/handlers"
+	financerepositories "github.com/leoarkiteto/zelo/internal/features/finance/repositories"
+	financeservices "github.com/leoarkiteto/zelo/internal/features/finance/core/services"
 	homehandlers "github.com/leoarkiteto/zelo/internal/features/home/handlers"
 	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
 	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/core/services"
@@ -72,6 +75,7 @@ func main() {
 	audit := store.NewAuditStore(db)
 	listings := repositories.NewListingStore(db)
 	categories := repositories.NewCategoryStore(db)
+	financeAccounts := financerepositories.NewAccountStore(db)
 
 	hasher := security.NewPasswordHasher(cfg.PasswordPepper)
 	tokens := security.TokenHasher{}
@@ -112,6 +116,20 @@ func main() {
 		RoleService: &mgmtservices.RoleService{Roles: roles, Audit: audit},
 	}
 	homeDeps := homehandlers.Deps{Roles: roles, Audit: audit}
+	financeDeps := financehandlers.Deps{
+		Roles:     roles,
+		Audit:     audit,
+		Accounts:  financeAccounts,
+		Units:     units,
+		UploadDir: cfg.UploadDir,
+		Finance: &financeservices.FinanceService{
+			Accounts:  financeAccounts,
+			Summaries: financeAccounts,
+			Units:     units,
+			Audit:     audit,
+			Now:       time.Now,
+		},
+	}
 	profileDeps := profilehandlers.Deps{
 		Logger: logger,
 		Roles:  roles,
@@ -127,6 +145,7 @@ func main() {
 	directoryhandlers.RegisterRoutes(mux, directoryDeps)
 	managementhandlers.RegisterRoutes(mux, managementDeps)
 	profilehandlers.RegisterRoutes(mux, profileDeps)
+	financehandlers.RegisterRoutes(mux, financeDeps)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
 	var root http.Handler = mux
