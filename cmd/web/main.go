@@ -11,19 +11,19 @@ import (
 	"syscall"
 	"time"
 
-	authhandlers "github.com/leoarkiteto/zelo/internal/features/auth/handlers"
 	authservices "github.com/leoarkiteto/zelo/internal/features/auth/core/services"
-	directoryhandlers "github.com/leoarkiteto/zelo/internal/features/directory/handlers"
+	authhandlers "github.com/leoarkiteto/zelo/internal/features/auth/handlers"
 	dirservices "github.com/leoarkiteto/zelo/internal/features/directory/core/services"
+	directoryhandlers "github.com/leoarkiteto/zelo/internal/features/directory/handlers"
 	"github.com/leoarkiteto/zelo/internal/features/directory/repositories"
+	financeservices "github.com/leoarkiteto/zelo/internal/features/finance/core/services"
 	financehandlers "github.com/leoarkiteto/zelo/internal/features/finance/handlers"
 	financerepositories "github.com/leoarkiteto/zelo/internal/features/finance/repositories"
-	financeservices "github.com/leoarkiteto/zelo/internal/features/finance/core/services"
 	homehandlers "github.com/leoarkiteto/zelo/internal/features/home/handlers"
-	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
 	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/core/services"
-	profilehandlers "github.com/leoarkiteto/zelo/internal/features/profile/handlers"
+	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
 	profileservices "github.com/leoarkiteto/zelo/internal/features/profile/core/services"
+	profilehandlers "github.com/leoarkiteto/zelo/internal/features/profile/handlers"
 	"github.com/leoarkiteto/zelo/internal/shared/config"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
@@ -32,7 +32,7 @@ import (
 
 func main() {
 	migrateOnly := flag.Bool("migrate", false, "apply migrations and exit")
-	seed := flag.Bool("seed", false, "bootstrap the first condominium and syndic (development only)")
+	seed := flag.Bool("seed", false, "populate the database with realistic development seed data (idempotent, development only)")
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
@@ -59,11 +59,14 @@ func main() {
 		return
 	}
 	if *seed {
-		if err := seedFirstCondominium(ctx, logger, db, cfg.PasswordPepper); err != nil {
+		if cfg.IsProduction() {
+			logger.Error("seed refused: -seed is a development-only flag (APP_ENV=production)")
+			os.Exit(1)
+		}
+		if err := seedDemoData(ctx, logger, db, cfg.PasswordPepper); err != nil {
 			logger.Error("seed failed", "error", err)
 			os.Exit(1)
 		}
-		logger.Info("development seed complete")
 		return
 	}
 
@@ -82,11 +85,11 @@ func main() {
 	sessMgr := security.NewSessionManager(sessions, cfg.IsProduction())
 
 	authDeps := authhandlers.Deps{
-		Logger:        logger,
-		Sessions:      sessMgr,
-		Invitations:   invitations,
-		Tokens:        tokens,
-		Audit:         audit,
+		Logger:      logger,
+		Sessions:    sessMgr,
+		Invitations: invitations,
+		Tokens:      tokens,
+		Audit:       audit,
 		Registration: &authservices.RegistrationService{
 			Users: users, Roles: roles, Invitations: invitations,
 			Passwords: hasher, Tokens: tokens, Now: time.Now,

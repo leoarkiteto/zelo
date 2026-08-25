@@ -76,3 +76,14 @@ Rules: feature-exclusive code stays in the feature folder; cross-feature code go
 `internal/shared/`; features never import another feature's internals. Run
 `scripts/check-feature-boundaries.sh` to verify, and wire the new feature's
 `RegisterRoutes` in `cmd/web/main.go`.
+
+## Development seed
+
+`go run ./cmd/web -seed` populates the database with realistic demo data — a
+condominium (`Residencial Riviera`) with 12 units, 10 residents (owners,
+tenants, and the syndic), service-directory categories and listings, finance
+accounts, pending invitations, and audit events. It is idempotent and
+development-only (refuses to run with `APP_ENV=production`). Every seeded user
+shares the password `demo-password-123`; the syndic is `syndic@example.com`.
+Reset the database (`docker compose down -v`) and re-run the seed to start
+fresh.
