@@ -68,7 +68,9 @@ templ Shell(shell *ShellData, body templ.Component) {
 				<div class="hidden items-center gap-3 sm:flex">
 					<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chrome-500 text-sm font-bold text-white">{ shell.User.Initial }</span>
 					<span class="leading-tight">
+          <a href="/profile" class="hover:underline">
 						<span class="block max-w-[180px] truncate text-sm font-medium">{ shell.User.Email }</span>
+          </a>
 						<span class="block max-w-[220px] truncate text-xs text-chrome-300">{ strings.Join(shell.User.Roles, " · ") }</span>
 					</span>
 				</div>

@@ -45,4 +45,22 @@ func TestProfileToggleFlagsAndAccessibility(t *testing.T) {
 	if !strings.Contains(body, `value="en" checked`) {
 		t.Errorf("current language (en) is not marked selected")
 	}
+	// The inactive option must carry no checked attribute at all. For boolean
+	// attributes presence is what matters, so a rendered checked="false" would
+	// still leave the radio checked in the browser, desync the radio group from
+	// the UI, and stop the change trigger from firing on the target language.
+	if strings.Contains(body, `value="pt-br" checked`) || strings.Contains(body, `checked="false"`) {
+		t.Errorf("inactive language option must not carry a checked attribute")
+	}
+	// Since htmx 2.x, a "naked" hx-trigger (no hx-<verb> on the element itself)
+	// never issues a request — the request config is not inherited from the
+	// enclosing form. Each radio must therefore carry its own hx-post, target
+	// and swap, otherwise clicking the option silently does nothing.
+	if strings.Count(body, `hx-post="/profile/language"`) != 2 {
+		t.Errorf("each language option must carry its own hx-post (htmx 2.x), got %d",
+			strings.Count(body, `hx-post="/profile/language"`))
+	}
+	if strings.Count(body, `hx-target="#app-shell"`) != 2 || strings.Count(body, `hx-swap="outerHTML"`) != 2 {
+		t.Errorf("each language option must carry hx-target and hx-swap for the shell swap")
+	}
 }

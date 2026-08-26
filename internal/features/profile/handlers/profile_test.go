@@ -114,6 +114,14 @@ func TestProfileLanguageHTMXSwapsShell(t *testing.T) {
 	if !strings.Contains(body, `<div id="app-shell" lang="pt-br"`) {
 		t.Errorf("HTMX response missing re-rendered shell with lang=pt-br")
 	}
+	// The re-rendered toggle must mark pt-br selected and leave en unchecked
+	// (no checked attribute at all on the inactive radio).
+	if !strings.Contains(body, `value="pt-br" checked`) {
+		t.Errorf("HTMX response does not mark pt-br selected")
+	}
+	if strings.Contains(body, `value="en" checked`) {
+		t.Errorf("HTMX response leaves the inactive en radio checked")
+	}
 }
 
 func TestProfileLanguagePlainFormRedirects(t *testing.T) {

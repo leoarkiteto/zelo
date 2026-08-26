@@ -23,7 +23,7 @@ templ ProfileBody(data ProfilePageData) {
 			<p class="page-subtitle mb-6">{ i18n.T(data.Shell.Locale, "profile.subtitle") }</p>
 			<section>
 				<h2 class="mb-3 text-lg font-bold text-ink-900">{ i18n.T(data.Shell.Locale, "profile.language_heading") }</h2>
-				<form hx-post="/profile/language" hx-target="#app-shell" hx-swap="outerHTML" class="space-y-4">
+				<form class="space-y-4">
 					<input type="hidden" name="csrf_token" value={ data.Shell.CSRF }/>
 					<fieldset>
 						<legend class="sr-only">{ i18n.T(data.Shell.Locale, "profile.language_heading") }</legend>
@@ -44,9 +44,25 @@ func optionSelected(data ProfilePageData, value string) bool {
 	return data.CurrentLanguage == i18n.Language(value)
 }
 
+// checkedAttr builds the checked attribute for a language option. It is a
+// boolean-typed spread attribute so templ emits a bare `checked` when the
+// option is current and omits the attribute entirely otherwise. Rendering
+// checked="false" would leave the radio checked in the browser (for boolean
+// attributes, presence is what matters), which desyncs the radio group from
+// the UI and stops the toggle's `change` event from firing.
+func checkedAttr(selected bool) templ.Attributes {
+	return templ.Attributes{"checked": selected}
+}
+
+// languageOption renders one radio for the toggle. The hx-post/hx-target/
+// hx-swap attributes must live on each radio, not on the enclosing form:
+// since htmx 2.x, a "naked" hx-trigger (a trigger without its own hx-<verb>)
+// never issues a request — request config is no longer inherited from the
+// enclosing form. The form still groups the radios and carries csrf_token,
+// which htmx includes in the request.
 templ languageOption(data ProfilePageData, value string, flag string, label string) {
 	<label for={ "language-" + value } class={ "flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors", templ.KV("border-steel-400 bg-steel-50", optionSelected(data, value)), templ.KV("border-chrome-200 hover:border-steel-300", !optionSelected(data, value)) }>
-		<input id={ "language-" + value } type="radio" name="language" value={ value } checked={ optionSelected(data, value) } hx-trigger="change" class="peer sr-only"/>
+		<input id={ "language-" + value } type="radio" name="language" value={ value } { checkedAttr(optionSelected(data, value))... } hx-trigger="change" hx-post="/profile/language" hx-target="#app-shell" hx-swap="outerHTML" class="peer sr-only"/>
 		<span aria-hidden="true" class="text-2xl leading-none">{ flag }</span>
 		<span class="text-sm font-medium text-ink-800">{ label }</span>
 		<span class={ "ml-auto text-sm font-semibold", templ.KV("text-steel-600", optionSelected(data, value)), templ.KV("text-transparent", !optionSelected(data, value)) }>✓</span>
