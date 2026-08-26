@@ -61,12 +61,14 @@ func NavFor(roles []model.Role, active string, locale i18n.Language) []templates
 	items := []templates.NavItem{
 		{Label: i18n.T(locale, "nav.dashboard"), Path: "/"},
 		{Label: i18n.T(locale, "nav.directory"), Path: "/directory"},
+		{Label: i18n.T(locale, "nav.tickets"), Path: "/tickets"},
 		{Label: i18n.T(locale, "nav.finance.my_charges"), Path: "/finance/my-charges"},
 		{Label: i18n.T(locale, "nav.finance.health"), Path: "/finance/health"},
 	}
 	if has(model.RoleSyndic) {
 		items = append(items,
 			templates.NavItem{Label: i18n.T(locale, "nav.finance"), Path: "/finance"},
+			templates.NavItem{Label: i18n.T(locale, "nav.tickets.inbox"), Path: "/tickets/inbox"},
 			templates.NavItem{Label: i18n.T(locale, "nav.management"), Path: "/condominium"},
 			templates.NavItem{Label: i18n.T(locale, "nav.invitations"), Path: "/invitations"},
 			templates.NavItem{Label: i18n.T(locale, "nav.roles"), Path: "/roles"},

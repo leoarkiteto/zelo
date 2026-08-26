@@ -23,6 +23,9 @@ const (
 	AuditAccountEdited       AuditEventType = "account_edited"
 	AuditAccountSettled      AuditEventType = "account_settled"
 	AuditAccountCanceled     AuditEventType = "account_canceled"
+	AuditTicketCreated       AuditEventType = "ticket_created"
+	AuditTicketReplied       AuditEventType = "ticket_replied"
+	AuditTicketClosed        AuditEventType = "ticket_closed"
 )
 
 // Valid reports whether t is a supported audit event type.
@@ -32,7 +35,8 @@ func (t AuditEventType) Valid() bool {
 		AuditRoleGranted, AuditRoleRevoked, AuditAccessDenied,
 		AuditListingCreated, AuditListingEdited, AuditListingDeleted,
 		AuditCategoryCreated, AuditCategoryRenamed, AuditCategoryDeactivated,
-		AuditAccountCreated, AuditAccountEdited, AuditAccountSettled, AuditAccountCanceled:
+		AuditAccountCreated, AuditAccountEdited, AuditAccountSettled, AuditAccountCanceled,
+		AuditTicketCreated, AuditTicketReplied, AuditTicketClosed:
 		return true
 	default:
 		return false

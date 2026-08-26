@@ -24,6 +24,9 @@ import (
 	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
 	profileservices "github.com/leoarkiteto/zelo/internal/features/profile/core/services"
 	profilehandlers "github.com/leoarkiteto/zelo/internal/features/profile/handlers"
+	ticketservices "github.com/leoarkiteto/zelo/internal/features/tickets/core/services"
+	tickethandlers "github.com/leoarkiteto/zelo/internal/features/tickets/handlers"
+	ticketrepositories "github.com/leoarkiteto/zelo/internal/features/tickets/repositories"
 	"github.com/leoarkiteto/zelo/internal/shared/config"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
@@ -79,6 +82,7 @@ func main() {
 	listings := repositories.NewListingStore(db)
 	categories := repositories.NewCategoryStore(db)
 	financeAccounts := financerepositories.NewAccountStore(db)
+	ticketStore := ticketrepositories.NewTicketStore(db)
 
 	hasher := security.NewPasswordHasher(cfg.PasswordPepper)
 	tokens := security.TokenHasher{}
@@ -141,6 +145,16 @@ func main() {
 			Preferences: users,
 		},
 	}
+	ticketsDeps := tickethandlers.Deps{
+		Roles: roles,
+		Audit: audit,
+		Units: units,
+		Tickets: &ticketservices.TicketService{
+			Tickets: ticketStore,
+			Units:   units,
+			Audit:   audit,
+		},
+	}
 
 	mux := http.NewServeMux()
 	authhandlers.RegisterRoutes(mux, authDeps)
@@ -149,6 +163,7 @@ func main() {
 	managementhandlers.RegisterRoutes(mux, managementDeps)
 	profilehandlers.RegisterRoutes(mux, profileDeps)
 	financehandlers.RegisterRoutes(mux, financeDeps)
+	tickethandlers.RegisterRoutes(mux, ticketsDeps)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
 	var root http.Handler = mux

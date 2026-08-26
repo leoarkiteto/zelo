@@ -25,6 +25,9 @@ import (
 	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/core/services"
 	profilehandlers "github.com/leoarkiteto/zelo/internal/features/profile/handlers"
 	profileservices "github.com/leoarkiteto/zelo/internal/features/profile/core/services"
+	ticketrepositories "github.com/leoarkiteto/zelo/internal/features/tickets/repositories"
+	ticketservices "github.com/leoarkiteto/zelo/internal/features/tickets/core/services"
+	tickethandlers "github.com/leoarkiteto/zelo/internal/features/tickets/handlers"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
 	"github.com/leoarkiteto/zelo/internal/shared/store"
@@ -51,8 +54,8 @@ func newApp(t *testing.T) http.Handler {
 	}
 	if _, err := db.ExecContext(ctx, `
 		TRUNCATE audit_events, sessions, invitations, service_provider_listings,
-		service_categories, unit_occupancies, user_roles, units, condominiums,
-		users RESTART IDENTITY CASCADE`); err != nil {
+		service_categories, ticket_replies, tickets, unit_occupancies, user_roles,
+		units, condominiums, users RESTART IDENTITY CASCADE`); err != nil {
 		t.Fatalf("truncate: %v", err)
 	}
 	seedIntegration(t, ctx, db)
@@ -66,6 +69,7 @@ func newApp(t *testing.T) http.Handler {
 	audit := store.NewAuditStore(db)
 	listings := repositories.NewListingStore(db)
 	categories := repositories.NewCategoryStore(db)
+	ticketStore := ticketrepositories.NewTicketStore(db)
 	hasher := security.NewPasswordHasher("integration-test-pepper")
 	tokens := security.TokenHasher{}
 	sessMgr := security.NewSessionManager(sessions, false)
@@ -114,6 +118,16 @@ func newApp(t *testing.T) http.Handler {
 			Preferences: users,
 		},
 	})
+	tickethandlers.RegisterRoutes(mux, tickethandlers.Deps{
+		Roles: roles,
+		Audit: audit,
+		Units: units,
+		Tickets: &ticketservices.TicketService{
+			Tickets: ticketStore,
+			Units:   units,
+			Audit:   audit,
+		},
+	})
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../../web/static"))))
 
 	var root http.Handler = mux
@@ -154,6 +168,25 @@ func seedIntegration(t *testing.T, ctx context.Context, db *sql.DB) {
 		`INSERT INTO unit_occupancies (user_id, unit_id, occupancy_type) VALUES ($1, $2, 'owner')`,
 		syndicID, unitID); err != nil {
 		t.Fatalf("seed occupancy: %v", err)
+	}
+
+	// An owner-only member used to verify resident access control (tickets,
+	// finance member routes) without syndic privileges.
+	ownerHash, err := hasher.Hash("resident-pass-123")
+	if err != nil {
+		t.Fatalf("hash owner: %v", err)
+	}
+	var ownerID string
+	if err := db.QueryRowContext(ctx, `INSERT INTO users (email, password_hash) VALUES ('resident@example.com', $1) RETURNING id`, ownerHash).Scan(&ownerID); err != nil {
+		t.Fatalf("seed owner: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO user_roles (user_id, condominium_id, role) VALUES ($1, $2, 'owner')`, ownerID, condoID); err != nil {
+		t.Fatalf("seed owner role: %v", err)
+	}
+	if _, err := db.ExecContext(ctx,
+		`INSERT INTO unit_occupancies (user_id, unit_id, occupancy_type) VALUES ($1, $2, 'owner')`,
+		ownerID, unitID); err != nil {
+		t.Fatalf("seed owner occupancy: %v", err)
 	}
 	t.Setenv("TEST_CONDOMINIUM", condoID)
 	t.Setenv("TEST_UNIT", unitID)

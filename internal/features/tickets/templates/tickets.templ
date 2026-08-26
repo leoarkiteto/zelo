@@ -1,0 +1,237 @@
+package templates
+
+import (
+	"github.com/leoarkiteto/zelo/internal/features/tickets/core/domain"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+)
+
+templ TicketsPage(data TicketsPageData) {
+	@sharedtemplates.Layout(i18n.T(data.Locale, "tickets.title"), data.Locale, data.Shell, ticketsBody(data))
+}
+
+templ ticketsBody(data TicketsPageData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "tickets.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "tickets.subtitle") }</p>
+			</div>
+			<a class="btn btn-primary" href="/tickets/new">{ i18n.T(data.Locale, "tickets.create") }</a>
+		</div>
+		if data.Flash != "" {
+			<p class="alert alert-success">{ data.Flash }</p>
+		}
+		<section class="card">
+			<div class="border-b border-chrome-200 px-6 py-4">
+				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "tickets.title") }</h2>
+			</div>
+			if len(data.Tickets) == 0 {
+				<div class="empty-state">
+					<p class="empty-state-title">{ i18n.T(data.Locale, "tickets.empty_title") }</p>
+					<p class="empty-state-copy">{ i18n.T(data.Locale, "tickets.empty_copy") }</p>
+					<a class="btn btn-primary btn-sm mt-2" href="/tickets/new">{ i18n.T(data.Locale, "tickets.create") }</a>
+				</div>
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "tickets.field_title") }</th>
+								<th>{ i18n.T(data.Locale, "tickets.col.category") }</th>
+								<th>{ i18n.T(data.Locale, "tickets.col.status") }</th>
+								<th>{ i18n.T(data.Locale, "tickets.col.created") }</th>
+								<th>{ i18n.T(data.Locale, "tickets.col.replies") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, t := range data.Tickets {
+								<tr>
+									<td><a class="link" href={ templ.URL("/tickets/" + t.ID) }>{ t.Title }</a></td>
+									<td><span class="badge badge-info">{ t.CategoryLabel }</span></td>
+									<td><span class={ "badge " + statusBadge(t.Status) }>{ t.StatusLabel }</span></td>
+									<td class="text-ink-700">{ t.CreatedAt }</td>
+									<td class="text-ink-700">{ len(t.Replies) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	</div>
+}
+
+templ TicketsNewPage(data TicketsNewPageData) {
+	@sharedtemplates.Layout(i18n.T(data.Locale, "tickets.new_title"), data.Locale, data.Shell, ticketsNewBody(data))
+}
+
+templ ticketsNewBody(data TicketsNewPageData) {
+	<div class="max-w-2xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "tickets.new_title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "tickets.new_subtitle") }</p>
+			</div>
+		</div>
+		if data.Error != "" {
+			<p class="alert alert-error">{ data.Error }</p>
+		}
+		<form method="POST" action="/tickets" class="card card-pad grid gap-4">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			<div>
+				<label class="label" for="title">{ i18n.T(data.Locale, "tickets.field_title") }</label>
+				<input class="input" type="text" id="title" name="title" value={ data.Values.Title } required maxlength="120" placeholder={ i18n.T(data.Locale, "tickets.title_placeholder") }/>
+			</div>
+			<div>
+				<label class="label" for="category">{ i18n.T(data.Locale, "tickets.category") }</label>
+				<select class="select" id="category" name="category" required>
+					<option value="">—</option>
+					for _, c := range data.Categories {
+						<option value={ c.Key } selected={ data.Values.Category == c.Key }>{ c.Label }</option>
+					}
+				</select>
+			</div>
+			<div>
+				<label class="label" for="description">{ i18n.T(data.Locale, "tickets.description") }</label>
+				<textarea class="input" id="description" name="description" rows="6" required maxlength="2000">{ data.Values.Description }</textarea>
+			</div>
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "tickets.create") }</button>
+				<a class="btn btn-secondary" href="/tickets">{ i18n.T(data.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+	</div>
+}
+
+templ TicketDetailPage(data TicketDetailPageData) {
+	@sharedtemplates.Layout(i18n.T(data.Locale, "tickets.detail_title"), data.Locale, data.Shell, ticketDetailBody(data))
+}
+
+templ ticketDetailBody(data TicketDetailPageData) {
+	<div class="max-w-3xl space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ data.Ticket.Title }</h1>
+				<p class="page-subtitle">{ data.Ticket.CategoryLabel }</p>
+			</div>
+			<a class="btn btn-secondary" href={ templ.URL(backLink(data)) }>{ i18n.T(data.Locale, "common.back") }</a>
+		</div>
+		if data.Flash != "" {
+			<p class="alert alert-success">{ data.Flash }</p>
+		}
+		<section class="card card-pad space-y-3">
+			<div class="flex flex-wrap items-center gap-3">
+				<span class={ "badge " + statusBadge(data.Ticket.Status) }>{ data.Ticket.StatusLabel }</span>
+				<span class="text-sm text-ink-500">{ i18n.T(data.Locale, "tickets.col.created") }: { data.Ticket.CreatedAt }</span>
+				if data.Ticket.UnitCode != "" {
+					<span class="text-sm text-ink-500">{ i18n.T(data.Locale, "tickets.col.unit") }: { data.Ticket.UnitCode }</span>
+				}
+			</div>
+			<p class="whitespace-pre-wrap text-ink-800">{ data.Ticket.Description }</p>
+			if data.Ticket.Status == domain.StatusClosed {
+				<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "tickets.closed_on") }: { data.Ticket.ClosedAt }</p>
+			}
+		</section>
+		if len(data.Ticket.Replies) > 0 {
+			<section class="card card-pad space-y-4">
+				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "tickets.col.replies") }</h2>
+				for _, r := range data.Ticket.Replies {
+					<div class="border-l-2 border-chrome-200 pl-4 space-y-1">
+						<p class="whitespace-pre-wrap text-ink-800">{ r.Content }</p>
+						<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "tickets.col.author") }: { r.AuthorID } · { r.CreatedAt }</p>
+					</div>
+				}
+			</section>
+		}
+		if data.IsSyndic && data.Ticket.Status == domain.StatusOpen {
+			<section class="card card-pad space-y-4">
+				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "tickets.reply") }</h2>
+				<form method="POST" action={ templ.URL("/tickets/" + data.Ticket.ID + "/reply") } class="grid gap-4">
+					<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+					<textarea class="input" id="content" name="content" rows="4" required maxlength="2000"></textarea>
+					<div class="flex gap-2">
+						<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "tickets.send_reply") }</button>
+					</div>
+				</form>
+				<form method="POST" action={ templ.URL("/tickets/" + data.Ticket.ID + "/close") }>
+					<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+					<button class="btn btn-danger" type="submit">{ i18n.T(data.Locale, "tickets.close") }</button>
+				</form>
+			</section>
+		}
+	</div>
+}
+
+templ TicketsInboxPage(data TicketsInboxPageData) {
+	@sharedtemplates.Layout(i18n.T(data.Locale, "tickets.inbox_title"), data.Locale, data.Shell, inboxBody(data))
+}
+
+templ inboxBody(data TicketsInboxPageData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "tickets.inbox_title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "tickets.inbox_subtitle") }</p>
+			</div>
+			<div class="flex gap-2">
+				<a class={ FilterLinkClass(data.Status == "" || data.Status == "open") } href="/tickets/inbox?status=open">{ i18n.T(data.Locale, "tickets.filter.open") }</a>
+				<a class={ FilterLinkClass(data.Status == "closed") } href="/tickets/inbox?status=closed">{ i18n.T(data.Locale, "tickets.filter.closed") }</a>
+				<a class={ FilterLinkClass(data.Status == "all") } href="/tickets/inbox?status=all">{ i18n.T(data.Locale, "tickets.filter.all") }</a>
+			</div>
+		</div>
+		if data.Flash != "" {
+			<p class="alert alert-success">{ data.Flash }</p>
+		}
+		<section class="card">
+			<div class="border-b border-chrome-200 px-6 py-4">
+				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "tickets.inbox_title") }</h2>
+			</div>
+			if len(data.Tickets) == 0 {
+				<div class="empty-state">
+					<p class="empty-state-title">{ i18n.T(data.Locale, "tickets.inbox_empty_title") }</p>
+					<p class="empty-state-copy">{ i18n.T(data.Locale, "tickets.inbox_empty_copy") }</p>
+				</div>
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "tickets.field_title") }</th>
+								<th>{ i18n.T(data.Locale, "tickets.col.category") }</th>
+								<th>{ i18n.T(data.Locale, "tickets.col.unit") }</th>
+								<th>{ i18n.T(data.Locale, "tickets.col.author") }</th>
+								<th>{ i18n.T(data.Locale, "tickets.col.created") }</th>
+								<th>{ i18n.T(data.Locale, "tickets.col.status") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, t := range data.Tickets {
+								<tr>
+									<td><a class="link" href={ templ.URL("/tickets/" + t.ID) }>{ t.Title }</a></td>
+									<td><span class="badge badge-info">{ t.CategoryLabel }</span></td>
+									<td class="text-ink-700">{ t.UnitCode }</td>
+									<td class="text-ink-700">{ t.AuthorID }</td>
+									<td class="text-ink-700">{ t.CreatedAt }</td>
+									<td><span class={ "badge " + statusBadge(t.Status) }>{ t.StatusLabel }</span></td>
+									<td class="text-right">
+										<a class="btn btn-secondary btn-sm" href={ templ.URL("/tickets/" + t.ID) }>{ i18n.T(data.Locale, "common.edit") }</a>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	</div>
+}
+
+// backLink returns where the detail page's back button should go.
+func backLink(data TicketDetailPageData) string {
+	if data.IsSyndic {
+		return "/tickets/inbox"
+	}
+	return "/tickets"
+}
