@@ -4,37 +4,31 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 )
 
 // Config holds all runtime configuration loaded from the environment.
 type Config struct {
 	DatabaseURL    string
-	SessionSecret  []byte
+	RedisURL       string
 	PasswordPepper string
 	AppEnv         string
 	HTTPAddr       string
 	UploadDir      string
+	SessionSecret  []byte
 }
 
 // Load reads configuration from the environment and validates required values.
 func Load() (Config, error) {
 	cfg := Config{
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		RedisURL:       getEnv("REDIS_URL", "redis://localhost:6379/0"),
 		SessionSecret:  []byte(os.Getenv("SESSION_SECRET")),
 		PasswordPepper: os.Getenv("PASSWORD_PEPPER"),
-		AppEnv:         os.Getenv("APP_ENV"),
-		HTTPAddr:       os.Getenv("HTTP_ADDR"),
-		UploadDir:      os.Getenv("UPLOAD_DIR"),
-	}
-	if cfg.HTTPAddr == "" {
-		cfg.HTTPAddr = ":8080"
-	}
-	if cfg.AppEnv == "" {
-		cfg.AppEnv = "development"
-	}
-	if cfg.UploadDir == "" {
-		cfg.UploadDir = "uploads"
+		AppEnv:         getEnv("APP_ENV", "development"),
+		HTTPAddr:       getEnv("HTTP_ADDR", ":8080"),
+		UploadDir:      getEnv("UPLOAD_DIR", "uploads"),
 	}
 
 	var errs []error
@@ -47,8 +41,14 @@ func Load() (Config, error) {
 	if len(cfg.PasswordPepper) == 0 {
 		errs = append(errs, errors.New("PASSWORD_PEPPER is required"))
 	}
+	if err := validateRedisURL(cfg.RedisURL); err != nil {
+		errs = append(errs, err)
+	}
 	if cfg.AppEnv != "development" && cfg.AppEnv != "production" {
-		errs = append(errs, fmt.Errorf("APP_ENV must be development or production, got %q", cfg.AppEnv))
+		errs = append(
+			errs,
+			fmt.Errorf("APP_ENV must be development or production, got %q", cfg.AppEnv),
+		)
 	}
 	if len(errs) > 0 {
 		return Config{}, errors.Join(errs...)
@@ -56,7 +56,32 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
+// validateRedisURL ensures REDIS_URL is parseable and uses the redis or
+// rediss scheme so connection errors surface at startup, not on first login.
+func validateRedisURL(raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("REDIS_URL is invalid: %w", err)
+	}
+	if u.Scheme != "redis" && u.Scheme != "rediss" {
+		return fmt.Errorf("REDIS_URL scheme must be redis or rediss, got %q", u.Scheme)
+	}
+	if u.Host == "" {
+		return errors.New("REDIS_URL must include a host")
+	}
+	return nil
+}
+
 // IsProduction reports whether the application runs in production mode.
 func (c Config) IsProduction() bool {
 	return c.AppEnv == "production"
+}
+
+func getEnv(key string, fallBack string) string {
+	keyEnv := os.Getenv(key)
+	if keyEnv == "" {
+		return fallBack
+	}
+
+	return keyEnv
 }

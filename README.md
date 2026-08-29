@@ -47,7 +47,7 @@ Layout follows the [golang-standards/project-layout](https://github.com/golang-s
 │       └── img/            # images, favicons
 ├── migrations/             # SQL migrations (forward-only, applied by a minimal runner)
 ├── scripts/                # build/dev helpers (Tailwind watch, templ generate, migrate, new-feature)
-├── tests/                  # full-app integration tests against PostgreSQL (require TEST_DATABASE_URL)
+├── tests/                  # full-app integration tests against PostgreSQL + Redis (require TEST_DATABASE_URL + TEST_REDIS_URL)
 ├── build/                  # packaging & CI — Dockerfile, .dockerignore
 ├── docs/                   # design docs, ADRs
 └── tools/                  # helper tooling (templ, air, ...) pinned in tools.go
@@ -57,8 +57,9 @@ Layout follows the [golang-standards/project-layout](https://github.com/golang-s
 
 - **Go**: server-side app in `cmd/web` (composition root) + `internal/features/*` + `internal/shared/*`; module is `github.com/leoarkiteto/zelo`.
 - **OAuth**: auth flows and session/CSRF primitives live in `internal/shared/security`; protect routes via `internal/shared/middleware`.
+- **Sessions**: server-side login sessions are stored in Redis (the `redis` service in `docker-compose.yml`, configured via `REDIS_URL`); the PostgreSQL `sessions` table is no longer used.
 - **Tailwind**: edit sources in `assets/css`, output the compiled stylesheet to `web/static/css` (keep built artifacts out of git or gitignore them). Tailwind is pinned as an npm devDependency — run `npm install` once, then `make tailwind`.
-- **HTMX**: vendored/bundled under `assets/js`, served from `web/static/js`.
+- **HTMX**: vendored/bundled under `assets/js`, served from `web/static/js`. Pinned to v4.0.0 (`web/static/js/htmx.min.js`).
 - **Templ**: feature templates live in `internal/features/<feature>/templates`; shared layout/error components in `internal/shared/templates`; run `templ generate` and commit the generated `*_templ.go`.
 - **Design system**: tokens and reusable components are documented in [`docs/design-system.md`](docs/design-system.md); the UI follows the reference screenshots in `docs/ui`.
 
@@ -86,4 +87,5 @@ accounts, pending invitations, and audit events. It is idempotent and
 development-only (refuses to run with `APP_ENV=production`). Every seeded user
 shares the password `demo-password-123`; the syndic is `syndic@example.com`.
 Reset the database (`docker compose down -v`) and re-run the seed to start
-fresh.
+fresh. Sessions are ephemeral: `docker compose restart redis` logs everyone
+out, while restarting only the application keeps sessions valid.

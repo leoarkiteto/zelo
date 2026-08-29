@@ -73,11 +73,18 @@ func main() {
 		return
 	}
 
+	redisClient, err := store.OpenRedis(cfg.RedisURL)
+	if err != nil {
+		logger.Error("redis connection failed", "error", err)
+		os.Exit(1)
+	}
+	defer redisClient.Close()
+
 	users := store.NewUserStore(db)
 	roles := store.NewRoleStore(db)
 	units := store.NewUnitStore(db)
 	invitations := store.NewInvitationStore(db)
-	sessions := store.NewSessionStore(db)
+	sessions := store.NewRedisSessionStore(redisClient)
 	audit := store.NewAuditStore(db)
 	listings := repositories.NewListingStore(db)
 	categories := repositories.NewCategoryStore(db)

@@ -42,6 +42,10 @@ func newApp(t *testing.T) http.Handler {
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL not set; skipping integration test")
 	}
+	redisURL := testutil.TestRedisURL("integration")
+	if redisURL == "" {
+		t.Skip("TEST_REDIS_URL not set; skipping integration test")
+	}
 	ctx := context.Background()
 	db, err := store.Open(url)
 	if err != nil {
@@ -53,19 +57,28 @@ func newApp(t *testing.T) http.Handler {
 		t.Fatalf("migrate: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `
-		TRUNCATE audit_events, sessions, invitations, service_provider_listings,
+		TRUNCATE audit_events, invitations, service_provider_listings,
 		service_categories, ticket_replies, tickets, unit_occupancies, user_roles,
 		units, condominiums, users RESTART IDENTITY CASCADE`); err != nil {
 		t.Fatalf("truncate: %v", err)
 	}
 	seedIntegration(t, ctx, db)
 
+	redisClient, err := store.OpenRedis(redisURL)
+	if err != nil {
+		t.Fatalf("open redis: %v", err)
+	}
+	t.Cleanup(func() { _ = redisClient.Close() })
+	if err := redisClient.FlushDB(ctx).Err(); err != nil {
+		t.Fatalf("flush redis: %v", err)
+	}
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	users := store.NewUserStore(db)
 	roles := store.NewRoleStore(db)
 	units := store.NewUnitStore(db)
 	invitations := store.NewInvitationStore(db)
-	sessions := store.NewSessionStore(db)
+	sessions := store.NewRedisSessionStore(redisClient)
 	audit := store.NewAuditStore(db)
 	listings := repositories.NewListingStore(db)
 	categories := repositories.NewCategoryStore(db)

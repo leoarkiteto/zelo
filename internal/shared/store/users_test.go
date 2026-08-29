@@ -25,7 +25,7 @@ func openStoreTestDB(t *testing.T) *sql.DB {
 		t.Fatalf("migrate: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `
-		TRUNCATE audit_events, sessions, invitations, service_provider_listings,
+		TRUNCATE audit_events, invitations, service_provider_listings,
 		service_categories, unit_occupancies, user_roles, units, condominiums,
 		users RESTART IDENTITY CASCADE`); err != nil {
 		t.Fatalf("truncate: %v", err)

@@ -84,10 +84,10 @@ const (
 
 // Receivable categories (spec FR-006).
 const (
-	CategoryCondoFee             Category = "condo_fee"
-	CategoryFineInterest         Category = "fine_interest"
+	CategoryCondoFee              Category = "condo_fee"
+	CategoryFineInterest          Category = "fine_interest"
 	CategoryCommonAreaReservation Category = "common_area_reservation"
-	CategoryExtraordinaryIncome  Category = "extraordinary_income"
+	CategoryExtraordinaryIncome   Category = "extraordinary_income"
 )
 
 // ValidFor reports whether c is a valid category for the account type.
@@ -111,14 +111,18 @@ func (c Category) ValidFor(t AccountType) bool {
 
 // PayableCategories returns the supported payable category keys in display order.
 func PayableCategories() []Category {
-	return []Category{CategoryMaintenance, CategoryCleaning, CategoryUtilities,
-		CategoryPayroll, CategoryThirdPartyServices, CategoryOther}
+	return []Category{
+		CategoryMaintenance, CategoryCleaning, CategoryUtilities,
+		CategoryPayroll, CategoryThirdPartyServices, CategoryOther,
+	}
 }
 
 // ReceivableCategories returns the supported receivable category keys in display order.
 func ReceivableCategories() []Category {
-	return []Category{CategoryCondoFee, CategoryFineInterest,
-		CategoryCommonAreaReservation, CategoryExtraordinaryIncome}
+	return []Category{
+		CategoryCondoFee, CategoryFineInterest,
+		CategoryCommonAreaReservation, CategoryExtraordinaryIncome,
+	}
 }
 
 // CategoriesFor returns the category keys valid for the account type.
@@ -170,8 +174,8 @@ func (a FinancialAccount) CanSettle() bool { return a.Status == StatusPending }
 func (a FinancialAccount) CanCancel() bool { return a.Status == StatusPending }
 
 const (
-	maxTitleLen      = 120
-	maxSupplierLen   = 120
+	maxTitleLen       = 120
+	maxSupplierLen    = 120
 	maxPaymentCodeLen = 200
 	// dateLayout is the accepted form input format.
 	dateLayout = "2006-01-02"
@@ -221,8 +225,8 @@ func ParseAmountCents(s string) (int64, error) {
 
 	wholePart := s
 	fracPart := ""
-	if i := strings.IndexByte(s, '.'); i >= 0 {
-		wholePart, fracPart = s[:i], s[i+1:]
+	if before, after, ok := strings.Cut(s, "."); ok {
+		wholePart, fracPart = before, after
 		if wholePart == "" || fracPart == "" {
 			return 0, ErrInvalidAmount
 		}

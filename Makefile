@@ -3,7 +3,7 @@
 # Load configuration from the gitignored .env (see .env.example) and export it
 # to sub-commands, so `make run`/`make dev`/`make migrate` work from any shell.
 -include .env
-export DATABASE_URL SESSION_SECRET PASSWORD_PEPPER APP_ENV HTTP_ADDR
+export DATABASE_URL SESSION_SECRET PASSWORD_PEPPER APP_ENV HTTP_ADDR REDIS_URL
 
 run:
 	go run ./cmd/web
