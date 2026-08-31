@@ -6,7 +6,7 @@ import (
 	profiletemplates "github.com/leoarkiteto/zelo/internal/features/profile/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
 // profileGET renders the profile page containing the language toggle.
@@ -62,7 +62,7 @@ func (h *Handler) profileLanguagePOST(w http.ResponseWriter, r *http.Request) {
 			shell.Nav = httpx.NavFor(roles, "/profile", lang)
 		}
 	}
-	httpx.Render(w, r, sharedtemplates.Shell(shell, profiletemplates.ProfileBody(profiletemplates.ProfilePageData{
+	httpx.Render(w, r, organisms.Shell(shell, profiletemplates.ProfileBody(profiletemplates.ProfilePageData{
 		Shell:           shell,
 		CurrentLanguage: lang,
 	})))

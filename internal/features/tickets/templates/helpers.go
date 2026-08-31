@@ -5,7 +5,8 @@ package templates
 import (
 	"github.com/leoarkiteto/zelo/internal/features/tickets/core/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
 // CategoryOption is a selectable category key with its localized label.
@@ -45,7 +46,7 @@ type TicketView struct {
 
 // TicketsPageData backs the resident ticket list page.
 type TicketsPageData struct {
-	Shell   *sharedtemplates.ShellData
+	Shell   *organisms.ShellData
 	Locale  i18n.Language
 	CSRF    string
 	Tickets []TicketView
@@ -54,7 +55,7 @@ type TicketsPageData struct {
 
 // TicketsNewPageData backs the ticket creation form page.
 type TicketsNewPageData struct {
-	Shell      *sharedtemplates.ShellData
+	Shell      *organisms.ShellData
 	Locale     i18n.Language
 	CSRF       string
 	Values     FormValues
@@ -64,7 +65,7 @@ type TicketsNewPageData struct {
 
 // TicketDetailPageData backs the ticket detail page.
 type TicketDetailPageData struct {
-	Shell    *sharedtemplates.ShellData
+	Shell    *organisms.ShellData
 	Locale   i18n.Language
 	CSRF     string
 	Ticket   TicketView
@@ -74,7 +75,7 @@ type TicketDetailPageData struct {
 
 // TicketsInboxPageData backs the syndic inbox page.
 type TicketsInboxPageData struct {
-	Shell   *sharedtemplates.ShellData
+	Shell   *organisms.ShellData
 	Locale  i18n.Language
 	CSRF    string
 	Tickets []TicketView
@@ -116,6 +117,16 @@ func statusBadge(s domain.TicketStatus) string {
 		return "badge-info"
 	default:
 		return "badge-neutral"
+	}
+}
+
+// statusBadgeVariant maps a ticket status to the shared badge variant.
+func statusBadgeVariant(s domain.TicketStatus) atoms.BadgeVariant {
+	switch s {
+	case domain.StatusOpen:
+		return atoms.BadgeVariantInfo
+	default:
+		return atoms.BadgeVariantNeutral
 	}
 }
 

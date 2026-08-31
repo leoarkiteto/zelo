@@ -7,7 +7,7 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
-	"github.com/leoarkiteto/zelo/internal/shared/templates"
+	"github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
 // RoleReader returns the active roles for a user in a condominium.
@@ -18,7 +18,7 @@ type RoleReader interface {
 // ShellData builds the authenticated app-shell context (topbar identity,
 // role-based sidebar navigation, CSRF token, resolved locale) for the given
 // active path.
-func ShellData(r *http.Request, roles RoleReader, active string) (*templates.ShellData, error) {
+func ShellData(r *http.Request, roles RoleReader, active string) (*organisms.ShellData, error) {
 	rolesList, err := roles.ActiveRolesForUser(r.Context(), CurrentUser(r).ID, CurrentSession(r).CondominiumID)
 	if err != nil {
 		return nil, err
@@ -28,7 +28,7 @@ func ShellData(r *http.Request, roles RoleReader, active string) (*templates.She
 
 // ShellDataWithRoles is ShellData for callers that already loaded the user's
 // active roles.
-func ShellDataWithRoles(r *http.Request, active string, roles []model.Role) (*templates.ShellData, error) {
+func ShellDataWithRoles(r *http.Request, active string, roles []model.Role) (*organisms.ShellData, error) {
 	u := CurrentUser(r)
 	locale := i18n.LanguageFrom(r.Context())
 	roleStrs := make([]string, 0, len(roles))
@@ -39,8 +39,8 @@ func ShellDataWithRoles(r *http.Request, active string, roles []model.Role) (*te
 	if u.Email != "" {
 		initial = strings.ToUpper(u.Email[:1])
 	}
-	return &templates.ShellData{
-		User:   &templates.UserView{Email: u.Email, Roles: roleStrs, Initial: initial},
+	return &organisms.ShellData{
+		User:   &organisms.UserView{Email: u.Email, Roles: roleStrs, Initial: initial},
 		Nav:    NavFor(roles, active, locale),
 		CSRF:   CurrentSession(r).CSRFToken,
 		Locale: locale,
@@ -49,7 +49,7 @@ func ShellDataWithRoles(r *http.Request, active string, roles []model.Role) (*te
 
 // NavFor derives the sidebar navigation from the user's active roles, marking
 // the entry matching active as current. Labels come from the message catalog.
-func NavFor(roles []model.Role, active string, locale i18n.Language) []templates.NavItem {
+func NavFor(roles []model.Role, active string, locale i18n.Language) []organisms.NavItem {
 	has := func(role model.Role) bool {
 		for _, have := range roles {
 			if have == role {
@@ -58,7 +58,7 @@ func NavFor(roles []model.Role, active string, locale i18n.Language) []templates
 		}
 		return false
 	}
-	items := []templates.NavItem{
+	items := []organisms.NavItem{
 		{Label: i18n.T(locale, "nav.dashboard"), Path: "/"},
 		{Label: i18n.T(locale, "nav.directory"), Path: "/directory"},
 		{Label: i18n.T(locale, "nav.tickets"), Path: "/tickets"},
@@ -67,18 +67,18 @@ func NavFor(roles []model.Role, active string, locale i18n.Language) []templates
 	}
 	if has(model.RoleSyndic) {
 		items = append(items,
-			templates.NavItem{Label: i18n.T(locale, "nav.finance"), Path: "/finance"},
-			templates.NavItem{Label: i18n.T(locale, "nav.tickets.inbox"), Path: "/tickets/inbox"},
-			templates.NavItem{Label: i18n.T(locale, "nav.management"), Path: "/condominium"},
-			templates.NavItem{Label: i18n.T(locale, "nav.invitations"), Path: "/invitations"},
-			templates.NavItem{Label: i18n.T(locale, "nav.roles"), Path: "/roles"},
+			organisms.NavItem{Label: i18n.T(locale, "nav.finance"), Path: "/finance"},
+			organisms.NavItem{Label: i18n.T(locale, "nav.tickets.inbox"), Path: "/tickets/inbox"},
+			organisms.NavItem{Label: i18n.T(locale, "nav.management"), Path: "/condominium"},
+			organisms.NavItem{Label: i18n.T(locale, "nav.invitations"), Path: "/invitations"},
+			organisms.NavItem{Label: i18n.T(locale, "nav.roles"), Path: "/roles"},
 		)
 	}
 	if has(model.RoleOwner) || has(model.RoleSyndic) {
-		items = append(items, templates.NavItem{Label: i18n.T(locale, "nav.unit"), Path: "/unit"})
+		items = append(items, organisms.NavItem{Label: i18n.T(locale, "nav.unit"), Path: "/unit"})
 	}
 	if has(model.RoleTenant) {
-		items = append(items, templates.NavItem{Label: i18n.T(locale, "nav.tenancy"), Path: "/tenancy"})
+		items = append(items, organisms.NavItem{Label: i18n.T(locale, "nav.tenancy"), Path: "/tenancy"})
 	}
 	for i := range items {
 		items[i].Active = items[i].Path == active

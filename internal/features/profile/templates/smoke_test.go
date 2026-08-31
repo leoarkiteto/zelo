@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
@@ -21,10 +21,10 @@ func renderToString(t *testing.T, c templ.Component) string {
 	return buf.String()
 }
 
-func shell(locale i18n.Language) *sharedtemplates.ShellData {
-	return &sharedtemplates.ShellData{
-		User:   &sharedtemplates.UserView{Email: "syndic@example.com", Initial: "S"},
-		Nav:    []sharedtemplates.NavItem{{Label: "Painel", Path: "/", Active: true}},
+func shell(locale i18n.Language) *organisms.ShellData {
+	return &organisms.ShellData{
+		User:   &organisms.UserView{Email: "syndic@example.com", Initial: "S"},
+		Nav:    []organisms.NavItem{{Label: "Painel", Path: "/", Active: true}},
 		CSRF:   "token",
 		Locale: locale,
 	}

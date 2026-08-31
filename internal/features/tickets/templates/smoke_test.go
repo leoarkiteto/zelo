@@ -9,7 +9,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/leoarkiteto/zelo/internal/features/tickets/core/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
 func renderToString(t *testing.T, c templ.Component) string {
@@ -21,10 +21,10 @@ func renderToString(t *testing.T, c templ.Component) string {
 	return buf.String()
 }
 
-func shellFixture() *sharedtemplates.ShellData {
-	return &sharedtemplates.ShellData{
-		User: &sharedtemplates.UserView{Email: "owner@example.com", Roles: []string{"owner"}, Initial: "O"},
-		Nav:  []sharedtemplates.NavItem{{Label: "Chamados", Path: "/tickets", Active: true}},
+func shellFixture() *organisms.ShellData {
+	return &organisms.ShellData{
+		User: &organisms.UserView{Email: "owner@example.com", Roles: []string{"owner"}, Initial: "O"},
+		Nav:  []organisms.NavItem{{Label: "Chamados", Path: "/tickets", Active: true}},
 		CSRF: "tok",
 	}
 }

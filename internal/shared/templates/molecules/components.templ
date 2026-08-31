@@ -1,0 +1,53 @@
+package molecules
+
+import atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+
+templ Card(p CardProps) {
+	<section class={ cardClass(p) }>
+		if p.Title != "" {
+			<h2 class="mb-3 text-lg font-bold text-ink-900">{ p.Title }</h2>
+		}
+		@p.Body
+		if p.Footer != nil {
+			<div class="mt-4 flex gap-2">
+				@p.Footer
+			</div>
+		}
+	</section>
+}
+
+templ FormField(p FormFieldProps) {
+	<div>
+		<label class="label" for={ p.For }>{ p.Label }</label>
+		@p.Control
+		if p.Error != "" {
+			<p class="mt-1 text-sm text-red-600">{ p.Error }</p>
+		}
+		if p.Hint != "" {
+			<p class="mt-1 text-xs text-ink-500">{ p.Hint }</p>
+		}
+	</div>
+}
+
+templ Alert(p AlertProps) {
+	<p class={ alertClass(p) }>{ p.Message }</p>
+}
+
+templ EmptyState(p EmptyStateProps) {
+	<div class="empty-state">
+		if p.Icon != "" {
+			<span class="flex h-12 w-12 items-center justify-center rounded-full bg-chrome-100 text-chrome-400">
+				@atoms.Icon(atoms.IconProps{Kind: p.Icon, Class: "h-6 w-6"})
+			</span>
+		}
+		if p.Title != "" {
+			<p class="empty-state-title">{ p.Title }</p>
+		}
+		if p.Copy != "" {
+			<p class="empty-state-copy">{ p.Copy }</p>
+		}
+		if p.Action != nil {
+			@p.Action
+		}
+	</div>
+}

@@ -9,7 +9,8 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
 // CategoryOption is a selectable category key with its localized label.
@@ -61,7 +62,7 @@ type SummaryView struct {
 
 // FinancePageData backs the dashboard + list page.
 type FinancePageData struct {
-	Shell      *sharedtemplates.ShellData
+	Shell      *organisms.ShellData
 	Locale     i18n.Language
 	CSRF       string
 	Accounts   []AccountView
@@ -93,7 +94,7 @@ type FormValues struct {
 
 // FinanceFormData backs the create/edit form page.
 type FinanceFormData struct {
-	Shell       *sharedtemplates.ShellData
+	Shell       *organisms.ShellData
 	Locale      i18n.Language
 	CSRF        string
 	IsEdit      bool
@@ -107,7 +108,7 @@ type FinanceFormData struct {
 
 // SettleData backs the settlement form page.
 type SettleData struct {
-	Shell   *sharedtemplates.ShellData
+	Shell   *organisms.ShellData
 	Locale  i18n.Language
 	CSRF    string
 	Account AccountView
@@ -116,7 +117,7 @@ type SettleData struct {
 
 // CancelData backs the cancel confirmation page.
 type CancelData struct {
-	Shell   *sharedtemplates.ShellData
+	Shell   *organisms.ShellData
 	Locale  i18n.Language
 	CSRF    string
 	Account AccountView
@@ -125,7 +126,7 @@ type CancelData struct {
 
 // ChargesPageData backs the resident pendências page.
 type ChargesPageData struct {
-	Shell   *sharedtemplates.ShellData
+	Shell   *organisms.ShellData
 	Locale  i18n.Language
 	CSRF    string
 	Charges []AccountView
@@ -135,7 +136,7 @@ type ChargesPageData struct {
 
 // HealthPageData backs the resident financial-health page.
 type HealthPageData struct {
-	Shell         *sharedtemplates.ShellData
+	Shell         *organisms.ShellData
 	Locale        i18n.Language
 	CSRF          string
 	Period        string
@@ -198,6 +199,20 @@ func statusBadge(s domain.AccountStatus) string {
 		return "badge-info"
 	default:
 		return "badge-neutral"
+	}
+}
+
+// statusBadgeVariant maps an account status to the shared badge variant.
+func statusBadgeVariant(s domain.AccountStatus) atoms.BadgeVariant {
+	switch s {
+	case domain.StatusOverdue:
+		return atoms.BadgeVariantDanger
+	case domain.StatusSettled:
+		return atoms.BadgeVariantSuccess
+	case domain.StatusPending:
+		return atoms.BadgeVariantInfo
+	default:
+		return atoms.BadgeVariantNeutral
 	}
 }
 

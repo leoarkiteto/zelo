@@ -1,7 +1,9 @@
 package templates
 
 import (
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
@@ -13,7 +15,7 @@ type UserRoleView struct {
 }
 
 type RolesPageData struct {
-	Shell  *sharedtemplates.ShellData
+	Shell  *organisms.ShellData
 	Locale i18n.Language
 	CSRF   string
 	Users  []UserRoleView
@@ -21,7 +23,7 @@ type RolesPageData struct {
 }
 
 templ RolesPage(data RolesPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "roles.title"), data.Locale, data.Shell, rolesBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "roles.title"), data.Locale, data.Shell, rolesBody(data))
 }
 
 templ rolesBody(data RolesPageData) {
@@ -34,18 +36,16 @@ templ rolesBody(data RolesPageData) {
 			<a class="btn btn-primary" href="/invitations">{ i18n.T(data.Locale, "common.invite_user") }</a>
 		</div>
 		if data.Error != "" {
-			<p class="alert alert-error">{ data.Error }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 		}
 		<div class="card">
 			if len(data.Users) == 0 {
-				<div class="empty-state">
-					<span class="flex h-12 w-12 items-center justify-center rounded-full bg-chrome-100 text-chrome-400">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M15 3.13a4 4 0 0 1 0 7.75"/></svg>
-					</span>
-					<p class="empty-state-title">{ i18n.T(data.Locale, "roles.empty_title") }</p>
-					<p class="empty-state-copy">{ i18n.T(data.Locale, "roles.empty_copy") }</p>
-					<a class="btn btn-primary btn-sm mt-2" href="/invitations">{ i18n.T(data.Locale, "common.invite_user") }</a>
-				</div>
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Icon:  atoms.IconKindUsers,
+					Title: i18n.T(data.Locale, "roles.empty_title"),
+					Copy:  i18n.T(data.Locale, "roles.empty_copy"),
+					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "common.invite_user"), Variant: atoms.ButtonVariantPrimary, Href: "/invitations", Class: "btn-sm mt-2"}),
+				})
 			} else {
 				<div class="table-wrap">
 					<table class="table">
@@ -63,7 +63,7 @@ templ rolesBody(data RolesPageData) {
 									<td>
 										<div class="flex flex-wrap gap-1.5">
 											for _, role := range u.Roles {
-												<span class={ sharedtemplates.RoleBadgeClass(role) }>{ role }</span>
+												@atoms.Badge(atoms.BadgeProps{Label: role, Variant: roleBadgeVariant(role)})
 											}
 										</div>
 									</td>
@@ -99,4 +99,16 @@ templ rolesBody(data RolesPageData) {
 			}
 		</div>
 	</div>
+}
+
+// roleBadgeVariant maps an RBAC role to the shared badge variant.
+func roleBadgeVariant(role string) atoms.BadgeVariant {
+	switch role {
+	case "syndic":
+		return atoms.BadgeVariantWarning
+	case "tenant":
+		return atoms.BadgeVariantNeutral
+	default:
+		return atoms.BadgeVariantInfo
+	}
 }

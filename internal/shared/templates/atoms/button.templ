@@ -1,0 +1,9 @@
+package atoms
+
+templ Button(p ButtonProps) {
+	if p.Href != "" {
+		<a class={ buttonClass(p) } href={ p.Href }>{ p.Label }</a>
+	} else {
+		<button class={ buttonClass(p) } type={ buttonType(p) }>{ p.Label }</button>
+	}
+}

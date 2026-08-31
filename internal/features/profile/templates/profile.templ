@@ -1,19 +1,19 @@
 package templates
 
 import (
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
 
 // ProfilePageData carries the profile page content.
 type ProfilePageData struct {
-	Shell           *sharedtemplates.ShellData
+	Shell           *organisms.ShellData
 	CurrentLanguage i18n.Language
 }
 
 templ ProfilePage(data ProfilePageData) {
-	@sharedtemplates.Layout(i18n.T(data.Shell.Locale, "profile.title"), data.Shell.Locale, data.Shell, ProfileBody(data))
+	@organisms.Layout(i18n.T(data.Shell.Locale, "profile.title"), data.Shell.Locale, data.Shell, ProfileBody(data))
 }
 
 templ ProfileBody(data ProfilePageData) {

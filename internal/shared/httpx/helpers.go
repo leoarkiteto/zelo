@@ -9,7 +9,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
-	"github.com/leoarkiteto/zelo/internal/shared/templates"
+	"github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
 // Render renders a templ component, returning a 500 on failure.
@@ -23,7 +23,7 @@ func Render(w http.ResponseWriter, r *http.Request, comp templ.Component) {
 // in the request's resolved interface language.
 func RenderError(w http.ResponseWriter, r *http.Request, status int, message string) {
 	w.WriteHeader(status)
-	Render(w, r, templates.ErrorPage(templates.ErrorPageData{
+	Render(w, r, organisms.ErrorPage(organisms.ErrorPageData{
 		Status:  status,
 		Message: message,
 		Locale:  i18n.LanguageFrom(r.Context()),

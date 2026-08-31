@@ -17,7 +17,11 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 	locale := i18n.LanguageFrom(r.Context())
 	roles, err := h.deps.Roles.ActiveRolesForUser(r.Context(), u.ID, sess.CondominiumID)
 	if err != nil {
-		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "home.error.load_roles"), http.StatusInternalServerError)
+		http.Error(
+			w,
+			i18n.T(i18n.LanguageFrom(r.Context()), "home.error.load_roles"),
+			http.StatusInternalServerError,
+		)
 		return
 	}
 	roleStrs := make([]string, 0, len(roles))
@@ -27,7 +31,11 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 
 	shell, err := httpx.ShellDataWithRoles(r, "/", roles)
 	if err != nil {
-		http.Error(w, i18n.T(i18n.LanguageFrom(r.Context()), "home.error.load_session"), http.StatusInternalServerError)
+		http.Error(
+			w,
+			i18n.T(i18n.LanguageFrom(r.Context()), "home.error.load_session"),
+			http.StatusInternalServerError,
+		)
 		return
 	}
 
@@ -41,17 +49,49 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 	}
 	var actions []templates.QuickAction
 	if has(model.RoleSyndic) {
-		actions = append(actions,
-			templates.QuickAction{Icon: "building", Label: i18n.T(locale, "home.action.condominium"), Description: i18n.T(locale, "home.action.condominium_desc"), Path: "/condominium"},
-			templates.QuickAction{Icon: "mail", Label: i18n.T(locale, "home.action.invitations"), Description: i18n.T(locale, "home.action.invitations_desc"), Path: "/invitations"},
-			templates.QuickAction{Icon: "users", Label: i18n.T(locale, "home.action.roles"), Description: i18n.T(locale, "home.action.roles_desc"), Path: "/roles"},
+		actions = append(
+			actions,
+			templates.QuickAction{
+				Icon:        "building",
+				Label:       i18n.T(locale, "home.action.condominium"),
+				Description: i18n.T(locale, "home.action.condominium_desc"),
+				Path:        "/condominium",
+			},
+			templates.QuickAction{
+				Icon:        "mail",
+				Label:       i18n.T(locale, "home.action.invitations"),
+				Description: i18n.T(locale, "home.action.invitations_desc"),
+				Path:        "/invitations",
+			},
+			templates.QuickAction{
+				Icon:        "users",
+				Label:       i18n.T(locale, "home.action.roles"),
+				Description: i18n.T(locale, "home.action.roles_desc"),
+				Path:        "/roles",
+			},
 		)
 	}
 	if has(model.RoleOwner) || has(model.RoleSyndic) {
-		actions = append(actions, templates.QuickAction{Icon: "home", Label: i18n.T(locale, "home.action.unit"), Description: i18n.T(locale, "home.action.unit_desc"), Path: "/unit"})
+		actions = append(
+			actions,
+			templates.QuickAction{
+				Icon:        "home",
+				Label:       i18n.T(locale, "home.action.unit"),
+				Description: i18n.T(locale, "home.action.unit_desc"),
+				Path:        "/unit",
+			},
+		)
 	}
 	if has(model.RoleTenant) {
-		actions = append(actions, templates.QuickAction{Icon: "key", Label: i18n.T(locale, "home.action.tenancy"), Description: i18n.T(locale, "home.action.tenancy_desc"), Path: "/tenancy"})
+		actions = append(
+			actions,
+			templates.QuickAction{
+				Icon:        "key",
+				Label:       i18n.T(locale, "home.action.tenancy"),
+				Description: i18n.T(locale, "home.action.tenancy_desc"),
+				Path:        "/tenancy",
+			},
+		)
 	}
 
 	httpx.Render(w, r, templates.DashboardPage(templates.DashboardData{

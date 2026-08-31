@@ -1,0 +1,21 @@
+package atoms
+
+templ TextInput(p InputProps) {
+	<input class={ inputClass(p) } type={ inputType(p) } id={ p.ID } name={ p.Name } value={ p.Value } { inputAttrs(p)... }/>
+}
+
+templ TextArea(p InputProps) {
+	<textarea class={ inputClass(p) } id={ p.ID } name={ p.Name } { inputAttrs(p)... }>{ p.Value }</textarea>
+}
+
+templ Select(p SelectProps) {
+	<select class={ selectClass(p) } id={ p.ID } name={ p.Name } { selectAttrs(p)... }>
+		for _, o := range p.Options {
+			if o.Value == p.Selected {
+				<option value={ o.Value } selected>{ o.Label }</option>
+			} else {
+				<option value={ o.Value }>{ o.Label }</option>
+			}
+		}
+	</select>
+}

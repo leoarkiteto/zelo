@@ -1,7 +1,9 @@
 package templates
 
 import (
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
@@ -21,7 +23,7 @@ type ListingView struct {
 }
 
 type DirectoryPageData struct {
-	Shell            *sharedtemplates.ShellData
+	Shell            *organisms.ShellData
 	Locale           i18n.Language
 	CSRF             string
 	Listings         []ListingView
@@ -40,7 +42,7 @@ type ListingFormValues struct {
 }
 
 type ListingFormData struct {
-	Shell            *sharedtemplates.ShellData
+	Shell            *organisms.ShellData
 	Locale           i18n.Language
 	CSRF             string
 	Categories       []CategoryOption
@@ -58,7 +60,7 @@ type CategoryView struct {
 }
 
 type CategoriesPageData struct {
-	Shell      *sharedtemplates.ShellData
+	Shell      *organisms.ShellData
 	Locale     i18n.Language
 	CSRF       string
 	Categories []CategoryView
@@ -67,7 +69,7 @@ type CategoriesPageData struct {
 }
 
 type DeleteConfirmData struct {
-	Shell   *sharedtemplates.ShellData
+	Shell   *organisms.ShellData
 	Locale  i18n.Language
 	CSRF    string
 	Listing ListingView
@@ -97,7 +99,7 @@ func categoryStatusLabel(locale i18n.Language, active bool) string {
 }
 
 templ DirectoryPage(data DirectoryPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "directory.title"), data.Locale, data.Shell, directoryBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "directory.title"), data.Locale, data.Shell, directoryBody(data))
 }
 
 templ directoryBody(data DirectoryPageData) {
@@ -115,7 +117,7 @@ templ directoryBody(data DirectoryPageData) {
 			</div>
 		</div>
 		if data.Flash != "" {
-			<p class="alert alert-success">{ data.Flash }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
 		}
 		<form method="GET" action="/directory" class="card card-pad grid gap-4 md:grid-cols-2 lg:grid-cols-3 lg:items-end">
 			<div>
@@ -141,14 +143,12 @@ templ directoryBody(data DirectoryPageData) {
 				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "directory.listings") }</h2>
 			</div>
 			if len(data.Listings) == 0 {
-				<div class="empty-state">
-					<span class="flex h-12 w-12 items-center justify-center rounded-full bg-chrome-100 text-chrome-400">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 12h6M9 16h6"/></svg>
-					</span>
-					<p class="empty-state-title">{ i18n.T(data.Locale, "directory.empty_title") }</p>
-					<p class="empty-state-copy">{ i18n.T(data.Locale, "directory.empty_copy") }</p>
-					<a class="btn btn-primary btn-sm mt-2" href="/directory/new">{ i18n.T(data.Locale, "directory.recommend") }</a>
-				</div>
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Icon:  atoms.IconKindClipboard,
+					Title: i18n.T(data.Locale, "directory.empty_title"),
+					Copy:  i18n.T(data.Locale, "directory.empty_copy"),
+					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "directory.recommend"), Variant: atoms.ButtonVariantPrimary, Href: "/directory/new", Class: "btn-sm mt-2"}),
+				})
 			} else {
 				<div class="table-wrap">
 					<table class="table">
@@ -168,7 +168,7 @@ templ directoryBody(data DirectoryPageData) {
 							for _, l := range data.Listings {
 								<tr>
 									<td class="font-medium text-ink-800">{ l.Name }</td>
-									<td><span class="badge badge-info">{ l.CategoryName }</span></td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: l.CategoryName, Variant: atoms.BadgeVariantInfo})</td>
 									<td class="text-ink-700">{ l.Phone }</td>
 									<td class="text-ink-500">{ l.Notes }</td>
 									<td class="text-ink-500">{ i18n.T(data.Locale, "directory.unit_prefix") } { l.UnitCode }</td>
@@ -191,7 +191,7 @@ templ directoryBody(data DirectoryPageData) {
 }
 
 templ ListingFormPage(data ListingFormData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "directory.recommend"), data.Locale, data.Shell, listingFormBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "directory.recommend"), data.Locale, data.Shell, listingFormBody(data))
 }
 
 templ listingFormBody(data ListingFormData) {
@@ -208,10 +208,10 @@ templ listingFormBody(data ListingFormData) {
 			</div>
 		</div>
 		if data.Error != "" {
-			<p class="alert alert-error">{ data.Error }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 		}
 		if data.DuplicateWarning != "" {
-			<p class="alert alert-info">{ data.DuplicateWarning }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: data.DuplicateWarning})
 		}
 		<form method="POST" action={ templ.URL(listingFormAction(data)) } class="card card-pad grid gap-4">
 			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
@@ -253,7 +253,7 @@ templ listingFormBody(data ListingFormData) {
 }
 
 templ CategoriesPage(data CategoriesPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "directory.categories_title"), data.Locale, data.Shell, categoriesBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "directory.categories_title"), data.Locale, data.Shell, categoriesBody(data))
 }
 
 templ categoriesBody(data CategoriesPageData) {
@@ -266,10 +266,10 @@ templ categoriesBody(data CategoriesPageData) {
 			<a class="btn btn-secondary" href="/directory">{ i18n.T(data.Locale, "common.back_to_directory") }</a>
 		</div>
 		if data.Flash != "" {
-			<p class="alert alert-success">{ data.Flash }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
 		}
 		if data.Error != "" {
-			<p class="alert alert-error">{ data.Error }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 		}
 		<section class="card card-pad">
 			<h2 class="mb-4 text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "directory.add_category_heading") }</h2>
@@ -287,13 +287,11 @@ templ categoriesBody(data CategoriesPageData) {
 				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "directory.categories_heading") }</h2>
 			</div>
 			if len(data.Categories) == 0 {
-				<div class="empty-state">
-					<span class="flex h-12 w-12 items-center justify-center rounded-full bg-chrome-100 text-chrome-400">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5a1 1 0 0 1 .7.3l9 9a1 1 0 0 1 0 1.4l-8 8a1 1 0 0 1-1.4 0l-9-9A1 1 0 0 1 3 12V7a4 4 0 0 1 4-4z"/></svg>
-					</span>
-					<p class="empty-state-title">{ i18n.T(data.Locale, "directory.categories_empty_title") }</p>
-					<p class="empty-state-copy">{ i18n.T(data.Locale, "directory.categories_empty_copy") }</p>
-				</div>
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Icon:  atoms.IconKindTag,
+					Title: i18n.T(data.Locale, "directory.categories_empty_title"),
+					Copy:  i18n.T(data.Locale, "directory.categories_empty_copy"),
+				})
 			} else {
 				<div class="table-wrap">
 					<table class="table">
@@ -310,9 +308,9 @@ templ categoriesBody(data CategoriesPageData) {
 									<td class="font-medium text-ink-800">{ c.Name }</td>
 									<td>
 										if c.Active {
-											<span class="badge badge-success">{ categoryStatusLabel(data.Locale, true) }</span>
+											@atoms.Badge(atoms.BadgeProps{Label: categoryStatusLabel(data.Locale, true), Variant: atoms.BadgeVariantSuccess})
 										} else {
-											<span class="badge badge-neutral">{ categoryStatusLabel(data.Locale, false) }</span>
+											@atoms.Badge(atoms.BadgeProps{Label: categoryStatusLabel(data.Locale, false), Variant: atoms.BadgeVariantNeutral})
 										}
 									</td>
 									<td>
@@ -341,7 +339,7 @@ templ categoriesBody(data CategoriesPageData) {
 }
 
 templ DeleteConfirmPage(data DeleteConfirmData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "directory.delete_title"), data.Locale, data.Shell, deleteConfirmBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "directory.delete_title"), data.Locale, data.Shell, deleteConfirmBody(data))
 }
 
 templ deleteConfirmBody(data DeleteConfirmData) {
@@ -352,7 +350,7 @@ templ deleteConfirmBody(data DeleteConfirmData) {
 				<p class="page-subtitle">{ i18n.T(data.Locale, "directory.delete_subtitle") }</p>
 			</div>
 		</div>
-		<p class="alert alert-error">{ i18n.T(data.Locale, "directory.delete_warning_1") } "{ data.Listing.Name }" { i18n.T(data.Locale, "directory.delete_warning_2") }</p>
+		@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: i18n.T(data.Locale, "directory.delete_warning_1") + " \"" + data.Listing.Name + "\" " + i18n.T(data.Locale, "directory.delete_warning_2")})
 		<section class="card card-pad">
 			<dl class="grid gap-3 text-sm">
 				<div class="grid grid-cols-3 gap-2">

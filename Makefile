@@ -1,4 +1,4 @@
-.PHONY: run build dev migrate templ tailwind test
+.PHONY: run build dev migrate templ tailwind test check
 
 # Load configuration from the gitignored .env (see .env.example) and export it
 # to sub-commands, so `make run`/`make dev`/`make migrate` work from any shell.
@@ -25,3 +25,8 @@ tailwind:
 
 test:
 	go test ./...
+
+check:
+	go test ./...
+	scripts/check-feature-boundaries.sh
+	scripts/check-template-atomic-boundaries.sh

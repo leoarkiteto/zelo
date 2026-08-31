@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
 func renderToString(t *testing.T, c templ.Component) string {
@@ -19,10 +19,10 @@ func renderToString(t *testing.T, c templ.Component) string {
 	return buf.String()
 }
 
-func shellFixture() *sharedtemplates.ShellData {
-	return &sharedtemplates.ShellData{
-		User: &sharedtemplates.UserView{Email: "anna@example.com", Roles: []string{"syndic"}, Initial: "A"},
-		Nav:  []sharedtemplates.NavItem{{Label: "Dashboard", Path: "/", Active: true}},
+func shellFixture() *organisms.ShellData {
+	return &organisms.ShellData{
+		User: &organisms.UserView{Email: "anna@example.com", Roles: []string{"syndic"}, Initial: "A"},
+		Nav:  []organisms.NavItem{{Label: "Dashboard", Path: "/", Active: true}},
 		CSRF: "tok",
 	}
 }

@@ -9,7 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
@@ -21,7 +21,7 @@ type DashboardLink struct {
 }
 
 type AreaPageData struct {
-	Shell   *sharedtemplates.ShellData
+	Shell   *organisms.ShellData
 	Locale  i18n.Language
 	Title   string
 	Message string
@@ -49,7 +49,7 @@ func AreaPage(data AreaPageData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = sharedtemplates.Layout(data.Title, data.Locale, data.Shell, areaBody(data)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = organisms.Layout(data.Title, data.Locale, data.Shell, areaBody(data)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -2,12 +2,14 @@ package templates
 
 import (
 	"github.com/leoarkiteto/zelo/internal/features/tickets/core/domain"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
 templ TicketsPage(data TicketsPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "tickets.title"), data.Locale, data.Shell, ticketsBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "tickets.title"), data.Locale, data.Shell, ticketsBody(data))
 }
 
 templ ticketsBody(data TicketsPageData) {
@@ -20,18 +22,18 @@ templ ticketsBody(data TicketsPageData) {
 			<a class="btn btn-primary" href="/tickets/new">{ i18n.T(data.Locale, "tickets.create") }</a>
 		</div>
 		if data.Flash != "" {
-			<p class="alert alert-success">{ data.Flash }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
 		}
 		<section class="card">
 			<div class="border-b border-chrome-200 px-6 py-4">
 				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "tickets.title") }</h2>
 			</div>
 			if len(data.Tickets) == 0 {
-				<div class="empty-state">
-					<p class="empty-state-title">{ i18n.T(data.Locale, "tickets.empty_title") }</p>
-					<p class="empty-state-copy">{ i18n.T(data.Locale, "tickets.empty_copy") }</p>
-					<a class="btn btn-primary btn-sm mt-2" href="/tickets/new">{ i18n.T(data.Locale, "tickets.create") }</a>
-				</div>
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Title: i18n.T(data.Locale, "tickets.empty_title"),
+					Copy:  i18n.T(data.Locale, "tickets.empty_copy"),
+					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "tickets.create"), Variant: atoms.ButtonVariantPrimary, Href: "/tickets/new", Class: "btn-sm mt-2"}),
+				})
 			} else {
 				<div class="table-wrap">
 					<table class="table">
@@ -48,8 +50,8 @@ templ ticketsBody(data TicketsPageData) {
 							for _, t := range data.Tickets {
 								<tr>
 									<td><a class="link" href={ templ.URL("/tickets/" + t.ID) }>{ t.Title }</a></td>
-									<td><span class="badge badge-info">{ t.CategoryLabel }</span></td>
-									<td><span class={ "badge " + statusBadge(t.Status) }>{ t.StatusLabel }</span></td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: t.CategoryLabel, Variant: atoms.BadgeVariantInfo})</td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: t.StatusLabel, Variant: statusBadgeVariant(t.Status)})</td>
 									<td class="text-ink-700">{ t.CreatedAt }</td>
 									<td class="text-ink-700">{ len(t.Replies) }</td>
 								</tr>
@@ -63,7 +65,7 @@ templ ticketsBody(data TicketsPageData) {
 }
 
 templ TicketsNewPage(data TicketsNewPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "tickets.new_title"), data.Locale, data.Shell, ticketsNewBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "tickets.new_title"), data.Locale, data.Shell, ticketsNewBody(data))
 }
 
 templ ticketsNewBody(data TicketsNewPageData) {
@@ -75,7 +77,7 @@ templ ticketsNewBody(data TicketsNewPageData) {
 			</div>
 		</div>
 		if data.Error != "" {
-			<p class="alert alert-error">{ data.Error }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 		}
 		<form method="POST" action="/tickets" class="card card-pad grid gap-4">
 			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
@@ -105,7 +107,7 @@ templ ticketsNewBody(data TicketsNewPageData) {
 }
 
 templ TicketDetailPage(data TicketDetailPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "tickets.detail_title"), data.Locale, data.Shell, ticketDetailBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "tickets.detail_title"), data.Locale, data.Shell, ticketDetailBody(data))
 }
 
 templ ticketDetailBody(data TicketDetailPageData) {
@@ -118,11 +120,11 @@ templ ticketDetailBody(data TicketDetailPageData) {
 			<a class="btn btn-secondary" href={ templ.URL(backLink(data)) }>{ i18n.T(data.Locale, "common.back") }</a>
 		</div>
 		if data.Flash != "" {
-			<p class="alert alert-success">{ data.Flash }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
 		}
 		<section class="card card-pad space-y-3">
 			<div class="flex flex-wrap items-center gap-3">
-				<span class={ "badge " + statusBadge(data.Ticket.Status) }>{ data.Ticket.StatusLabel }</span>
+				@atoms.Badge(atoms.BadgeProps{Label: data.Ticket.StatusLabel, Variant: statusBadgeVariant(data.Ticket.Status)})
 				<span class="text-sm text-ink-500">{ i18n.T(data.Locale, "tickets.col.created") }: { data.Ticket.CreatedAt }</span>
 				if data.Ticket.UnitCode != "" {
 					<span class="text-sm text-ink-500">{ i18n.T(data.Locale, "tickets.col.unit") }: { data.Ticket.UnitCode }</span>
@@ -164,7 +166,7 @@ templ ticketDetailBody(data TicketDetailPageData) {
 }
 
 templ TicketsInboxPage(data TicketsInboxPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "tickets.inbox_title"), data.Locale, data.Shell, inboxBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "tickets.inbox_title"), data.Locale, data.Shell, inboxBody(data))
 }
 
 templ inboxBody(data TicketsInboxPageData) {
@@ -181,17 +183,17 @@ templ inboxBody(data TicketsInboxPageData) {
 			</div>
 		</div>
 		if data.Flash != "" {
-			<p class="alert alert-success">{ data.Flash }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
 		}
 		<section class="card">
 			<div class="border-b border-chrome-200 px-6 py-4">
 				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "tickets.inbox_title") }</h2>
 			</div>
 			if len(data.Tickets) == 0 {
-				<div class="empty-state">
-					<p class="empty-state-title">{ i18n.T(data.Locale, "tickets.inbox_empty_title") }</p>
-					<p class="empty-state-copy">{ i18n.T(data.Locale, "tickets.inbox_empty_copy") }</p>
-				</div>
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Title: i18n.T(data.Locale, "tickets.inbox_empty_title"),
+					Copy:  i18n.T(data.Locale, "tickets.inbox_empty_copy"),
+				})
 			} else {
 				<div class="table-wrap">
 					<table class="table">
@@ -210,11 +212,11 @@ templ inboxBody(data TicketsInboxPageData) {
 							for _, t := range data.Tickets {
 								<tr>
 									<td><a class="link" href={ templ.URL("/tickets/" + t.ID) }>{ t.Title }</a></td>
-									<td><span class="badge badge-info">{ t.CategoryLabel }</span></td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: t.CategoryLabel, Variant: atoms.BadgeVariantInfo})</td>
 									<td class="text-ink-700">{ t.UnitCode }</td>
 									<td class="text-ink-700">{ t.AuthorID }</td>
 									<td class="text-ink-700">{ t.CreatedAt }</td>
-									<td><span class={ "badge " + statusBadge(t.Status) }>{ t.StatusLabel }</span></td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: t.StatusLabel, Variant: statusBadgeVariant(t.Status)})</td>
 									<td class="text-right">
 										<a class="btn btn-secondary btn-sm" href={ templ.URL("/tickets/" + t.ID) }>{ i18n.T(data.Locale, "common.edit") }</a>
 									</td>

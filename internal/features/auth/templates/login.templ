@@ -1,7 +1,9 @@
 package templates
 
 import (
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
@@ -13,7 +15,7 @@ type LoginPageData struct {
 }
 
 templ LoginPage(data LoginPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "auth.sign_in"), data.Locale, nil, loginBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "auth.sign_in"), data.Locale, nil, loginBody(data))
 }
 
 templ loginBody(data LoginPageData) {
@@ -22,14 +24,11 @@ templ loginBody(data LoginPageData) {
 
 templ loginForm(data LoginPageData) {
 	if data.Error != "" {
-		<p class="alert alert-error">{ data.Error }</p>
+		@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 	}
 	<form method="POST" action="/login" class="space-y-4">
 		<input type="hidden" name="csrf_token" value={ data.CSRF }/>
-		<div>
-			<label class="label" for="email">{ i18n.T(data.Locale, "auth.email") }</label>
-			<input class="input" type="email" id="email" name="email" placeholder="you@example.com" autocomplete="email" required/>
-		</div>
+		@molecules.FormField(molecules.FormFieldProps{Label: i18n.T(data.Locale, "auth.email"), For: "email", Control: atoms.TextInput(atoms.InputProps{Type: "email", ID: "email", Name: "email", Placeholder: "you@example.com", Autocomplete: "email", Required: true})})
 		<div>
 			<label class="label" for="password">{ i18n.T(data.Locale, "auth.password") }</label>
 			<div class="relative" style="position:relative">
@@ -45,7 +44,7 @@ templ loginForm(data LoginPageData) {
 				</button>
 			</div>
 		</div>
-		<button class="btn btn-primary btn-block" type="submit">{ i18n.T(data.Locale, "auth.sign_in") }</button>
+		@atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "auth.sign_in"), Variant: atoms.ButtonVariantPrimary, Type: "submit", Class: "btn-block"})
 	</form>
 	<script>
 		(function () {

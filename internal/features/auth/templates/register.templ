@@ -1,7 +1,9 @@
 package templates
 
 import (
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
@@ -16,7 +18,7 @@ type RegisterPageData struct {
 }
 
 templ RegisterPage(data RegisterPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "auth.register"), data.Locale, nil, registerBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "auth.register"), data.Locale, nil, registerBody(data))
 }
 
 templ registerBody(data RegisterPageData) {
@@ -25,26 +27,29 @@ templ registerBody(data RegisterPageData) {
 
 templ registerForm(data RegisterPageData) {
 	if data.Error != "" {
-		<p class="alert alert-error">{ data.Error }</p>
+		@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 	}
 	<form method="POST" action="/register" class="space-y-4">
 		<input type="hidden" name="token" value={ data.Token }/>
 		<input type="hidden" name="csrf_token" value={ data.CSRF }/>
-		<div>
-			<label class="label" for="email">{ i18n.T(data.Locale, "auth.email") }</label>
-			<input class="input" type="email" id="email" name="email" value={ data.InvitedEmail } placeholder="you@example.com" autocomplete="email" required/>
-		</div>
-		<div>
-			<label class="label" for="password">{ i18n.T(data.Locale, "auth.password") }</label>
-			<input class="input" type="password" id="password" name="password" minlength="12" placeholder={ i18n.T(data.Locale, "auth.password_hint") } autocomplete="new-password" required/>
-		</div>
-		<div>
-			<label class="label" for="password_confirm">{ i18n.T(data.Locale, "auth.confirm_password") }</label>
-			<input class="input" type="password" id="password_confirm" name="password_confirm" minlength="12" placeholder={ i18n.T(data.Locale, "auth.repeat_password") } autocomplete="new-password" required/>
-		</div>
-		<button class="btn btn-primary btn-block" type="submit">{ i18n.T(data.Locale, "auth.register") }</button>
+		@molecules.FormField(molecules.FormFieldProps{Label: i18n.T(data.Locale, "auth.email"), For: "email", Control: atoms.TextInput(atoms.InputProps{Type: "email", ID: "email", Name: "email", Value: data.InvitedEmail, Placeholder: "you@example.com", Autocomplete: "email", Required: true})})
+		@molecules.FormField(molecules.FormFieldProps{Label: i18n.T(data.Locale, "auth.password"), For: "password", Control: atoms.TextInput(atoms.InputProps{Type: "password", ID: "password", Name: "password", MinLength: "12", Placeholder: i18n.T(data.Locale, "auth.password_hint"), Autocomplete: "new-password", Required: true})})
+		@molecules.FormField(molecules.FormFieldProps{Label: i18n.T(data.Locale, "auth.confirm_password"), For: "password_confirm", Control: atoms.TextInput(atoms.InputProps{Type: "password", ID: "password_confirm", Name: "password_confirm", MinLength: "12", Placeholder: i18n.T(data.Locale, "auth.repeat_password"), Autocomplete: "new-password", Required: true})})
+		@atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "auth.register"), Variant: atoms.ButtonVariantPrimary, Type: "submit", Class: "btn-block"})
 	</form>
 	<p class="mt-4 text-center text-sm text-ink-500">
-		{ i18n.T(data.Locale, "auth.invited_as") } <span class={ sharedtemplates.RoleBadgeClass(data.InvitedRole) }>{ data.InvitedRole }</span>
+		{ i18n.T(data.Locale, "auth.invited_as") } @atoms.Badge(atoms.BadgeProps{Label: data.InvitedRole, Variant: roleBadgeVariant(data.InvitedRole)})
 	</p>
+}
+
+// roleBadgeVariant maps an RBAC role to the shared badge style.
+func roleBadgeVariant(role string) atoms.BadgeVariant {
+	switch role {
+	case "syndic":
+		return atoms.BadgeVariantWarning
+	case "tenant":
+		return atoms.BadgeVariantNeutral
+	default:
+		return atoms.BadgeVariantInfo
+	}
 }

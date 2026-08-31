@@ -2,12 +2,14 @@ package templates
 
 import (
 	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
 templ FinancePage(data FinancePageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.title"), data.Locale, data.Shell, financeBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "finance.title"), data.Locale, data.Shell, financeBody(data))
 }
 
 templ financeBody(data FinancePageData) {
@@ -23,7 +25,7 @@ templ financeBody(data FinancePageData) {
 			</div>
 		</div>
 		if data.Flash != "" {
-			<p class="alert alert-success">{ data.Flash }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
 		}
 		<section class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 			<div class="card card-pad">
@@ -89,11 +91,11 @@ templ financeBody(data FinancePageData) {
 				<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "finance.title") }</h2>
 			</div>
 			if len(data.Accounts) == 0 {
-				<div class="empty-state">
-					<p class="empty-state-title">{ i18n.T(data.Locale, "finance.empty_title") }</p>
-					<p class="empty-state-copy">{ i18n.T(data.Locale, "finance.empty_copy") }</p>
-					<a class="btn btn-primary btn-sm mt-2" href="/finance/new?type=payable">{ i18n.T(data.Locale, "finance.new_payable") }</a>
-				</div>
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Title: i18n.T(data.Locale, "finance.empty_title"),
+					Copy:  i18n.T(data.Locale, "finance.empty_copy"),
+					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "finance.new_payable"), Variant: atoms.ButtonVariantPrimary, Href: "/finance/new?type=payable", Class: "btn-sm mt-2"}),
+				})
 			} else {
 				<div class="table-wrap">
 					<table class="table">
@@ -111,10 +113,10 @@ templ financeBody(data FinancePageData) {
 							for _, a := range data.Accounts {
 								<tr>
 									<td class="font-medium text-ink-800">{ a.Title }</td>
-									<td><span class="badge badge-info">{ a.CategoryLabel }</span></td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: a.CategoryLabel, Variant: atoms.BadgeVariantInfo})</td>
 									<td class="text-ink-700">{ a.Amount }</td>
 									<td class="text-ink-700">{ a.DueDate }</td>
-									<td><span class={ "badge " + statusBadge(a.EffectiveStatus) }>{ a.StatusLabel }</span></td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: a.StatusLabel, Variant: statusBadgeVariant(a.EffectiveStatus)})</td>
 									<td>
 										<div class="flex flex-wrap items-center justify-end gap-2">
 											if a.EffectiveStatus == domain.StatusPending || a.EffectiveStatus == domain.StatusOverdue {
@@ -138,7 +140,7 @@ templ financeBody(data FinancePageData) {
 }
 
 templ FinanceFormPage(data FinanceFormData) {
-	@sharedtemplates.Layout(formTitle(data), data.Locale, data.Shell, financeFormBody(data))
+	@organisms.Layout(formTitle(data), data.Locale, data.Shell, financeFormBody(data))
 }
 
 templ financeFormBody(data FinanceFormData) {
@@ -150,7 +152,7 @@ templ financeFormBody(data FinanceFormData) {
 			</div>
 		</div>
 		if data.Error != "" {
-			<p class="alert alert-error">{ data.Error }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 		}
 		<form method="POST" action={ templ.URL(formAction(data)) } enctype="multipart/form-data" class="card card-pad grid gap-4">
 			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
@@ -236,7 +238,7 @@ templ financeFormBody(data FinanceFormData) {
 }
 
 templ SettlePage(data SettleData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.settle"), data.Locale, data.Shell, settleBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "finance.settle"), data.Locale, data.Shell, settleBody(data))
 }
 
 templ settleBody(data SettleData) {
@@ -248,7 +250,7 @@ templ settleBody(data SettleData) {
 			</div>
 		</div>
 		if data.Error != "" {
-			<p class="alert alert-error">{ data.Error }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 		}
 		<form method="POST" action={ templ.URL("/finance/" + data.Account.ID + "/settle") } class="card card-pad grid gap-4">
 			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
@@ -265,7 +267,7 @@ templ settleBody(data SettleData) {
 }
 
 templ CancelPage(data CancelData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.cancel_confirm_title"), data.Locale, data.Shell, cancelBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "finance.cancel_confirm_title"), data.Locale, data.Shell, cancelBody(data))
 }
 
 templ cancelBody(data CancelData) {
@@ -277,7 +279,7 @@ templ cancelBody(data CancelData) {
 			</div>
 		</div>
 		if data.Error != "" {
-			<p class="alert alert-error">{ data.Error }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 		}
 		<p class="text-ink-700">{ i18n.T(data.Locale, "finance.cancel_confirm_copy") }</p>
 		<form method="POST" action={ templ.URL("/finance/" + data.Account.ID + "/cancel") } class="card card-pad flex gap-2">
@@ -289,7 +291,7 @@ templ cancelBody(data CancelData) {
 }
 
 templ ChargesPage(data ChargesPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.my_charges_title"), data.Locale, data.Shell, chargesBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "finance.my_charges_title"), data.Locale, data.Shell, chargesBody(data))
 }
 
 templ chargesBody(data ChargesPageData) {
@@ -301,11 +303,9 @@ templ chargesBody(data ChargesPageData) {
 			</div>
 		</div>
 		if data.NoUnit {
-			<p class="alert alert-info">{ i18n.T(data.Locale, "finance.no_unit") }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "finance.no_unit")})
 		} else if len(data.Charges) == 0 {
-			<div class="empty-state">
-				<p class="empty-state-title">{ i18n.T(data.Locale, "finance.my_charges_empty") }</p>
-			</div>
+			@molecules.EmptyState(molecules.EmptyStateProps{Title: i18n.T(data.Locale, "finance.my_charges_empty")})
 		} else {
 			<section class="card">
 				<div class="table-wrap">
@@ -323,10 +323,10 @@ templ chargesBody(data ChargesPageData) {
 							for _, c := range data.Charges {
 								<tr>
 									<td class="font-medium text-ink-800">{ c.Title }</td>
-									<td><span class="badge badge-info">{ c.CategoryLabel }</span></td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: c.CategoryLabel, Variant: atoms.BadgeVariantInfo})</td>
 									<td class="text-ink-700">{ c.Amount }</td>
 									<td class="text-ink-700">{ c.DueDate }</td>
-									<td><span class={ "badge " + statusBadge(c.EffectiveStatus) }>{ c.StatusLabel }</span></td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: c.StatusLabel, Variant: statusBadgeVariant(c.EffectiveStatus)})</td>
 								</tr>
 							}
 						</tbody>
@@ -338,7 +338,7 @@ templ chargesBody(data ChargesPageData) {
 }
 
 templ HealthPage(data HealthPageData) {
-	@sharedtemplates.Layout(i18n.T(data.Locale, "finance.health_title"), data.Locale, data.Shell, healthBody(data))
+	@organisms.Layout(i18n.T(data.Locale, "finance.health_title"), data.Locale, data.Shell, healthBody(data))
 }
 
 templ healthBody(data HealthPageData) {
@@ -357,7 +357,7 @@ templ healthBody(data HealthPageData) {
 			<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "common.search") }</button>
 		</form>
 		if data.Empty {
-			<p class="alert alert-info">{ i18n.T(data.Locale, "finance.health.empty") }</p>
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "finance.health.empty")})
 		} else {
 			<section class="grid gap-4 md:grid-cols-2">
 				<div class="card card-pad">

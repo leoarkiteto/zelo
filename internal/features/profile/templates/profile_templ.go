@@ -9,14 +9,14 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	sharedtemplates "github.com/leoarkiteto/zelo/internal/shared/templates"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
 
 // ProfilePageData carries the profile page content.
 type ProfilePageData struct {
-	Shell           *sharedtemplates.ShellData
+	Shell           *organisms.ShellData
 	CurrentLanguage i18n.Language
 }
 
@@ -41,7 +41,7 @@ func ProfilePage(data ProfilePageData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = sharedtemplates.Layout(i18n.T(data.Shell.Locale, "profile.title"), data.Shell.Locale, data.Shell, ProfileBody(data)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = organisms.Layout(i18n.T(data.Shell.Locale, "profile.title"), data.Shell.Locale, data.Shell, ProfileBody(data)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

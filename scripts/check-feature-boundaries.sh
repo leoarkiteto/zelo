@@ -24,6 +24,11 @@ while IFS= read -r f; do
   done < <(grep -oE '"github\.com/leoarkiteto/zelo/internal/features/[^"]+"' "$f" | tr -d '"' || true)
 done < <(find internal/features -name '*.go' -type f 2>/dev/null || true)
 
+# Enforce the shared Templ atomic layer boundaries too.
+if ! scripts/check-template-atomic-boundaries.sh; then
+  fail=1
+fi
+
 if [[ "$fail" -ne 0 ]]; then
   echo "Feature boundary violations found." >&2
   exit 1
