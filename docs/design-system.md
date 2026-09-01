@@ -6,7 +6,8 @@ screenshots (verified by OCR + pixel sampling).
 
 ## Design tokens
 
-Defined in `tailwind.config.js` and exposed as Tailwind color scales.
+Defined as Tailwind v4 theme tokens (`@theme` in `assets/css/input.css`) and
+exposed as Tailwind color scales.
 
 | Token | Hex | Usage |
 |---|---|---|
@@ -66,3 +67,5 @@ Status colors use the Tailwind defaults: `green` (approved/used/success),
 Tailwind is pinned as a dev dependency (`npm install`), matching the version
 used to build the committed `web/static/css/output.css`. Rebuild with
 `make tailwind`; regenerated `*_templ.go` with `make templ`.
+Content sources: Tailwind v4 auto-detects source files (including `.templ`)
+from the project root, so no `content` config or `@source` directive is needed.

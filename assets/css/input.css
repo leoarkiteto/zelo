@@ -1,6 +1,49 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  /* ink — navy text hierarchy (from reference screenshots: ~#001020 body, #103040 headings) */
+  --color-ink-950: #001020;
+  --color-ink-900: #0b1b2b;
+  --color-ink-800: #103040;
+  --color-ink-700: #223a4c;
+  --color-ink-600: #3c4c5c;
+  --color-ink-500: #55677a;
+  --color-ink-400: #7c8b98;
+
+  /* steel — primary accent (buttons, links, focus). Reference accent ≈ #4090c0. */
+  --color-steel-50: #f0f6fa;
+  --color-steel-100: #dceaf4;
+  --color-steel-200: #b9d6e9;
+  --color-steel-300: #8fbdd9;
+  --color-steel-400: #63a3c9;
+  --color-steel-500: #4090c0;
+  --color-steel-600: #347ca8;
+  --color-steel-700: #2b668a;
+  --color-steel-800: #23516d;
+  --color-steel-900: #1c4158;
+
+  /* chrome — topbar (dark slate) + sidebar (light gray) family */
+  --color-chrome-50: #f3f5f6;
+  --color-chrome-100: #e3e7ea;
+  --color-chrome-200: #d0d6da;
+  --color-chrome-300: #b3bcc3;
+  --color-chrome-400: #8b98a1;
+  --color-chrome-500: #5e6b76;
+  --color-chrome-600: #4a5a66;
+  --color-chrome-700: #3a4b56;
+  --color-chrome-800: #2f3e48;
+  --color-chrome-900: #22303a;
+
+  /* canvas — page backgrounds (gray #eeefef, blue-tinted #f2f9fb on the dashboard) */
+  --color-canvas: #eeefef;
+  --color-canvas-blue: #f2f9fb;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  --shadow-card: 0 1px 3px 0 rgba(0, 16, 32, 0.08),
+    0 1px 2px -1px rgba(0, 16, 32, 0.06);
+}
 
 @layer base {
   body {
