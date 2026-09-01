@@ -69,7 +69,7 @@ func badgeClass(p BadgeProps) string {
 	return c
 }
 
-// IconKind identifies one shared SVG icon.
+// IconKind identifies one shared Material Symbols icon.
 type IconKind string
 
 const (
@@ -83,19 +83,72 @@ const (
 	IconKindArrowRight   IconKind = "arrow-right"
 	IconKindClipboard    IconKind = "clipboard"
 	IconKindTag          IconKind = "tag"
+	IconKindEye          IconKind = "eye"
+	IconKindEyeOff       IconKind = "eye-off"
+	IconKindMenu         IconKind = "menu"
 )
 
 // IconProps carries everything Icon needs to render.
 type IconProps struct {
-	Kind  IconKind
-	Class string // size/color overrides; defaults to "h-5 w-5"
+	Kind       IconKind
+	Class      string  // size/color overrides; defaults to "h-5 w-5"
+	DataIcon   string  // optional data-icon attribute (password toggle hook)
+	Style      string  // optional inline style (e.g. initial "display:none" for toggled icons)
+	AriaHidden *bool   // whether to hide the icon from assistive tech; nil defaults to true
 }
 
 func iconClass(p IconProps) string {
 	if p.Class != "" {
-		return p.Class
+		return "material-symbols-outlined " + p.Class
 	}
-	return "h-5 w-5"
+	return "material-symbols-outlined h-5 w-5"
+}
+
+// materialName returns the Material Symbols ligature for a kind.
+// Unknown kinds fall back to the info glyph so pages never render broken icons.
+func materialName(kind IconKind) string {
+	switch kind {
+	case IconKindBuilding:
+		return "apartment"
+	case IconKindMail:
+		return "mail"
+	case IconKindUsers:
+		return "group"
+	case IconKindHome:
+		return "home"
+	case IconKindKey:
+		return "key"
+	case IconKindInfo:
+		return "info"
+	case IconKindChevronLeft:
+		return "chevron_left"
+	case IconKindArrowRight:
+		return "arrow_forward"
+	case IconKindClipboard:
+		return "content_paste"
+	case IconKindTag:
+		return "label"
+	case IconKindEye:
+		return "visibility"
+	case IconKindEyeOff:
+		return "visibility_off"
+	case IconKindMenu:
+		return "menu"
+	default:
+		return "info"
+	}
+}
+
+// iconAriaHidden renders the aria-hidden attribute value; nil defaults to
+// hidden (decorative icons) per the accessibility contract.
+func iconAriaHidden(p IconProps) string {
+	if p.AriaHidden != nil {
+		if *p.AriaHidden {
+			return "true"
+		}
+		return "false"
+	}
+	return "true"
 }
 
 // InputProps carries the common attributes for form controls.

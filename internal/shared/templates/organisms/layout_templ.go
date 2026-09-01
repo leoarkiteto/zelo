@@ -11,6 +11,8 @@ import templruntime "github.com/a-h/templ/runtime"
 import (
 	"strings"
 
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
 
@@ -65,7 +67,7 @@ func Layout(title string, locale i18n.Language, shell *ShellData, body templ.Com
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(locale)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 33, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 35, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
@@ -78,7 +80,7 @@ func Layout(title string, locale i18n.Language, shell *ShellData, body templ.Com
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 37, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 39, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 		if templ_7745c5c3_Err != nil {
@@ -135,13 +137,21 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(shell.Locale)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 52, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 54, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"flex min-h-screen flex-col\"><header class=\"topbar sticky top-0 z-40\"><label for=\"nav-toggle\" class=\"-ml-2 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-chrome-100 hover:bg-chrome-600 md:hidden\" aria-label=\"Toggle navigation\"><svg xmlns=\"http://www.w3.org/2000/svg\" class=\"h-6 w-6\" fill=\"none\" viewBox=\"0 0 24 24\" stroke=\"currentColor\" stroke-width=\"2\"><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M4 6h16M4 12h16M4 18h16\"></path></svg></label> <a href=\"/\" class=\"flex items-center gap-2.5\"><span class=\"flex h-9 w-9 items-center justify-center rounded-md bg-steel-500 text-base font-bold text-white\">Z</span> <span class=\"leading-tight\"><span class=\"block text-base font-bold tracking-wide\">zelo</span> <span class=\"block text-[10px] font-medium uppercase tracking-widest text-chrome-200\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" class=\"flex min-h-screen flex-col\"><header class=\"topbar sticky top-0 z-40\"><label for=\"nav-toggle\" class=\"-ml-2 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md text-chrome-100 hover:bg-chrome-600 md:hidden\" aria-label=\"Toggle navigation\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = atoms.Icon(atoms.IconProps{Kind: atoms.IconKindMenu, Class: "h-6 w-6"}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</label> <a href=\"/\" class=\"flex items-center gap-2.5\"><span class=\"flex h-9 w-9 items-center justify-center rounded-md bg-steel-500 text-base font-bold text-white\">Z</span> <span class=\"leading-tight\"><span class=\"block text-base font-bold tracking-wide\">zelo</span> <span class=\"block text-[10px] font-medium uppercase tracking-widest text-chrome-200\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -154,12 +164,12 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span></span></a><div class=\"flex-1\"></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span></span></a><div class=\"flex-1\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if shell.User != nil {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"hidden items-center gap-3 sm:flex\"><span class=\"flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chrome-500 text-sm font-bold text-white\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div class=\"hidden items-center gap-3 sm:flex\"><span class=\"flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chrome-500 text-sm font-bold text-white\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -172,7 +182,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</span> <span class=\"leading-tight\"><a href=\"/profile\" class=\"hover:underline\"><span class=\"block max-w-[180px] truncate text-sm font-medium\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</span> <span class=\"leading-tight\"><a href=\"/profile\" class=\"hover:underline\"><span class=\"block max-w-[180px] truncate text-sm font-medium\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -185,7 +195,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</span></a> <span class=\"block max-w-[220px] truncate text-xs text-chrome-300\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</span></a> <span class=\"block max-w-[220px] truncate text-xs text-chrome-300\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -198,7 +208,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</span></span></div><form method=\"POST\" action=\"/logout\" class=\"ml-1\"><input type=\"hidden\" name=\"csrf_token\" value=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</span></span></div><form method=\"POST\" action=\"/logout\" class=\"ml-1\"><input type=\"hidden\" name=\"csrf_token\" value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -211,7 +221,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "\"> <button class=\"btn btn-sm bg-white/10 text-white hover:bg-white/20\" type=\"submit\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\"> <button class=\"btn btn-sm bg-white/10 text-white hover:bg-white/20\" type=\"submit\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -224,12 +234,12 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</button></form>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</button></form>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</header><div class=\"flex flex-1\"><input type=\"checkbox\" id=\"nav-toggle\" class=\"peer sr-only\"><aside class=\"sidebar fixed inset-y-0 left-0 top-16 z-30 -translate-x-full transition-transform duration-200 peer-checked:translate-x-0 md:static md:z-auto md:translate-x-0\"><nav class=\"py-3\"><p class=\"nav-group\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</header><div class=\"flex flex-1\"><input type=\"checkbox\" id=\"nav-toggle\" class=\"peer sr-only\"><aside class=\"sidebar fixed inset-y-0 left-0 top-16 z-30 -translate-x-full transition-transform duration-200 peer-checked:translate-x-0 md:static md:z-auto md:translate-x-0\"><nav class=\"py-3\"><p class=\"nav-group\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -242,12 +252,12 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "</p><ul class=\"mx-2 space-y-1\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "</p><ul class=\"mx-2 space-y-1\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, item := range shell.Nav {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -256,7 +266,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "<a class=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<a class=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -269,7 +279,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\" href=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -282,7 +292,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 19, "\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -295,12 +305,12 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 20, "</a></li>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</a></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "</ul></nav></aside><label for=\"nav-toggle\" class=\"fixed inset-0 z-20 hidden cursor-pointer bg-ink-950/40 peer-checked:block md:hidden\"></label><main class=\"min-w-0 flex-1\"><div class=\"mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</ul></nav></aside><label for=\"nav-toggle\" class=\"fixed inset-0 z-20 hidden cursor-pointer bg-ink-950/40 peer-checked:block md:hidden\"></label><main class=\"min-w-0 flex-1\"><div class=\"mx-auto max-w-6xl px-4 py-6 md:px-8 md:py-8\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -308,7 +318,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</div></main></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</div></main></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -48,7 +48,7 @@ func TestPagesRender(t *testing.T) {
 		{"area",
 			AreaPage(AreaPageData{Shell: shellFixture(), Title: "My unit", Message: "Manage your unit.",
 				Links: []DashboardLink{{Label: "Dashboard", Path: "/"}}}),
-			[]string{"My unit", "Breadcrumb", "Dashboard"}},
+			[]string{"My unit", "Breadcrumb", "Dashboard", "material-symbols-outlined", "chevron_left", "arrow_forward"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -57,6 +57,9 @@ func TestPagesRender(t *testing.T) {
 				if !strings.Contains(html, want) {
 					t.Errorf("rendered %s is missing %q", c.name, want)
 				}
+			}
+			if strings.Contains(html, "<svg") {
+				t.Errorf("rendered %s must not contain inline <svg>", c.name)
 			}
 		})
 	}

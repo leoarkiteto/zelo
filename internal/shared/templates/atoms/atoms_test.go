@@ -36,9 +36,57 @@ func TestBadgeRendersVariant(t *testing.T) {
 
 func TestIconRendersKnownKind(t *testing.T) {
 	html := testutil.RenderToString(t, Icon(IconProps{Kind: IconKindInfo}))
-	for _, want := range []string{"<svg", `class="h-5 w-5"`} {
+	for _, want := range []string{`<span class="material-symbols-outlined h-5 w-5" aria-hidden="true">info</span>`} {
 		if !strings.Contains(html, want) {
 			t.Errorf("Icon is missing %q in %q", want, html)
+		}
+	}
+	if strings.Contains(html, "<svg") {
+		t.Errorf("Icon must not render inline <svg>, got %q", html)
+	}
+}
+
+func TestIconRendersDataIcon(t *testing.T) {
+	html := testutil.RenderToString(t, Icon(IconProps{Kind: IconKindEye, Class: "h-5 w-5", DataIcon: "eye"}))
+	for _, want := range []string{`class="material-symbols-outlined h-5 w-5"`, `data-icon="eye"`, "visibility", `aria-hidden="true"`} {
+		if !strings.Contains(html, want) {
+			t.Errorf("Icon is missing %q in %q", want, html)
+		}
+	}
+}
+
+func TestIconFallsBackForUnknownKind(t *testing.T) {
+	html := testutil.RenderToString(t, Icon(IconProps{Kind: "does-not-exist"}))
+	for _, want := range []string{`<span class="material-symbols-outlined h-5 w-5"`, ">info<"} {
+		if !strings.Contains(html, want) {
+			t.Errorf("Icon fallback is missing %q in %q", want, html)
+		}
+	}
+}
+
+func TestIconCatalogIsComplete(t *testing.T) {
+	want := map[IconKind]string{
+		IconKindBuilding:    "apartment",
+		IconKindMail:        "mail",
+		IconKindUsers:       "group",
+		IconKindHome:        "home",
+		IconKindKey:         "key",
+		IconKindInfo:        "info",
+		IconKindChevronLeft: "chevron_left",
+		IconKindArrowRight:  "arrow_forward",
+		IconKindClipboard:   "content_paste",
+		IconKindTag:         "label",
+		IconKindEye:         "visibility",
+		IconKindEyeOff:      "visibility_off",
+		IconKindMenu:        "menu",
+	}
+	for kind, ligature := range want {
+		if got := materialName(kind); got != ligature {
+			t.Errorf("materialName(%s) = %q, want %q", kind, got, ligature)
+		}
+		html := testutil.RenderToString(t, Icon(IconProps{Kind: kind}))
+		if !strings.Contains(html, ">"+ligature+"<") {
+			t.Errorf("Icon(%s) does not render %q in %q", kind, ligature, html)
 		}
 	}
 }

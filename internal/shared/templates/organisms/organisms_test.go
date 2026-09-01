@@ -31,10 +31,13 @@ func TestShellRendersAppChrome(t *testing.T) {
 		Locale: i18n.LanguageEN,
 	}
 	html := testutil.RenderToString(t, Shell(shell, testutil.Component("<p>content</p>")))
-	for _, want := range []string{`id="app-shell"`, `lang="en"`, "Painel", "<p>content</p>"} {
+	for _, want := range []string{`id="app-shell"`, `lang="en"`, "Painel", "<p>content</p>", "material-symbols-outlined", ">menu<"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("Shell is missing %q in %q", want, html)
 		}
+	}
+	if strings.Contains(html, "<svg") {
+		t.Errorf("Shell must not render inline <svg>, got %q", html)
 	}
 }
 

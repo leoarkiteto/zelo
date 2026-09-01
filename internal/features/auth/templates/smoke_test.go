@@ -28,7 +28,7 @@ func TestPagesRender(t *testing.T) {
 	}{
 		{"login",
 			LoginPage(LoginPageData{CSRF: "tok"}),
-			[]string{"Sign in", "Forgot your password"}},
+			[]string{"Sign in", "Forgot your password", "material-symbols-outlined", `data-icon="eye"`, `data-icon="eye-off"`, "visibility", "visibility_off", `style="display:none;"`}},
 		{"login-error",
 			LoginPage(LoginPageData{CSRF: "tok", Error: "Invalid email or password."}),
 			[]string{"alert-error", "Invalid email or password."}},
@@ -49,6 +49,9 @@ func TestPagesRender(t *testing.T) {
 				if !strings.Contains(html, want) {
 					t.Errorf("rendered %s is missing %q", c.name, want)
 				}
+			}
+			if c.name == "login" && strings.Contains(html, "<svg") {
+				t.Errorf("rendered %s must not contain inline <svg>", c.name)
 			}
 		})
 	}

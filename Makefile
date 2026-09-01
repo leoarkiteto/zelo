@@ -30,3 +30,4 @@ check:
 	go test ./...
 	scripts/check-feature-boundaries.sh
 	scripts/check-template-atomic-boundaries.sh
+	scripts/check-no-inline-svg.sh

@@ -53,6 +53,43 @@ Status colors use the Tailwind defaults: `green` (approved/used/success),
 | `.empty-state`, `.empty-state-title`, `.empty-state-copy` | Empty collections |
 | `.stepper`, `.stepper-item`, `.stepper-dot*`, `.stepper-line` | Multi-step progress (reference pattern; ready for wizard flows) |
 
+## Icons (Google Material Symbols)
+
+All icons come from the self-hosted **Google Material Symbols** (outlined)
+font and MUST be rendered through the shared Templ component
+`atoms.Icon` in `internal/shared/templates/atoms`. Never hand-write inline
+`<svg>` markup in templates (enforced by `scripts/check-no-inline-svg.sh`).
+
+```text
+@atoms.Icon(atoms.IconProps{Kind: atoms.IconKindMail})
+```
+
+| Kind | Ligature | Meaning |
+|---|---|---|
+| `building` | `apartment` | Building / condominium |
+| `mail` | `mail` | Email / contact |
+| `users` | `group` | People / roles |
+| `home` | `home` | Dashboard / home |
+| `key` | `key` | Credentials |
+| `info` | `info` | Information (also fallback) |
+| `chevron-left` | `chevron_left` | Breadcrumb separator |
+| `arrow-right` | `arrow_forward` | Forward navigation |
+| `clipboard` | `content_paste` | Records / clipboard |
+| `tag` | `label` | Tag / category |
+| `eye` | `visibility` | Show password |
+| `eye-off` | `visibility_off` | Hide password |
+| `menu` | `menu` | Mobile menu |
+
+Usage notes:
+
+- Size/color overrides go in `IconProps.Class` (default `h-5 w-5`); the CSS
+  layer maps `h-3.5`, `h-4`, `h-5`, `h-6` to glyph sizes.
+- Icons are decorative by default (`aria-hidden="true"`); interactive icons
+  (e.g. the password toggle) keep the accessible name on the enclosing
+  button/link.
+- `DataIcon` adds a `data-icon` attribute for JS hooks (password toggle).
+- The font is served from `/static/fonts/material-symbols-outlined.woff2`.
+
 ## Page → reference mapping
 
 | zelo page | Reference |
