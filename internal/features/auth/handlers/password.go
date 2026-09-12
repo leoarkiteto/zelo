@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/leoarkiteto/zelo/internal/features/auth/core/services"
+	"github.com/leoarkiteto/zelo/internal/features/auth/services"
 	"github.com/leoarkiteto/zelo/internal/features/auth/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"

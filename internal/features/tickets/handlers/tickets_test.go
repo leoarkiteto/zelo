@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leoarkiteto/zelo/internal/features/tickets/core/domain"
-	"github.com/leoarkiteto/zelo/internal/features/tickets/core/services"
+	"github.com/leoarkiteto/zelo/internal/features/tickets/domain"
+	"github.com/leoarkiteto/zelo/internal/features/tickets/services"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 )

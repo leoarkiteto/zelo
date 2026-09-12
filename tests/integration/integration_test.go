@@ -16,18 +16,18 @@ import (
 	"time"
 
 	authhandlers "github.com/leoarkiteto/zelo/internal/features/auth/handlers"
-	authservices "github.com/leoarkiteto/zelo/internal/features/auth/core/services"
+	authservices "github.com/leoarkiteto/zelo/internal/features/auth/services"
 	directoryhandlers "github.com/leoarkiteto/zelo/internal/features/directory/handlers"
-	dirservices "github.com/leoarkiteto/zelo/internal/features/directory/core/services"
 	"github.com/leoarkiteto/zelo/internal/features/directory/repositories"
+	dirservices "github.com/leoarkiteto/zelo/internal/features/directory/services"
 	homehandlers "github.com/leoarkiteto/zelo/internal/features/home/handlers"
 	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
-	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/core/services"
+	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/services"
 	profilehandlers "github.com/leoarkiteto/zelo/internal/features/profile/handlers"
-	profileservices "github.com/leoarkiteto/zelo/internal/features/profile/core/services"
-	ticketrepositories "github.com/leoarkiteto/zelo/internal/features/tickets/repositories"
-	ticketservices "github.com/leoarkiteto/zelo/internal/features/tickets/core/services"
+	profileservices "github.com/leoarkiteto/zelo/internal/features/profile/services"
 	tickethandlers "github.com/leoarkiteto/zelo/internal/features/tickets/handlers"
+	ticketrepositories "github.com/leoarkiteto/zelo/internal/features/tickets/repositories"
+	ticketservices "github.com/leoarkiteto/zelo/internal/features/tickets/services"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
 	"github.com/leoarkiteto/zelo/internal/shared/store"
@@ -95,14 +95,32 @@ func newApp(t *testing.T) http.Handler {
 		Tokens:      tokens,
 		Audit:       audit,
 		Registration: &authservices.RegistrationService{
-			Users: users, Roles: roles, Invitations: invitations,
-			Passwords: hasher, Tokens: tokens, Now: time.Now,
+			CreateUser:               users.CreateUser,
+			GrantRole:                roles.GrantRole,
+			GetInvitationByTokenHash: invitations.GetInvitationByTokenHash,
+			MarkInvitationAccepted:   invitations.MarkInvitationAccepted,
+			HashPassword:             hasher.Hash,
+			ValidatePassword:         hasher.ValidatePassword,
+			HashToken:                tokens.HashToken,
+			Now:                      time.Now,
 		},
 		AuthService: &authservices.AuthService{
-			Users: users, Roles: roles, Passwords: hasher, Audit: audit, Now: time.Now,
+			GetUserByEmail:     users.GetUserByEmail,
+			RecordFailedSignIn: users.RecordFailedSignIn,
+			ApplyLock:          users.ApplyLock,
+			ClearLock:          users.ClearLock,
+			FirstActiveRole:    roles.FirstActiveRoleForUser,
+			VerifyPassword:     hasher.Verify,
+			RecordEvent:        audit.RecordEvent,
+			Now:                time.Now,
 		},
 		PasswordReset: &authservices.PasswordResetService{
-			Users: users, Passwords: hasher, Tokens: tokens, Now: time.Now,
+			GetUserByEmail:   users.GetUserByEmail,
+			UpdatePassword:   users.UpdatePassword,
+			HashPassword:     hasher.Hash,
+			ValidatePassword: hasher.ValidatePassword,
+			HashToken:        tokens.HashToken,
+			Now:              time.Now,
 		},
 	})
 	homehandlers.RegisterRoutes(mux, homehandlers.Deps{Roles: roles, Audit: audit})

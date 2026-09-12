@@ -2,27 +2,15 @@
 package handlers
 
 import (
-	"context"
-
-	"github.com/leoarkiteto/zelo/internal/features/directory/core/services"
 	"github.com/leoarkiteto/zelo/internal/features/directory/repositories"
-	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/features/directory/services"
+	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 )
-
-// Roles returns the active roles for a user in a condominium.
-type Roles interface {
-	ActiveRolesForUser(ctx context.Context, userID, condominiumID string) ([]model.Role, error)
-}
-
-// AuditRecorder records security-relevant events.
-type AuditRecorder interface {
-	RecordEvent(ctx context.Context, userID *string, eventType model.AuditEventType, details map[string]any) error
-}
 
 // Deps are the collaborators used by directory handlers.
 type Deps struct {
-	Roles      Roles
-	Audit      AuditRecorder
+	Roles      middleware.RoleChecker
+	Audit      middleware.AuditRecorder
 	Listings   *repositories.ListingStore
 	Categories *repositories.CategoryStore
 	Directory  *services.DirectoryService

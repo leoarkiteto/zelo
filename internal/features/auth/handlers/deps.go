@@ -4,18 +4,19 @@ package handlers
 import (
 	"log/slog"
 
-	"github.com/leoarkiteto/zelo/internal/features/auth/core/ports"
-	"github.com/leoarkiteto/zelo/internal/features/auth/core/services"
+	"github.com/leoarkiteto/zelo/internal/features/auth/services"
+	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
+	"github.com/leoarkiteto/zelo/internal/shared/store"
 )
 
 // Deps are the collaborators used by auth handlers.
 type Deps struct {
 	Logger        *slog.Logger
 	Sessions      *security.SessionManager
-	Invitations   ports.InvitationStore
-	Tokens        ports.TokenHasher
-	Audit         ports.AuditRecorder
+	Invitations   *store.InvitationStore
+	Tokens        security.TokenHasher
+	Audit         middleware.AuditRecorder
 	Registration  *services.RegistrationService
 	AuthService   *services.AuthService
 	PasswordReset *services.PasswordResetService

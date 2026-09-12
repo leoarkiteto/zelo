@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/ports"
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/services"
+	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
+	"github.com/leoarkiteto/zelo/internal/features/finance/services"
 	financetemplates "github.com/leoarkiteto/zelo/internal/features/finance/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
@@ -269,13 +268,13 @@ func (h *Handler) healthGET(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	data := financetemplates.HealthPageData{
-		Shell:         shell,
-		Locale:        locale,
-		CSRF:          sess.CSRFToken,
-		Period:        month.Format("2006-01"),
-		TotalSpent:    financetemplates.Money(locale, sum.RealizedPayableCents),
+		Shell:          shell,
+		Locale:         locale,
+		CSRF:           sess.CSRFToken,
+		Period:         month.Format("2006-01"),
+		TotalSpent:     financetemplates.Money(locale, sum.RealizedPayableCents),
 		TotalCollected: financetemplates.Money(locale, sum.RealizedReceivableCents),
-		Empty:         sum.RealizedPayableCents == 0 && sum.RealizedReceivableCents == 0,
+		Empty:          sum.RealizedPayableCents == 0 && sum.RealizedReceivableCents == 0,
 	}
 	httpx.Render(w, r, financetemplates.HealthPage(data))
 }
@@ -291,7 +290,7 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 	}
 
 	q := r.URL.Query()
-	f := ports.AccountFilter{Query: q.Get("q")}
+	f := services.AccountFilter{Query: q.Get("q")}
 	if t := domain.AccountType(q.Get("type")); t.Valid() {
 		f.Type = t
 	}
@@ -345,8 +344,8 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 		Statuses:   financetemplates.StatusOptions(locale),
 		Types:      financetemplates.TypeOptions(locale),
 		Summary: financetemplates.SummaryView{
-			TotalReceivable: financetemplates.Money(locale, sum.TotalReceivableCents),
-			TotalPayable:    financetemplates.Money(locale, sum.TotalPayableCents),
+			TotalReceivable:  financetemplates.Money(locale, sum.TotalReceivableCents),
+			TotalPayable:     financetemplates.Money(locale, sum.TotalPayableCents),
 			ProjectedBalance: financetemplates.Money(locale, sum.ProjectedBalanceCents),
 			RealizedBalance:  financetemplates.Money(locale, sum.RealizedBalanceCents),
 		},
@@ -360,16 +359,16 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 
 func (h *Handler) accountView(locale i18n.Language, a domain.FinancialAccount) financetemplates.AccountView {
 	view := financetemplates.AccountView{
-		ID:            a.ID,
-		Type:          a.Type,
-		Title:         a.Title,
-		CategoryLabel: financetemplates.CategoryLabel(locale, a.Type, a.Category),
-		Amount:        financetemplates.Money(locale, a.AmountCents),
-		DueDate:       i18n.FormatDate(locale, a.DueDate),
+		ID:              a.ID,
+		Type:            a.Type,
+		Title:           a.Title,
+		CategoryLabel:   financetemplates.CategoryLabel(locale, a.Type, a.Category),
+		Amount:          financetemplates.Money(locale, a.AmountCents),
+		DueDate:         i18n.FormatDate(locale, a.DueDate),
 		EffectiveStatus: a.EffectiveStatus(time.Now()),
-		StatusLabel:   financetemplates.StatusLabel(locale, a.EffectiveStatus(time.Now())),
-		SupplierPayee: a.SupplierPayee,
-		HasReceipt:    a.ReceiptPath != "",
+		StatusLabel:     financetemplates.StatusLabel(locale, a.EffectiveStatus(time.Now())),
+		SupplierPayee:   a.SupplierPayee,
+		HasReceipt:      a.ReceiptPath != "",
 	}
 	if a.SettlementDate != nil {
 		view.SettlementDate = i18n.FormatDate(locale, *a.SettlementDate)

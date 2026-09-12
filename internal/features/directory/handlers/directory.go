@@ -6,7 +6,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"net/http"
 
-	"github.com/leoarkiteto/zelo/internal/features/directory/core/services"
+	"github.com/leoarkiteto/zelo/internal/features/directory/services"
 	"github.com/leoarkiteto/zelo/internal/features/directory/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 )

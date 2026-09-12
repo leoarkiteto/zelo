@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/ports"
+	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
+	"github.com/leoarkiteto/zelo/internal/features/finance/services"
 	sharedstore "github.com/leoarkiteto/zelo/internal/shared/store"
 )
 
@@ -116,7 +116,7 @@ func (s *AccountStore) SetStatus(ctx context.Context, id, condominiumID string, 
 }
 
 // List returns accounts of a condominium matching the filter.
-func (s *AccountStore) List(ctx context.Context, condominiumID string, f ports.AccountFilter) ([]domain.FinancialAccount, error) {
+func (s *AccountStore) List(ctx context.Context, condominiumID string, f services.AccountFilter) ([]domain.FinancialAccount, error) {
 	params := []any{condominiumID}
 	where := []string{"condominium_id = $1"}
 	next := 2
@@ -186,10 +186,10 @@ func (s *AccountStore) ListPendingForUnit(ctx context.Context, condominiumID, un
 }
 
 // SummaryForMonth computes the monthly dashboard projection (research.md R5).
-func (s *AccountStore) SummaryForMonth(ctx context.Context, condominiumID string, month time.Time) (ports.MonthSummary, error) {
+func (s *AccountStore) SummaryForMonth(ctx context.Context, condominiumID string, month time.Time) (services.MonthSummary, error) {
 	start := month
 	end := month.AddDate(0, 1, 0)
-	var m ports.MonthSummary
+	var m services.MonthSummary
 	err := s.db.QueryRowContext(ctx, `
 		SELECT
 			COALESCE(SUM(amount_cents) FILTER (WHERE account_type = 'receivable' AND status <> 'canceled' AND due_date >= $2 AND due_date < $3), 0),
@@ -200,7 +200,7 @@ func (s *AccountStore) SummaryForMonth(ctx context.Context, condominiumID string
 		Scan(&m.TotalReceivableCents, &m.TotalPayableCents,
 			&m.RealizedReceivableCents, &m.RealizedPayableCents)
 	if err != nil {
-		return ports.MonthSummary{}, fmt.Errorf("summary for month: %w", err)
+		return services.MonthSummary{}, fmt.Errorf("summary for month: %w", err)
 	}
 	m.ProjectedBalanceCents = m.TotalReceivableCents - m.TotalPayableCents
 	m.RealizedBalanceCents = m.RealizedReceivableCents - m.RealizedPayableCents

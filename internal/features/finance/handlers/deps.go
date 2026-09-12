@@ -5,21 +5,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/ports"
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/services"
+	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
+	"github.com/leoarkiteto/zelo/internal/features/finance/services"
+	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 )
-
-// Roles returns the active roles for a user in a condominium.
-type Roles interface {
-	ActiveRolesForUser(ctx context.Context, userID, condominiumID string) ([]model.Role, error)
-}
-
-// AuditRecorder records security-relevant events.
-type AuditRecorder interface {
-	RecordEvent(ctx context.Context, userID *string, eventType model.AuditEventType, details map[string]any) error
-}
 
 // Finance is the use-case surface the finance handlers depend on.
 type Finance interface {
@@ -27,10 +17,10 @@ type Finance interface {
 	EditAccount(ctx context.Context, actorID, accountID, condominiumID string, in services.AccountInput) error
 	SettleAccount(ctx context.Context, actorID, accountID, condominiumID, settlementDate string) error
 	CancelAccount(ctx context.Context, actorID, accountID, condominiumID string) error
-	ListAccounts(ctx context.Context, condominiumID string, f ports.AccountFilter) ([]domain.FinancialAccount, error)
-	Summary(ctx context.Context, condominiumID string, month time.Time) (ports.MonthSummary, error)
+	ListAccounts(ctx context.Context, condominiumID string, f services.AccountFilter) ([]domain.FinancialAccount, error)
+	Summary(ctx context.Context, condominiumID string, month time.Time) (services.MonthSummary, error)
 	ResidentCharges(ctx context.Context, userID, condominiumID string) ([]domain.FinancialAccount, error)
-	Health(ctx context.Context, condominiumID string, month time.Time) (ports.MonthSummary, error)
+	Health(ctx context.Context, condominiumID string, month time.Time) (services.MonthSummary, error)
 }
 
 // AccountReader loads a single account by id.
@@ -45,8 +35,8 @@ type UnitLister interface {
 
 // Deps are the collaborators used by finance handlers.
 type Deps struct {
-	Roles     Roles
-	Audit     AuditRecorder
+	Roles     middleware.RoleChecker
+	Audit     middleware.AuditRecorder
 	Accounts  AccountReader
 	Units     UnitLister
 	Finance   Finance

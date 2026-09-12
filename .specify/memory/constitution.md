@@ -1,10 +1,14 @@
 <!--
 Sync Impact Report
-- Version change: 1.1.0 → 1.2.0 (MINOR: repository layout rewritten)
-- Modified principles: Principle III wording updated (shared modules live under internal/shared/)
+- Version change: 1.2.0 → 2.0.0 (MAJOR: Principle II redefined — the hexagonal
+  ports/adapters mandate is removed in favour of vertical slices only)
+- Modified principles: Principle II (Modular Monolith with Vertical Slices),
+  Principle III wording (no ports layer), Repository Layout section,
+  Development Workflow wording
 - Added sections: n/a
 - Removed sections: n/a
-- Follow-up TODOs: none
+- Follow-up TODOs: amendment must be approved through PR review per Governance
+  (authored by spec 011-refactor-vertical-slice)
 -->
 
 # zelo Constitution
@@ -13,8 +17,8 @@ Sync Impact Report
 
 - **Domain**: Condominium Management Web Application
 - **Tech Stack**: GOTTH (Go, Templ, TailwindCSS, HTMX)
-- **Architecture**: Modular Monolith using Hexagonal Architecture (Ports &
-  Adapters) combined with Vertical Slice Architecture
+- **Architecture**: Modular Monolith using Vertical Slice Architecture. Each
+  feature is a self-contained slice with no shared adapter/ports layer.
 - **Feature Isolation**: Each feature MUST be fully self-contained within its
   own vertical slice.
 - **Development Standard**: Adhere strictly to industry best practice, SOLID,
@@ -35,28 +39,29 @@ module is `github.com/leoarkiteto/zelo` and the only binary entrypoint is
 `cmd/web`. Rationale: a single, composable stack keeps the codebase small,
 fast, and maintainable.
 
-### II. Modular Monolith with Hexagonal Architecture
+### II. Modular Monolith with Vertical Slices
 
-The application MUST be a single deployable modular monolith. Business logic in
-`internal/service` MUST NOT depend on web frameworks, databases, or external
-clients; it communicates only through ports (interfaces) implemented by
-adapters in `internal/store`, `internal/auth`, and `internal/handler`. Domain
-models live in `internal/model` and MUST be shared across layers without
-leaking infrastructure concerns. Rationale: the core stays independently
-testable and adapters remain swappable.
+The application MUST be a single deployable modular monolith organized as
+vertical slices. Business logic lives with the feature that owns it and MUST
+NOT depend on web frameworks, databases, or external clients through a
+mandatory ports/adapters layer. The composition root (`cmd/web`) wires each
+feature's concrete dependencies; there is no hexagonal `core/ports` layer and
+no central adapter package. Cross-feature data definitions live in
+`internal/shared/model` and MUST NOT leak infrastructure concerns. Rationale:
+with a solo developer, removing the ports/adapters indirection keeps a change
+inside one feature folder and keeps the codebase small and testable.
 
 ### III. Vertical Slice Feature Isolation
 
 Each feature MUST be fully self-contained within its own vertical slice,
-spanning handler → service → store for that feature only, organized under
-`internal/features/<feature>/` (`core/{domain,ports,services}` + `handlers/` +
-`repositories/` + `templates/`). A slice MUST NOT reach into another slice's
-internals; shared functionality MAY only be used through explicit shared
-modules under `internal/shared/` (`internal/shared/model`,
+organized under `internal/features/<feature>/` (`domain/`, `services/`,
+`handlers/`, `repositories/`, `templates/`). A slice MUST NOT reach into
+another slice's internals; shared functionality MAY only be used through
+explicit shared modules under `internal/shared/` (`internal/shared/model`,
 `internal/shared/middleware`, `internal/shared/config`, `internal/shared/security`,
 `internal/shared/store`, `internal/shared/templates`, `internal/shared/httpx`).
-Rationale: self-contained slices keep changes local and make feature behavior
-predictable.
+A feature MUST NOT contain a `core/` wrapper or a `ports/` package. Rationale:
+self-contained slices keep changes local and make feature behavior predictable.
 
 ### IV. Test-First Development (NON-NEGOTIABLE)
 
@@ -78,15 +83,16 @@ generation sources are the single source of truth for generated output.
 ### VI. Standard Library First & CSS-First
 
 Application functionality MUST prefer the Go standard library. Web frameworks,
-ORMs, and session/migration/validation frameworks are NOT permitted; database
-access uses `database/sql` with a plain SQL driver and hand-written SQL, and
-migrations are plain forward-only SQL files applied by a minimal runner.
-Front-end interaction MUST be CSS-first: presentation and interaction state
-come from Tailwind CSS; JavaScript is limited to the minimal HTMX
-progressive-enhancement required by the GOTTH stack, with no JS frameworks or
-SPA tooling. Approved exceptions (e.g., `golang.org/x/crypto` for Argon2id
-password hashing) MUST be justified in review. Rationale: fewer dependencies
-keep the codebase small, auditable, and maintainable.
+ORMs, dependency-injection containers, mock generators, and
+session/migration/validation frameworks are NOT permitted; database access uses
+`database/sql` with a plain SQL driver and hand-written SQL, and migrations are
+plain forward-only SQL files applied by a minimal runner. Front-end interaction
+MUST be CSS-first: presentation and interaction state come from Tailwind CSS;
+JavaScript is limited to the minimal HTMX progressive-enhancement required by
+the GOTTH stack, with no JS frameworks or SPA tooling. Approved exceptions
+(e.g., `golang.org/x/crypto` for Argon2id password hashing) MUST be justified in
+review. Rationale: fewer dependencies keep the codebase small, auditable, and
+maintainable.
 
 ## Repository Layout & Conventions
 
@@ -96,9 +102,10 @@ documented in `README.md`, extended with feature-first vertical slices:
 - `cmd/web`: main entrypoint and composition root; everything else is in
   `internal/`.
 - `internal/features/<feature>/`: one folder per user-facing feature — a
-  self-contained vertical slice with `core/{domain,ports,services}`,
-  `handlers/`, `repositories/` (feature-exclusive persistence), and
-  `templates/` (feature-exclusive Templ views).
+  self-contained vertical slice with `domain/` (feature-local types),
+  `services/` (use cases), `handlers/` (HTTP + `RegisterRoutes`),
+  `repositories/` (feature-exclusive persistence, optional), and `templates/`
+  (feature-exclusive Templ views, optional).
 - `internal/shared/`: cross-feature modules — `config`, `model`, `middleware`,
   `security`, `store`, `templates`, `httpx`, `testutil`.
 - `assets/`: source assets (CSS/JS) compiled into `web/static`.
@@ -115,7 +122,8 @@ Configuration MUST be environment-based, loaded and validated by
 sessions, CSRF, and token primitives live in `internal/shared/security`; route
 protection, CSRF, request logging, panic recovery, and security headers are
 applied in `internal/shared/middleware`. Features MUST NOT import another
-feature's internals — verified by `scripts/check-feature-boundaries.sh`.
+feature's internals — verified by `scripts/check-feature-boundaries.sh`, which
+also rejects any `core/` wrapper or `ports/` package inside a feature.
 Root-level tooling files (`Makefile`, `.air.toml`, `tailwind.config.js`) MUST
 be added before feature work begins so every developer uses the same commands.
 
@@ -129,8 +137,7 @@ No feature MAY merge until all of the following hold:
 - Tailwind output has been rebuilt and committed (or explicitly gitignored).
 - New migrations are committed and forward-only.
 - A code review confirms compliance with this constitution: SOLID, TDD,
-  vertical-slice isolation, hexagonal boundaries, and the standard-library /
-  CSS-first directive.
+  vertical-slice isolation, and the standard-library / CSS-first directive.
 
 New features MUST be built through the Spec Kit workflow — spec, plan, tasks,
 then implementation — with user approval at each gate. Complexity MUST be
@@ -146,4 +153,4 @@ expanded guidance, PATCH for clarifications and wording fixes. Every PR and
 review MUST verify compliance; runtime development guidance is captured per
 feature in `.specify/memory` (spec, plan, tasks).
 
-**Version**: 1.2.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-08-22
+**Version**: 2.0.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-09-12

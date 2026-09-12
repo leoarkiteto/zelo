@@ -8,8 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leoarkiteto/zelo/internal/features/profile/core/domain"
-	"github.com/leoarkiteto/zelo/internal/features/profile/core/ports"
+	"github.com/leoarkiteto/zelo/internal/features/profile/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
@@ -49,7 +48,7 @@ func (f *fakeProfileService) ChangeLanguage(_ context.Context, _ string, lang i1
 	return f.err
 }
 
-func profileRouter(user *model.User, sess *model.Session, svc ports.ProfileService) http.Handler {
+func profileRouter(user *model.User, sess *model.Session, svc Profile) http.Handler {
 	mux := http.NewServeMux()
 	RegisterRoutes(mux, Deps{
 		Roles:   &fakeRoles{roles: []model.Role{model.RoleSyndic}},

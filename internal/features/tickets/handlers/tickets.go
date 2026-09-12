@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/leoarkiteto/zelo/internal/features/tickets/core/domain"
-	"github.com/leoarkiteto/zelo/internal/features/tickets/core/services"
+	"github.com/leoarkiteto/zelo/internal/features/tickets/domain"
+	"github.com/leoarkiteto/zelo/internal/features/tickets/services"
 	tickettemplates "github.com/leoarkiteto/zelo/internal/features/tickets/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"

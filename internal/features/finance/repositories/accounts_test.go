@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/ports"
+	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
+	"github.com/leoarkiteto/zelo/internal/features/finance/services"
 	sharedstore "github.com/leoarkiteto/zelo/internal/shared/store"
 	"github.com/leoarkiteto/zelo/internal/shared/testutil"
 )
@@ -125,7 +125,7 @@ func TestAccountStoreListFiltersOverdue(t *testing.T) {
 	}
 
 	// overdue filter expands to pending + past due (FR-009).
-	overdue, err := store.List(ctx, condoID, ports.AccountFilter{Status: domain.StatusOverdue})
+	overdue, err := store.List(ctx, condoID, services.AccountFilter{Status: domain.StatusOverdue})
 	if err != nil {
 		t.Fatalf("List(overdue) = %v", err)
 	}
@@ -134,7 +134,7 @@ func TestAccountStoreListFiltersOverdue(t *testing.T) {
 	}
 
 	// type + category filter.
-	rec, err := store.List(ctx, condoID, ports.AccountFilter{
+	rec, err := store.List(ctx, condoID, services.AccountFilter{
 		Type: domain.AccountTypeReceivable, Category: domain.CategoryCondoFee,
 	})
 	if err != nil {
@@ -145,7 +145,7 @@ func TestAccountStoreListFiltersOverdue(t *testing.T) {
 	}
 
 	// keyword search.
-	search, err := store.List(ctx, condoID, ports.AccountFilter{Query: "vencida"})
+	search, err := store.List(ctx, condoID, services.AccountFilter{Query: "vencida"})
 	if err != nil {
 		t.Fatalf("List(q) = %v", err)
 	}

@@ -9,7 +9,7 @@ import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
 import (
-	"github.com/leoarkiteto/zelo/internal/features/tickets/core/domain"
+	"github.com/leoarkiteto/zelo/internal/features/tickets/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
 	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"

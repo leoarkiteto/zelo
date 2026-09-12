@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/leoarkiteto/zelo/internal/features/profile/core/domain"
+	"github.com/leoarkiteto/zelo/internal/features/profile/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 )

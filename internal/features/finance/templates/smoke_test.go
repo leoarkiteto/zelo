@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
+	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )

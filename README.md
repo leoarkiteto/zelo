@@ -13,16 +13,19 @@ Layout follows the [golang-standards/project-layout](https://github.com/golang-s
 ├── internal/               # private application code (not importable from outside this module)
 │   ├── features/           # one folder per user-facing feature — fully self-contained vertical slices
 │   │   ├── auth/           # registration, login, logout, password reset
-│   │   │   ├── core/       # domain, ports (interfaces), services (use cases)
+│   │   │   ├── domain/     # feature-local domain types
+│   │   │   ├── services/   # use cases
 │   │   │   ├── handlers/   # HTTP handlers + RegisterRoutes
 │   │   │   └── templates/  # feature-specific templ components (+ *_templ.go)
 │   │   ├── directory/      # service provider directory (listings + categories)
-│   │   │   ├── core/
+│   │   │   ├── domain/
+│   │   │   ├── services/
 │   │   │   ├── handlers/
-│   │   │   ├── repositories/   # listings + categories persistence adapters
+│   │   │   ├── repositories/   # listings + categories persistence
 │   │   │   └── templates/
 │   │   ├── management/     # roles + invitations administration
-│   │   │   ├── core/
+│   │   │   ├── domain/
+│   │   │   ├── services/
 │   │   │   ├── handlers/
 │   │   │   └── templates/
 │   │   └── home/           # dashboard + area shell
@@ -66,7 +69,8 @@ Layout follows the [golang-standards/project-layout](https://github.com/golang-s
 ## New features
 
 Every feature is a self-contained vertical slice under `internal/features/<feature>/`
-following the hexagonal layout in `specs/004-feature-folder-isolation/contracts/feature-folder-layout.md`.
+following the layout in `specs/004-feature-folder-isolation/contracts/feature-folder-layout.md`
+(`domain/`, `services/`, `handlers/`, `repositories/`, `templates/` — no `core/` wrapper and no `ports/` layer).
 Scaffold a new feature with:
 
 ```bash

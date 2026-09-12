@@ -1,0 +1,5 @@
+# Features still using the removed hexagonal core/ layout.
+#
+# One feature name per line. This file is empty because the migration is
+# complete: scripts/check-feature-boundaries.sh now fails if a core/ wrapper or
+# ports/ package reappears in any feature.

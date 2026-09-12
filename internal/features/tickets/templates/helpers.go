@@ -3,7 +3,7 @@
 package templates
 
 import (
-	"github.com/leoarkiteto/zelo/internal/features/tickets/core/domain"
+	"github.com/leoarkiteto/zelo/internal/features/tickets/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"

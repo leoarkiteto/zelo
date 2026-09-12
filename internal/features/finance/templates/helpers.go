@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
+	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
@@ -136,13 +136,13 @@ type ChargesPageData struct {
 
 // HealthPageData backs the resident financial-health page.
 type HealthPageData struct {
-	Shell         *organisms.ShellData
-	Locale        i18n.Language
-	CSRF          string
-	Period        string
-	TotalSpent    string
+	Shell          *organisms.ShellData
+	Locale         i18n.Language
+	CSRF           string
+	Period         string
+	TotalSpent     string
 	TotalCollected string
-	Empty         bool
+	Empty          bool
 }
 
 // Money renders integer cents as a localized BRL amount.

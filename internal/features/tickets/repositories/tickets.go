@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/leoarkiteto/zelo/internal/features/tickets/core/domain"
+	"github.com/leoarkiteto/zelo/internal/features/tickets/domain"
 	sharedstore "github.com/leoarkiteto/zelo/internal/shared/store"
 )
 

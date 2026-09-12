@@ -33,15 +33,15 @@ tickets, roles/invitations, profile, i18n). Module path:
   builds `handlers.Deps` per feature, calls each feature's `RegisterRoutes(mux, deps)`,
   then wraps the mux in the middleware chain (`Recover → Logging → SecurityHeaders →
   WithLocale → WithUser → CSRF`).
-- **Vertical slices**: one folder per feature under `internal/features/<feature>/`,
-  following the canonical hexagonal layout (see
-  `specs/004-feature-folder-isolation/contracts/feature-folder-layout.md`):
-  - `core/domain/` — domain types/rules
-  - `core/ports/` — **consumer-owned** interfaces (repositories.go, services.go)
-  - `core/services/` — use cases
-  - `handlers/` — HTTP handlers + `RegisterRoutes` (driving adapter)
+- **Vertical slices**: one folder per feature under `internal/features/<feature>/`
+  (see `specs/004-feature-folder-isolation/contracts/feature-folder-layout.md`):
+  - `domain/` — feature-local domain types/rules
+  - `services/` — use cases (plain structs; no ports/adapters layer)
+  - `handlers/` — HTTP handlers + `RegisterRoutes`
   - `repositories/` — feature-exclusive persistence (optional)
   - `templates/` — feature Templ views (optional)
+  There is **no `core/` wrapper and no `ports/` package**;
+  `scripts/check-feature-boundaries.sh` rejects them.
 - **Shared code**: cross-feature code lives in `internal/shared/` (`config`,
   `model`, `middleware`, `security`, `store`, `templates`, `httpx`, `i18n`,
   `testutil`) and is **never copied into a feature folder**.
@@ -53,7 +53,8 @@ tickets, roles/invitations, profile, i18n). Module path:
 1. **No cross-feature imports.** A feature must not import another feature's
    `internal/features/<other>/` packages; it may import its own sub-packages,
    `internal/shared/`, and `cmd/web`. Enforced by
-   `scripts/check-feature-boundaries.sh`.
+   `scripts/check-feature-boundaries.sh`, which also rejects any `core/` wrapper
+   or `ports/` package inside a feature folder.
 2. **Shared Templ atomic layers.** `internal/shared/templates/` is split into
    `atoms/` → `molecules/` → `organisms/`. Atoms must not import molecules or
    organisms; molecules must not import organisms; no shared template package
@@ -90,8 +91,10 @@ tickets, roles/invitations, profile, i18n). Module path:
 ## Conventions to keep
 
 - Feature folders are kebab-case; Go package names match their directory.
-- Handler packages export `Deps` + `RegisterRoutes`; services take ports via
-  struct fields (no constructor ceremony), with `Now` injectable for time.
+- Handler packages export `Deps` + `RegisterRoutes`; services take their
+  dependencies via plain struct fields — concrete store/security types, or
+  function values where a unit test needs a seam — with `Now` injectable for
+  time (no constructor ceremony, no ports layer).
 - RBAC: roles are `owner` / `tenant` / `syndic` per condominium; tenant
   cannot become syndic; only the syndic grants roles. Access control lives in
   `internal/shared/middleware` + per-feature route guards.
@@ -116,6 +119,8 @@ available, installed under `.github/skills` and registered in `reasonix.toml`).
   on stale `*_templ.go`.
 - Adding shared UI to a feature `templates/` instead of `internal/shared/templates/`
   → boundary-check failure or duplication.
+- Reintroducing a `core/` wrapper or `ports/` package inside a feature — the
+  vertical-slice boundary check fails.
 - Writing to the old PostgreSQL `sessions` table — sessions are Redis-only now.
 - Running `-seed` against production (`APP_ENV=production`) — it refuses on purpose.
 - Editing `web/static/js/htmx.min.js` — HTMX is pinned to v4.0.0, vendored under

@@ -14,9 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/domain"
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/ports"
-	"github.com/leoarkiteto/zelo/internal/features/finance/core/services"
+	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
+	"github.com/leoarkiteto/zelo/internal/features/finance/services"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 )
@@ -51,21 +50,21 @@ func (f *fakeUnitLister) ListUnitsForCondominium(context.Context, string) ([]mod
 }
 
 type fakeFinance struct {
-	createErr   error
-	editErr     error
-	settleErr   error
-	cancelErr   error
-	list        []domain.FinancialAccount
-	sum         ports.MonthSummary
-	charges     []domain.FinancialAccount
-	chargesErr  error
-	health      ports.MonthSummary
-	created     bool
-	lastCreate  services.AccountInput
-	lastSettle  string
-	lastCancel  string
-	lastEdit    string
-	lastFilter  ports.AccountFilter
+	createErr  error
+	editErr    error
+	settleErr  error
+	cancelErr  error
+	list       []domain.FinancialAccount
+	sum        services.MonthSummary
+	charges    []domain.FinancialAccount
+	chargesErr error
+	health     services.MonthSummary
+	created    bool
+	lastCreate services.AccountInput
+	lastSettle string
+	lastCancel string
+	lastEdit   string
+	lastFilter services.AccountFilter
 }
 
 func (f *fakeFinance) CreateAccount(_ context.Context, _, _ string, in services.AccountInput) (domain.FinancialAccount, error) {
@@ -92,12 +91,12 @@ func (f *fakeFinance) CancelAccount(_ context.Context, _, id, _ string) error {
 	return f.cancelErr
 }
 
-func (f *fakeFinance) ListAccounts(_ context.Context, _ string, filter ports.AccountFilter) ([]domain.FinancialAccount, error) {
+func (f *fakeFinance) ListAccounts(_ context.Context, _ string, filter services.AccountFilter) ([]domain.FinancialAccount, error) {
 	f.lastFilter = filter
 	return f.list, nil
 }
 
-func (f *fakeFinance) Summary(context.Context, string, time.Time) (ports.MonthSummary, error) {
+func (f *fakeFinance) Summary(context.Context, string, time.Time) (services.MonthSummary, error) {
 	return f.sum, nil
 }
 
@@ -105,7 +104,7 @@ func (f *fakeFinance) ResidentCharges(context.Context, string, string) ([]domain
 	return f.charges, f.chargesErr
 }
 
-func (f *fakeFinance) Health(context.Context, string, time.Time) (ports.MonthSummary, error) {
+func (f *fakeFinance) Health(context.Context, string, time.Time) (services.MonthSummary, error) {
 	return f.health, nil
 }
 
@@ -165,7 +164,7 @@ func TestFinanceDashboardRenders(t *testing.T) {
 			Title: "Manutenção do portão", Category: domain.CategoryMaintenance,
 			AmountCents: 35000, DueDate: time.Now().Add(7 * 24 * time.Hour), Status: domain.StatusPending,
 		}},
-		sum: ports.MonthSummary{TotalReceivableCents: 50000, TotalPayableCents: 35000, ProjectedBalanceCents: 15000},
+		sum: services.MonthSummary{TotalReceivableCents: 50000, TotalPayableCents: 35000, ProjectedBalanceCents: 15000},
 	}
 	router := financeRouter(user, sess, baseDeps(fin))
 
@@ -305,7 +304,7 @@ func TestMyChargesNoUnit(t *testing.T) {
 
 func TestHealthRendersAggregates(t *testing.T) {
 	user, sess := syndicSession()
-	fin := &fakeFinance{health: ports.MonthSummary{
+	fin := &fakeFinance{health: services.MonthSummary{
 		RealizedPayableCents: 35000, RealizedReceivableCents: 50000,
 	}}
 	router := financeRouter(user, sess, baseDeps(fin))

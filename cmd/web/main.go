@@ -11,22 +11,22 @@ import (
 	"syscall"
 	"time"
 
-	authservices "github.com/leoarkiteto/zelo/internal/features/auth/core/services"
 	authhandlers "github.com/leoarkiteto/zelo/internal/features/auth/handlers"
-	dirservices "github.com/leoarkiteto/zelo/internal/features/directory/core/services"
+	authservices "github.com/leoarkiteto/zelo/internal/features/auth/services"
 	directoryhandlers "github.com/leoarkiteto/zelo/internal/features/directory/handlers"
 	"github.com/leoarkiteto/zelo/internal/features/directory/repositories"
-	financeservices "github.com/leoarkiteto/zelo/internal/features/finance/core/services"
+	dirservices "github.com/leoarkiteto/zelo/internal/features/directory/services"
 	financehandlers "github.com/leoarkiteto/zelo/internal/features/finance/handlers"
 	financerepositories "github.com/leoarkiteto/zelo/internal/features/finance/repositories"
+	financeservices "github.com/leoarkiteto/zelo/internal/features/finance/services"
 	homehandlers "github.com/leoarkiteto/zelo/internal/features/home/handlers"
-	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/core/services"
 	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
-	profileservices "github.com/leoarkiteto/zelo/internal/features/profile/core/services"
+	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/services"
 	profilehandlers "github.com/leoarkiteto/zelo/internal/features/profile/handlers"
-	ticketservices "github.com/leoarkiteto/zelo/internal/features/tickets/core/services"
+	profileservices "github.com/leoarkiteto/zelo/internal/features/profile/services"
 	tickethandlers "github.com/leoarkiteto/zelo/internal/features/tickets/handlers"
 	ticketrepositories "github.com/leoarkiteto/zelo/internal/features/tickets/repositories"
+	ticketservices "github.com/leoarkiteto/zelo/internal/features/tickets/services"
 	"github.com/leoarkiteto/zelo/internal/shared/config"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
@@ -102,14 +102,32 @@ func main() {
 		Tokens:      tokens,
 		Audit:       audit,
 		Registration: &authservices.RegistrationService{
-			Users: users, Roles: roles, Invitations: invitations,
-			Passwords: hasher, Tokens: tokens, Now: time.Now,
+			CreateUser:               users.CreateUser,
+			GrantRole:                roles.GrantRole,
+			GetInvitationByTokenHash: invitations.GetInvitationByTokenHash,
+			MarkInvitationAccepted:   invitations.MarkInvitationAccepted,
+			HashPassword:             hasher.Hash,
+			ValidatePassword:         hasher.ValidatePassword,
+			HashToken:                tokens.HashToken,
+			Now:                      time.Now,
 		},
 		AuthService: &authservices.AuthService{
-			Users: users, Roles: roles, Passwords: hasher, Audit: audit, Now: time.Now,
+			GetUserByEmail:     users.GetUserByEmail,
+			RecordFailedSignIn: users.RecordFailedSignIn,
+			ApplyLock:          users.ApplyLock,
+			ClearLock:          users.ClearLock,
+			FirstActiveRole:    roles.FirstActiveRoleForUser,
+			VerifyPassword:     hasher.Verify,
+			RecordEvent:        audit.RecordEvent,
+			Now:                time.Now,
 		},
 		PasswordReset: &authservices.PasswordResetService{
-			Users: users, Passwords: hasher, Tokens: tokens, Now: time.Now,
+			GetUserByEmail:   users.GetUserByEmail,
+			UpdatePassword:   users.UpdatePassword,
+			HashPassword:     hasher.Hash,
+			ValidatePassword: hasher.ValidatePassword,
+			HashToken:        tokens.HashToken,
+			Now:              time.Now,
 		},
 	}
 	directoryDeps := directoryhandlers.Deps{
