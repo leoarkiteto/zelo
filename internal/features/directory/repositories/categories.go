@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/leoarkiteto/zelo/internal/features/directory/domain"
 	sharedstore "github.com/leoarkiteto/zelo/internal/shared/store"
-	"github.com/leoarkiteto/zelo/internal/shared/model"
 )
 
 // CategoryStore persists service directory categories.
@@ -20,7 +20,10 @@ type CategoryStore struct {
 func NewCategoryStore(db *sql.DB) *CategoryStore { return &CategoryStore{db: db} }
 
 // CreateCategory inserts a category.
-func (s *CategoryStore) CreateCategory(ctx context.Context, c model.ServiceCategory) (string, error) {
+func (s *CategoryStore) CreateCategory(
+	ctx context.Context,
+	c domain.ServiceCategory,
+) (string, error) {
 	row := s.db.QueryRowContext(ctx, `
 		INSERT INTO service_categories (condominium_id, name)
 		VALUES ($1, $2)
@@ -68,32 +71,45 @@ func (s *CategoryStore) DeactivateCategory(ctx context.Context, id string) error
 }
 
 // GetCategoryByID returns a category by id.
-func (s *CategoryStore) GetCategoryByID(ctx context.Context, id string) (model.ServiceCategory, error) {
-	var c model.ServiceCategory
+func (s *CategoryStore) GetCategoryByID(
+	ctx context.Context,
+	id string,
+) (domain.ServiceCategory, error) {
+	var c domain.ServiceCategory
 	err := s.db.QueryRowContext(ctx, `
 		SELECT id, condominium_id, name, active, created_at, updated_at
 		FROM service_categories WHERE id = $1`, id).Scan(
 		&c.ID, &c.CondominiumID, &c.Name, &c.Active, &c.CreatedAt, &c.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
-		return model.ServiceCategory{}, sharedstore.ErrNotFound
+		return domain.ServiceCategory{}, sharedstore.ErrNotFound
 	}
 	if err != nil {
-		return model.ServiceCategory{}, fmt.Errorf("get category: %w", err)
+		return domain.ServiceCategory{}, fmt.Errorf("get category: %w", err)
 	}
 	return c, nil
 }
 
 // ListActiveCategories returns active categories for a condominium.
-func (s *CategoryStore) ListActiveCategories(ctx context.Context, condominiumID string) ([]model.ServiceCategory, error) {
+func (s *CategoryStore) ListActiveCategories(
+	ctx context.Context,
+	condominiumID string,
+) ([]domain.ServiceCategory, error) {
 	return s.listCategories(ctx, condominiumID, true)
 }
 
 // ListCategories returns all categories (active and deactivated) for a condominium.
-func (s *CategoryStore) ListCategories(ctx context.Context, condominiumID string) ([]model.ServiceCategory, error) {
+func (s *CategoryStore) ListCategories(
+	ctx context.Context,
+	condominiumID string,
+) ([]domain.ServiceCategory, error) {
 	return s.listCategories(ctx, condominiumID, false)
 }
 
-func (s *CategoryStore) listCategories(ctx context.Context, condominiumID string, activeOnly bool) ([]model.ServiceCategory, error) {
+func (s *CategoryStore) listCategories(
+	ctx context.Context,
+	condominiumID string,
+	activeOnly bool,
+) ([]domain.ServiceCategory, error) {
 	query := `SELECT id, condominium_id, name, active, created_at, updated_at
 		FROM service_categories WHERE condominium_id = $1`
 	if activeOnly {
@@ -105,9 +121,9 @@ func (s *CategoryStore) listCategories(ctx context.Context, condominiumID string
 		return nil, fmt.Errorf("list categories: %w", err)
 	}
 	defer rows.Close()
-	var out []model.ServiceCategory
+	var out []domain.ServiceCategory
 	for rows.Next() {
-		var c model.ServiceCategory
+		var c domain.ServiceCategory
 		if err := rows.Scan(&c.ID, &c.CondominiumID, &c.Name, &c.Active, &c.CreatedAt, &c.UpdatedAt); err != nil {
 			return nil, err
 		}

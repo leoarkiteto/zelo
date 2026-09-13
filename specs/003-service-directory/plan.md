@@ -131,6 +131,12 @@ web/templates/
 └── ...                            # existing templates (unchanged)
 ```
 
+> **Note:** the tree above is the plan of record as written, before the vertical-slice
+> refactor (`specs/004-feature-folder-isolation`, `specs/011-refactor-vertical-slice`).
+> The directory slice now owns these types: `internal/features/directory/domain/listing.go`
+> (`package domain`), imported by the slice's `handlers/`, `repositories/`, and
+> `services/`. `internal/shared/model/` holds only types shared across slices.
+
 **Structure Decision**: Single server-rendered web application, one new vertical slice
 (`directory`) added alongside the existing auth/RBAC slice. Category management is
 included in the same slice because it is part of the directory's data and lifecycle.

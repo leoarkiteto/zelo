@@ -6,8 +6,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/leoarkiteto/zelo/internal/features/directory/domain"
 	sharedstore "github.com/leoarkiteto/zelo/internal/shared/store"
-	"github.com/leoarkiteto/zelo/internal/shared/model"
 	"github.com/leoarkiteto/zelo/internal/shared/testutil"
 )
 
@@ -36,7 +36,11 @@ func openTestDB(t *testing.T) *sql.DB {
 
 // seedDirectoryFixture creates a condominium, unit, user, and category, and
 // returns their ids.
-func seedDirectoryFixture(t *testing.T, db *sql.DB, categoryName string) (condoID, unitID, userID, categoryID string) {
+func seedDirectoryFixture(
+	t *testing.T,
+	db *sql.DB,
+	categoryName string,
+) (condoID, unitID, userID, categoryID string) {
 	t.Helper()
 	ctx := context.Background()
 	if err := db.QueryRowContext(ctx,
@@ -57,7 +61,10 @@ func seedDirectoryFixture(t *testing.T, db *sql.DB, categoryName string) (condoI
 		t.Fatalf("seed occupancy: %v", err)
 	}
 	cats := NewCategoryStore(db)
-	id, err := cats.CreateCategory(ctx, model.ServiceCategory{CondominiumID: condoID, Name: categoryName})
+	id, err := cats.CreateCategory(
+		ctx,
+		domain.ServiceCategory{CondominiumID: condoID, Name: categoryName},
+	)
 	if err != nil {
 		t.Fatalf("seed category: %v", err)
 	}
@@ -79,7 +86,10 @@ func TestCategoryStoreCreateAndRename(t *testing.T) {
 	if err := store.RenameCategory(ctx, cats[0].ID, "Pipe Repair"); err != nil {
 		t.Fatalf("RenameCategory() = %v", err)
 	}
-	if _, err := store.CreateCategory(ctx, model.ServiceCategory{CondominiumID: condoID, Name: "Pipe Repair"}); !errors.Is(err, sharedstore.ErrDuplicate) {
+	if _, err := store.CreateCategory(ctx, domain.ServiceCategory{CondominiumID: condoID, Name: "Pipe Repair"}); !errors.Is(
+		err,
+		sharedstore.ErrDuplicate,
+	) {
 		t.Fatalf("CreateCategory() duplicate = %v, want ErrDuplicate", err)
 	}
 }
@@ -110,7 +120,7 @@ func TestListingStoreLifecycle(t *testing.T) {
 	condoID, unitID, userID, categoryID := seedDirectoryFixture(t, db, "Plumber")
 
 	store := NewListingStore(db)
-	listing := model.ServiceProviderListing{
+	listing := domain.ServiceProviderListing{
 		CondominiumID:         condoID,
 		CategoryID:            categoryID,
 		Name:                  "Ana's Plumbing",
@@ -129,7 +139,8 @@ func TestListingStoreLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetListingByID() = %v", err)
 	}
-	if got.Name != "Ana's Plumbing" || got.CategoryName != "Plumber" || got.RecommendedByUnitCode != "A-2" {
+	if got.Name != "Ana's Plumbing" || got.CategoryName != "Plumber" ||
+		got.RecommendedByUnitCode != "A-2" {
 		t.Fatalf("GetListingByID() = %+v", got)
 	}
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/leoarkiteto/zelo/internal/features/directory/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 )
 
@@ -14,24 +15,36 @@ type fakeAudit struct {
 	events []model.AuditEvent
 }
 
-func (f *fakeAudit) RecordEvent(_ context.Context, userID *string, eventType model.AuditEventType, details map[string]any) error {
-	f.events = append(f.events, model.AuditEvent{UserID: userID, EventType: eventType, Details: details})
+func (f *fakeAudit) RecordEvent(
+	_ context.Context,
+	userID *string,
+	eventType model.AuditEventType,
+	details map[string]any,
+) error {
+	f.events = append(
+		f.events,
+		model.AuditEvent{UserID: userID, EventType: eventType, Details: details},
+	)
 	return nil
 }
 
 // fakeCategoryStore implements CategoryStore in memory.
 type fakeCategoryStore struct {
-	categories map[string]model.ServiceCategory
+	categories map[string]domain.ServiceCategory
 	seq        int
 }
 
 func newFakeCategoryStore() *fakeCategoryStore {
-	return &fakeCategoryStore{categories: map[string]model.ServiceCategory{}}
+	return &fakeCategoryStore{categories: map[string]domain.ServiceCategory{}}
 }
 
-func (f *fakeCategoryStore) CreateCategory(_ context.Context, c model.ServiceCategory) (string, error) {
+func (f *fakeCategoryStore) CreateCategory(
+	_ context.Context,
+	c domain.ServiceCategory,
+) (string, error) {
 	for _, existing := range f.categories {
-		if existing.CondominiumID == c.CondominiumID && strings.EqualFold(existing.Name, c.Name) && existing.Active {
+		if existing.CondominiumID == c.CondominiumID && strings.EqualFold(existing.Name, c.Name) &&
+			existing.Active {
 			return "", model.ErrDuplicate
 		}
 	}
@@ -49,7 +62,9 @@ func (f *fakeCategoryStore) RenameCategory(_ context.Context, id, name string) e
 		return model.ErrNotFound
 	}
 	for _, existing := range f.categories {
-		if existing.ID != id && existing.CondominiumID == c.CondominiumID && strings.EqualFold(existing.Name, name) && existing.Active {
+		if existing.ID != id && existing.CondominiumID == c.CondominiumID &&
+			strings.EqualFold(existing.Name, name) &&
+			existing.Active {
 			return model.ErrDuplicate
 		}
 	}
@@ -68,16 +83,22 @@ func (f *fakeCategoryStore) DeactivateCategory(_ context.Context, id string) err
 	return nil
 }
 
-func (f *fakeCategoryStore) GetCategoryByID(_ context.Context, id string) (model.ServiceCategory, error) {
+func (f *fakeCategoryStore) GetCategoryByID(
+	_ context.Context,
+	id string,
+) (domain.ServiceCategory, error) {
 	c, ok := f.categories[id]
 	if !ok {
-		return model.ServiceCategory{}, model.ErrNotFound
+		return domain.ServiceCategory{}, model.ErrNotFound
 	}
 	return c, nil
 }
 
-func (f *fakeCategoryStore) ListActiveCategories(_ context.Context, condominiumID string) ([]model.ServiceCategory, error) {
-	var out []model.ServiceCategory
+func (f *fakeCategoryStore) ListActiveCategories(
+	_ context.Context,
+	condominiumID string,
+) ([]domain.ServiceCategory, error) {
+	var out []domain.ServiceCategory
 	for _, c := range f.categories {
 		if c.CondominiumID == condominiumID && c.Active {
 			out = append(out, c)
@@ -86,8 +107,11 @@ func (f *fakeCategoryStore) ListActiveCategories(_ context.Context, condominiumI
 	return out, nil
 }
 
-func (f *fakeCategoryStore) ListCategories(_ context.Context, condominiumID string) ([]model.ServiceCategory, error) {
-	var out []model.ServiceCategory
+func (f *fakeCategoryStore) ListCategories(
+	_ context.Context,
+	condominiumID string,
+) ([]domain.ServiceCategory, error) {
+	var out []domain.ServiceCategory
 	for _, c := range f.categories {
 		if c.CondominiumID == condominiumID {
 			out = append(out, c)
@@ -98,15 +122,18 @@ func (f *fakeCategoryStore) ListCategories(_ context.Context, condominiumID stri
 
 // fakeListingStore implements ListingStore in memory.
 type fakeListingStore struct {
-	listings map[string]model.ServiceProviderListing
+	listings map[string]domain.ServiceProviderListing
 	seq      int
 }
 
 func newFakeListingStore() *fakeListingStore {
-	return &fakeListingStore{listings: map[string]model.ServiceProviderListing{}}
+	return &fakeListingStore{listings: map[string]domain.ServiceProviderListing{}}
 }
 
-func (f *fakeListingStore) CreateListing(_ context.Context, l model.ServiceProviderListing) (string, error) {
+func (f *fakeListingStore) CreateListing(
+	_ context.Context,
+	l domain.ServiceProviderListing,
+) (string, error) {
 	f.seq++
 	id := "listing-" + string(rune('a'+f.seq-1))
 	l.ID = id
@@ -114,7 +141,7 @@ func (f *fakeListingStore) CreateListing(_ context.Context, l model.ServiceProvi
 	return id, nil
 }
 
-func (f *fakeListingStore) UpdateListing(_ context.Context, l model.ServiceProviderListing) error {
+func (f *fakeListingStore) UpdateListing(_ context.Context, l domain.ServiceProviderListing) error {
 	existing, ok := f.listings[l.ID]
 	if !ok {
 		return model.ErrNotFound
@@ -135,16 +162,22 @@ func (f *fakeListingStore) DeleteListing(_ context.Context, id, condominiumID st
 	return nil
 }
 
-func (f *fakeListingStore) GetListingByID(_ context.Context, id string) (model.ServiceProviderListing, error) {
+func (f *fakeListingStore) GetListingByID(
+	_ context.Context,
+	id string,
+) (domain.ServiceProviderListing, error) {
 	l, ok := f.listings[id]
 	if !ok {
-		return model.ServiceProviderListing{}, model.ErrNotFound
+		return domain.ServiceProviderListing{}, model.ErrNotFound
 	}
 	return l, nil
 }
 
-func (f *fakeListingStore) ListListings(_ context.Context, condominiumID, query, categoryID string) ([]model.ServiceProviderListing, error) {
-	var out []model.ServiceProviderListing
+func (f *fakeListingStore) ListListings(
+	_ context.Context,
+	condominiumID, query, categoryID string,
+) ([]domain.ServiceProviderListing, error) {
+	var out []domain.ServiceProviderListing
 	for _, l := range f.listings {
 		if l.CondominiumID != condominiumID {
 			continue
@@ -163,7 +196,10 @@ func (f *fakeListingStore) ListListings(_ context.Context, condominiumID, query,
 	return out, nil
 }
 
-func (f *fakeListingStore) FindDuplicatePhone(_ context.Context, condominiumID, phoneDigits, excludeID string) (bool, error) {
+func (f *fakeListingStore) FindDuplicatePhone(
+	_ context.Context,
+	condominiumID, phoneDigits, excludeID string,
+) (bool, error) {
 	for _, l := range f.listings {
 		if l.CondominiumID == condominiumID && l.PhoneDigits == phoneDigits && l.ID != excludeID {
 			return true, nil
@@ -178,7 +214,10 @@ type fakeUnitResolver struct {
 	err  error
 }
 
-func (f *fakeUnitResolver) GetActiveUnitForUser(_ context.Context, _, _ string) (model.Unit, error) {
+func (f *fakeUnitResolver) GetActiveUnitForUser(
+	_ context.Context,
+	_, _ string,
+) (model.Unit, error) {
 	if f.err != nil {
 		return model.Unit{}, f.err
 	}
@@ -189,14 +228,21 @@ func directoryFixture() (*DirectoryService, *fakeListingStore, *fakeCategoryStor
 	listings := newFakeListingStore()
 	categories := newFakeCategoryStore()
 	audit := &fakeAudit{}
-	units := &fakeUnitResolver{unit: model.Unit{ID: "unit-1", CondominiumID: "condo-1", Code: "A-101"}}
+	units := &fakeUnitResolver{
+		unit: model.Unit{ID: "unit-1", CondominiumID: "condo-1", Code: "A-101"},
+	}
 	svc := &DirectoryService{Listings: listings, Categories: categories, Units: units, Audit: audit}
 	return svc, listings, categories, audit, units
 }
 
-func seedCategory(t *testing.T, categories *fakeCategoryStore, id, condoID, name string, active bool) {
+func seedCategory(
+	t *testing.T,
+	categories *fakeCategoryStore,
+	id, condoID, name string,
+	active bool,
+) {
 	t.Helper()
-	categories.categories[id] = model.ServiceCategory{
+	categories.categories[id] = domain.ServiceCategory{
 		ID: id, CondominiumID: condoID, Name: name, Active: active,
 	}
 }
@@ -205,9 +251,14 @@ func TestCreateListingValid(t *testing.T) {
 	svc, listings, categories, audit, _ := directoryFixture()
 	seedCategory(t, categories, "cat-1", "condo-1", "Plumber", true)
 
-	listing, duplicate, err := svc.CreateListing(context.Background(), "resident-1", "condo-1", ListingInput{
-		Name: "Ana's Plumbing", CategoryID: "cat-1", Phone: "+55 11 91234-5678", Notes: "Fast",
-	})
+	listing, duplicate, err := svc.CreateListing(
+		context.Background(),
+		"resident-1",
+		"condo-1",
+		ListingInput{
+			Name: "Ana's Plumbing", CategoryID: "cat-1", Phone: "+55 11 91234-5678", Notes: "Fast",
+		},
+	)
 	if err != nil {
 		t.Fatalf("CreateListing() error = %v", err)
 	}
@@ -247,11 +298,31 @@ func TestCreateListingValidation(t *testing.T) {
 		input ListingInput
 		want  error
 	}{
-		{"empty name", ListingInput{Name: "  ", CategoryID: "cat-1", Phone: "+5511999999999"}, ErrInvalidListing},
-		{"bad phone chars", ListingInput{Name: "X", CategoryID: "cat-1", Phone: "abc"}, ErrInvalidPhone},
-		{"short phone", ListingInput{Name: "X", CategoryID: "cat-1", Phone: "123456"}, ErrInvalidPhone},
-		{"unknown category", ListingInput{Name: "X", CategoryID: "missing", Phone: "+5511999999999"}, ErrInvalidCategory},
-		{"inactive category", ListingInput{Name: "X", CategoryID: "cat-2", Phone: "+5511999999999"}, ErrInvalidCategory},
+		{
+			"empty name",
+			ListingInput{Name: "  ", CategoryID: "cat-1", Phone: "+5511999999999"},
+			ErrInvalidListing,
+		},
+		{
+			"bad phone chars",
+			ListingInput{Name: "X", CategoryID: "cat-1", Phone: "abc"},
+			ErrInvalidPhone,
+		},
+		{
+			"short phone",
+			ListingInput{Name: "X", CategoryID: "cat-1", Phone: "123456"},
+			ErrInvalidPhone,
+		},
+		{
+			"unknown category",
+			ListingInput{Name: "X", CategoryID: "missing", Phone: "+5511999999999"},
+			ErrInvalidCategory,
+		},
+		{
+			"inactive category",
+			ListingInput{Name: "X", CategoryID: "cat-2", Phone: "+5511999999999"},
+			ErrInvalidCategory,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -329,7 +400,10 @@ func TestSearchListings(t *testing.T) {
 	if err != nil || len(results) != 0 {
 		t.Fatalf("SearchListings(no match) = %v, %v", results, err)
 	}
-	if _, err := svc.SearchListings(context.Background(), "condo-1", "", "missing-category"); !errors.Is(err, ErrInvalidCategory) {
+	if _, err := svc.SearchListings(context.Background(), "condo-1", "", "missing-category"); !errors.Is(
+		err,
+		ErrInvalidCategory,
+	) {
 		t.Fatalf("SearchListings(bad category) = %v, want ErrInvalidCategory", err)
 	}
 }
@@ -352,7 +426,10 @@ func TestEditAndDeleteListing(t *testing.T) {
 	if got.Name != "Ana's Pipes" || got.PhoneDigits != "5511988887777" {
 		t.Fatalf("listing after edit = %+v", got)
 	}
-	if err := svc.EditListing(context.Background(), "syndic-1", "no-such", "condo-1", in); !errors.Is(err, ErrNotFound) {
+	if err := svc.EditListing(context.Background(), "syndic-1", "no-such", "condo-1", in); !errors.Is(
+		err,
+		ErrNotFound,
+	) {
 		t.Fatalf("EditListing(unknown) = %v, want ErrNotFound", err)
 	}
 
@@ -381,7 +458,10 @@ func TestCategoryManagement(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateCategory() = %v", err)
 	}
-	if _, err := svc.CreateCategory(context.Background(), "syndic-1", "condo-1", "plumber"); !errors.Is(err, model.ErrDuplicate) {
+	if _, err := svc.CreateCategory(context.Background(), "syndic-1", "condo-1", "plumber"); !errors.Is(
+		err,
+		model.ErrDuplicate,
+	) {
 		t.Fatalf("CreateCategory(duplicate) = %v, want ErrDuplicate", err)
 	}
 	if err := svc.RenameCategory(context.Background(), "syndic-1", id, "condo-1", "Carpentry"); err != nil {
@@ -396,10 +476,16 @@ func TestCategoryManagement(t *testing.T) {
 	}
 
 	// Scoping: a category from another condominium is not manageable.
-	if err := svc.RenameCategory(context.Background(), "syndic-1", "cat-1", "condo-2", "Other"); !errors.Is(err, ErrNotFound) {
+	if err := svc.RenameCategory(context.Background(), "syndic-1", "cat-1", "condo-2", "Other"); !errors.Is(
+		err,
+		ErrNotFound,
+	) {
 		t.Fatalf("RenameCategory(cross-condo) = %v, want ErrNotFound", err)
 	}
-	if err := svc.DeactivateCategory(context.Background(), "syndic-1", "cat-1", "condo-2"); !errors.Is(err, ErrNotFound) {
+	if err := svc.DeactivateCategory(context.Background(), "syndic-1", "cat-1", "condo-2"); !errors.Is(
+		err,
+		ErrNotFound,
+	) {
 		t.Fatalf("DeactivateCategory(cross-condo) = %v, want ErrNotFound", err)
 	}
 	events := 0

@@ -7,6 +7,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/leoarkiteto/zelo/internal/features/directory/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 )
 
@@ -56,28 +57,32 @@ type DirectoryService struct {
 // CreateListing validates and stores a resident's recommended professional.
 // It returns duplicate=true when a listing with the same phone number already
 // exists and the submitter has not confirmed saving anyway (spec FR-021).
-func (s *DirectoryService) CreateListing(ctx context.Context, residentID, condominiumID string, in ListingInput) (model.ServiceProviderListing, bool, error) {
+func (s *DirectoryService) CreateListing(
+	ctx context.Context,
+	residentID, condominiumID string,
+	in ListingInput,
+) (domain.ServiceProviderListing, bool, error) {
 	if err := s.validateListingInput(in); err != nil {
-		return model.ServiceProviderListing{}, false, err
+		return domain.ServiceProviderListing{}, false, err
 	}
 	category, err := s.requireActiveCategory(ctx, condominiumID, in.CategoryID)
 	if err != nil {
-		return model.ServiceProviderListing{}, false, err
+		return domain.ServiceProviderListing{}, false, err
 	}
 	unit, err := s.Units.GetActiveUnitForUser(ctx, residentID, condominiumID)
 	if err != nil {
-		return model.ServiceProviderListing{}, false, ErrNoUnit
+		return domain.ServiceProviderListing{}, false, ErrNoUnit
 	}
 	digits := phoneDigits(in.Phone)
 	duplicate, err := s.Listings.FindDuplicatePhone(ctx, condominiumID, digits, "")
 	if err != nil {
-		return model.ServiceProviderListing{}, false, err
+		return domain.ServiceProviderListing{}, false, err
 	}
 	if duplicate && !in.ConfirmDuplicate {
-		return model.ServiceProviderListing{}, true, nil
+		return domain.ServiceProviderListing{}, true, nil
 	}
 
-	listing := model.ServiceProviderListing{
+	listing := domain.ServiceProviderListing{
 		CondominiumID:         condominiumID,
 		CategoryID:            category.ID,
 		CategoryName:          category.Name,
@@ -91,19 +96,22 @@ func (s *DirectoryService) CreateListing(ctx context.Context, residentID, condom
 	}
 	id, err := s.Listings.CreateListing(ctx, listing)
 	if err != nil {
-		return model.ServiceProviderListing{}, false, err
+		return domain.ServiceProviderListing{}, false, err
 	}
 	listing.ID = id
 	uid := residentID
 	if err := s.Audit.RecordEvent(ctx, &uid, model.AuditListingCreated,
 		map[string]any{"listing_id": id, "condominium_id": condominiumID}); err != nil {
-		return model.ServiceProviderListing{}, false, err
+		return domain.ServiceProviderListing{}, false, err
 	}
 	return listing, false, nil
 }
 
 // SearchListings returns listings matching an optional keyword and category.
-func (s *DirectoryService) SearchListings(ctx context.Context, condominiumID, query, categoryID string) ([]model.ServiceProviderListing, error) {
+func (s *DirectoryService) SearchListings(
+	ctx context.Context,
+	condominiumID, query, categoryID string,
+) ([]domain.ServiceProviderListing, error) {
 	if categoryID != "" {
 		if _, err := s.requireActiveCategory(ctx, condominiumID, categoryID); err != nil {
 			return nil, err
@@ -113,7 +121,11 @@ func (s *DirectoryService) SearchListings(ctx context.Context, condominiumID, qu
 }
 
 // EditListing updates a listing's editable fields (syndic moderation).
-func (s *DirectoryService) EditListing(ctx context.Context, actorID, listingID, condominiumID string, in ListingInput) error {
+func (s *DirectoryService) EditListing(
+	ctx context.Context,
+	actorID, listingID, condominiumID string,
+	in ListingInput,
+) error {
 	if err := s.validateListingInput(in); err != nil {
 		return err
 	}
@@ -128,7 +140,7 @@ func (s *DirectoryService) EditListing(ctx context.Context, actorID, listingID, 
 	if existing.CondominiumID != condominiumID {
 		return ErrNotFound
 	}
-	if err := s.Listings.UpdateListing(ctx, model.ServiceProviderListing{
+	if err := s.Listings.UpdateListing(ctx, domain.ServiceProviderListing{
 		ID:            listingID,
 		CondominiumID: condominiumID,
 		CategoryID:    category.ID,
@@ -145,7 +157,10 @@ func (s *DirectoryService) EditListing(ctx context.Context, actorID, listingID, 
 }
 
 // DeleteListing removes a listing (syndic moderation).
-func (s *DirectoryService) DeleteListing(ctx context.Context, actorID, listingID, condominiumID string) error {
+func (s *DirectoryService) DeleteListing(
+	ctx context.Context,
+	actorID, listingID, condominiumID string,
+) error {
 	existing, err := s.Listings.GetListingByID(ctx, listingID)
 	if err != nil {
 		return err
@@ -162,12 +177,18 @@ func (s *DirectoryService) DeleteListing(ctx context.Context, actorID, listingID
 }
 
 // CreateCategory adds a category for a condominium.
-func (s *DirectoryService) CreateCategory(ctx context.Context, actorID, condominiumID, name string) (string, error) {
+func (s *DirectoryService) CreateCategory(
+	ctx context.Context,
+	actorID, condominiumID, name string,
+) (string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" || len([]rune(name)) > maxCategoryNameLen {
 		return "", ErrInvalidListing
 	}
-	id, err := s.Categories.CreateCategory(ctx, model.ServiceCategory{CondominiumID: condominiumID, Name: name})
+	id, err := s.Categories.CreateCategory(
+		ctx,
+		domain.ServiceCategory{CondominiumID: condominiumID, Name: name},
+	)
 	if err != nil {
 		return "", err
 	}
@@ -180,7 +201,10 @@ func (s *DirectoryService) CreateCategory(ctx context.Context, actorID, condomin
 }
 
 // RenameCategory renames a category in the condominium.
-func (s *DirectoryService) RenameCategory(ctx context.Context, actorID, categoryID, condominiumID, name string) error {
+func (s *DirectoryService) RenameCategory(
+	ctx context.Context,
+	actorID, categoryID, condominiumID, name string,
+) error {
 	name = strings.TrimSpace(name)
 	if name == "" || len([]rune(name)) > maxCategoryNameLen {
 		return ErrInvalidListing
@@ -197,7 +221,10 @@ func (s *DirectoryService) RenameCategory(ctx context.Context, actorID, category
 }
 
 // DeactivateCategory deactivates a category in the condominium.
-func (s *DirectoryService) DeactivateCategory(ctx context.Context, actorID, categoryID, condominiumID string) error {
+func (s *DirectoryService) DeactivateCategory(
+	ctx context.Context,
+	actorID, categoryID, condominiumID string,
+) error {
 	if err := s.requireCategoryInCondominium(ctx, categoryID, condominiumID); err != nil {
 		return err
 	}
@@ -219,24 +246,31 @@ func (s *DirectoryService) validateListingInput(in ListingInput) error {
 	if !validPhoneChars(in.Phone) {
 		return ErrInvalidPhone
 	}
-	if digits := phoneDigits(in.Phone); len(digits) < minPhoneDigits || len(digits) > maxPhoneDigits {
+	if digits := phoneDigits(in.Phone); len(digits) < minPhoneDigits ||
+		len(digits) > maxPhoneDigits {
 		return ErrInvalidPhone
 	}
 	return nil
 }
 
-func (s *DirectoryService) requireActiveCategory(ctx context.Context, condominiumID, categoryID string) (model.ServiceCategory, error) {
+func (s *DirectoryService) requireActiveCategory(
+	ctx context.Context,
+	condominiumID, categoryID string,
+) (domain.ServiceCategory, error) {
 	category, err := s.Categories.GetCategoryByID(ctx, categoryID)
 	if err != nil {
-		return model.ServiceCategory{}, ErrInvalidCategory
+		return domain.ServiceCategory{}, ErrInvalidCategory
 	}
 	if category.CondominiumID != condominiumID || !category.Active {
-		return model.ServiceCategory{}, ErrInvalidCategory
+		return domain.ServiceCategory{}, ErrInvalidCategory
 	}
 	return category, nil
 }
 
-func (s *DirectoryService) requireCategoryInCondominium(ctx context.Context, categoryID, condominiumID string) error {
+func (s *DirectoryService) requireCategoryInCondominium(
+	ctx context.Context,
+	categoryID, condominiumID string,
+) error {
 	category, err := s.Categories.GetCategoryByID(ctx, categoryID)
 	if err != nil {
 		return err

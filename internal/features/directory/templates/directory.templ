@@ -144,9 +144,9 @@ templ directoryBody(data DirectoryPageData) {
 			</div>
 			if len(data.Listings) == 0 {
 				@molecules.EmptyState(molecules.EmptyStateProps{
-					Icon:  atoms.IconKindClipboard,
-					Title: i18n.T(data.Locale, "directory.empty_title"),
-					Copy:  i18n.T(data.Locale, "directory.empty_copy"),
+					Icon:   atoms.IconKindClipboard,
+					Title:  i18n.T(data.Locale, "directory.empty_title"),
+					Copy:   i18n.T(data.Locale, "directory.empty_copy"),
 					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "directory.recommend"), Variant: atoms.ButtonVariantPrimary, Href: "/directory/new", Class: "btn-sm mt-2"}),
 				})
 			} else {
@@ -168,7 +168,8 @@ templ directoryBody(data DirectoryPageData) {
 							for _, l := range data.Listings {
 								<tr>
 									<td class="font-medium text-ink-800">{ l.Name }</td>
-									<td>@atoms.Badge(atoms.BadgeProps{Label: l.CategoryName, Variant: atoms.BadgeVariantInfo})</td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: l.CategoryName, Variant: atoms.BadgeVariantInfo})
+</td>
 									<td class="text-ink-700">{ l.Phone }</td>
 									<td class="text-ink-500">{ l.Notes }</td>
 									<td class="text-ink-500">{ i18n.T(data.Locale, "directory.unit_prefix") } { l.UnitCode }</td>

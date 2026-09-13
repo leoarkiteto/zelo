@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/a-h/templ"
+
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
@@ -21,7 +22,11 @@ func renderToString(t *testing.T, c templ.Component) string {
 
 func shellFixture() *organisms.ShellData {
 	return &organisms.ShellData{
-		User: &organisms.UserView{Email: "anna@example.com", Roles: []string{"syndic"}, Initial: "A"},
+		User: &organisms.UserView{
+			Email:   "anna@example.com",
+			Roles:   []string{"syndic"},
+			Initial: "A",
+		},
 		Nav:  []organisms.NavItem{{Label: "Dashboard", Path: "/", Active: true}},
 		CSRF: "tok",
 	}
@@ -35,34 +40,80 @@ func TestPagesRender(t *testing.T) {
 		page templ.Component
 		want []string
 	}{
-		{"directory",
+		{
+			"directory",
 			DirectoryPage(DirectoryPageData{
 				Shell: shellFixture(), CSRF: "tok",
-				Listings:   []ListingView{{ID: "l1", Name: "Ana Plumbing", CategoryName: "Plumber", Phone: "+55 11 91234-5678", Notes: "Fast", UnitCode: "A-101"}},
+				Listings: []ListingView{
+					{
+						ID:           "l1",
+						Name:         "Ana Plumbing",
+						CategoryName: "Plumber",
+						Phone:        "+55 11 91234-5678",
+						Notes:        "Fast",
+						UnitCode:     "A-101",
+					},
+				},
 				Categories: []CategoryOption{{ID: "c1", Name: "Plumber"}},
 				IsSyndic:   true,
-				Flash:      "Listing added to the directory."}),
-			[]string{"Service directory", "Ana Plumbing", "Recommend a professional", "Manage categories", "Unit A-101", "Listing added to the directory."}},
-		{"directory-empty",
+				Flash:      "Listing added to the directory.",
+			}),
+			[]string{
+				"Service directory",
+				"Ana Plumbing",
+				"Recommend a professional",
+				"Manage categories",
+				"Unit A-101",
+				"Listing added to the directory.",
+			},
+		},
+		{
+			"directory-empty",
 			DirectoryPage(DirectoryPageData{Shell: shellFixture(), CSRF: "tok"}),
-			[]string{"No listings found"}},
-		{"listing-form",
-			ListingFormPage(ListingFormData{Shell: shellFixture(), CSRF: "tok",
-				Categories: []CategoryOption{{ID: "c1", Name: "Plumber"}}}),
-			[]string{"Recommend a professional", "Add to directory", "Phone number"}},
-		{"listing-form-duplicate",
-			ListingFormPage(ListingFormData{Shell: shellFixture(), CSRF: "tok",
+			[]string{"No listings found"},
+		},
+		{
+			"listing-form",
+			ListingFormPage(ListingFormData{
+				Shell: shellFixture(), CSRF: "tok",
+				Categories: []CategoryOption{{ID: "c1", Name: "Plumber"}},
+			}),
+			[]string{"Recommend a professional", "Add to directory", "Phone number"},
+		},
+		{
+			"listing-form-duplicate",
+			ListingFormPage(ListingFormData{
+				Shell: shellFixture(), CSRF: "tok",
 				Categories:       []CategoryOption{{ID: "c1", Name: "Plumber"}},
-				DuplicateWarning: "A listing with this phone number already exists."}),
-			[]string{"already exists", "confirm_duplicate"}},
-		{"categories",
-			CategoriesPage(CategoriesPageData{Shell: shellFixture(), CSRF: "tok",
-				Categories: []CategoryView{{ID: "c1", Name: "Plumber", Active: true}, {ID: "c2", Name: "Old", Active: false}}}),
-			[]string{"Directory categories", "Rename", "Deactivate", "deactivated"}},
-		{"delete-confirm",
-			DeleteConfirmPage(DeleteConfirmData{Shell: shellFixture(), CSRF: "tok",
-				Listing: ListingView{ID: "l1", Name: "Ana Plumbing", CategoryName: "Plumber", Phone: "+55", UnitCode: "A-101"}}),
-			[]string{"Delete listing", "Cancel"}},
+				DuplicateWarning: "A listing with this phone number already exists.",
+			}),
+			[]string{"already exists", "confirm_duplicate"},
+		},
+		{
+			"categories",
+			CategoriesPage(CategoriesPageData{
+				Shell: shellFixture(), CSRF: "tok",
+				Categories: []CategoryView{
+					{ID: "c1", Name: "Plumber", Active: true},
+					{ID: "c2", Name: "Old", Active: false},
+				},
+			}),
+			[]string{"Directory categories", "Rename", "Deactivate", "deactivated"},
+		},
+		{
+			"delete-confirm",
+			DeleteConfirmPage(DeleteConfirmData{
+				Shell: shellFixture(), CSRF: "tok",
+				Listing: ListingView{
+					ID:           "l1",
+					Name:         "Ana Plumbing",
+					CategoryName: "Plumber",
+					Phone:        "+55",
+					UnitCode:     "A-101",
+				},
+			}),
+			[]string{"Delete listing", "Cancel"},
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

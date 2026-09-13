@@ -33,7 +33,7 @@ description: "Task list for feature implementation"
 **Purpose**: Database schema and shared domain types for the directory slice
 
 - [X] T001 Create migration `migrations/0007_create_service_directory.sql` with `service_categories` (partial unique index on active name) and `service_provider_listings` (phone/phone_digits/unit snapshot columns, FKs, search indexes) per `specs/003-service-directory/data-model.md`
-- [X] T002 Create `internal/model/listing.go` with `ServiceCategory` and `ServiceProviderListing` structs per `specs/003-service-directory/data-model.md`
+- [X] T002 Create `internal/model/listing.go` with `ServiceCategory` and `ServiceProviderListing` structs per `specs/003-service-directory/data-model.md` (since the vertical-slice refactor these live in `internal/features/directory/domain/listing.go`, package `domain`; `internal/shared/model/` keeps only cross-slice types)
 - [X] T003 Extend `internal/service/ports.go` with `CategoryStore` and `ListingStore` interfaces per `specs/003-service-directory/data-model.md` (depends on T002)
 - [X] T004 [P] Extend `internal/model/audit.go` with directory audit event types: `listing_created`, `listing_edited`, `listing_deleted`, `category_created`, `category_renamed`, `category_deactivated`
 

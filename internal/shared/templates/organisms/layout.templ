@@ -36,7 +36,7 @@ templ Layout(title string, locale i18n.Language, shell *ShellData, body templ.Co
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>{ title } · zelo</title>
+			<title>{ i18n.T(data.Locale, title) } · zelo</title>
 			<link rel="stylesheet" href="/static/css/output.css"/>
 			<script src="/static/js/htmx.min.js" defer></script>
 			// Load order is load-bearing: app.js registers the Alpine components
@@ -74,9 +74,9 @@ templ Shell(shell *ShellData, body templ.Component) {
 				<div class="hidden items-center gap-3 sm:flex">
 					<span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chrome-500 text-sm font-bold text-white">{ shell.User.Initial }</span>
 					<span class="leading-tight">
-          <a href="/profile" class="hover:underline">
-						<span class="block max-w-[180px] truncate text-sm font-medium">{ shell.User.Email }</span>
-          </a>
+						<a href="/profile" class="hover:underline">
+							<span class="block max-w-[180px] truncate text-sm font-medium">{ shell.User.Email }</span>
+						</a>
 						<span class="block max-w-[220px] truncate text-xs text-chrome-300">{ strings.Join(shell.User.Roles, " · ") }</span>
 					</span>
 				</div>
