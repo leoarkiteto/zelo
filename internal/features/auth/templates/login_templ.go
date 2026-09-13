@@ -141,33 +141,59 @@ func loginForm(data LoginPageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</label><div class=\"relative\" style=\"position:relative\"><input class=\"input pr-10\" style=\"padding-right:2.5rem\" type=\"password\" id=\"password\" name=\"password\" placeholder=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</label><div class=\"relative\" style=\"position:relative\" x-data=\"passwordToggle\" data-label-show=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
-		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "auth.password_placeholder"))
+		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "auth.show_password"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 35, Col: 168}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 40, Col: 134}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var6)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" autocomplete=\"current-password\" required> <button type=\"button\" data-password-toggle=\"#password\" aria-label=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" data-label-hide=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var7 string
-		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "auth.show_password"))
+		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "auth.hide_password"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 36, Col: 113}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 40, Col: 196}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\" aria-pressed=\"false\" class=\"absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-400 transition-colors hover:text-ink-600\" style=\"position:absolute;top:0;right:0;bottom:0;width:2.5rem;display:flex;align-items:center;justify-content:center\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"><input class=\"input pr-10\" style=\"padding-right:2.5rem\" type=\"password\" x-bind:type=\"inputType\" id=\"password\" name=\"password\" placeholder=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var8 string
+		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "auth.password_placeholder"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 41, Col: 192}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\" autocomplete=\"current-password\" required> <button type=\"button\" x-on:click=\"toggle\" aria-label=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var9 string
+		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "auth.show_password"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 42, Col: 100}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\" x-bind:aria-label=\"toggleLabel\" aria-pressed=\"false\" x-bind:aria-pressed=\"pressed\" class=\"absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-400 transition-colors hover:text-ink-600\" style=\"position:absolute;top:0;right:0;bottom:0;width:2.5rem;display:flex;align-items:center;justify-content:center\"><span x-show=\"eyeVisible\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -175,11 +201,15 @@ func loginForm(data LoginPageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = atoms.Icon(atoms.IconProps{Kind: atoms.IconKindEyeOff, Class: "h-5 w-5", DataIcon: "eye-off", Style: "display:none"}).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</span> <span x-show=\"eyeOffVisible\" style=\"display:none;\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</button></div></div>")
+		templ_7745c5c3_Err = atoms.Icon(atoms.IconProps{Kind: atoms.IconKindEyeOff, Class: "h-5 w-5", DataIcon: "eye-off"}).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</span></button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -187,33 +217,33 @@ func loginForm(data LoginPageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</form><script>\n\t\t(function () {\n\t\t\tdocument.addEventListener(\"click\", function (event) {\n\t\t\t\tvar btn = event.target.closest(\"[data-password-toggle]\");\n\t\t\t\tif (!btn) return;\n\t\t\t\tvar input = document.querySelector(btn.getAttribute(\"data-password-toggle\"));\n\t\t\t\tif (!input) return;\n\t\t\t\tvar show = input.type === \"password\";\n\t\t\t\tinput.type = show ? \"text\" : \"password\";\n\t\t\t\tbtn.setAttribute(\"aria-pressed\", show ? \"true\" : \"false\");\n\t\t\t\tbtn.setAttribute(\"aria-label\", show ? \"Hide password\" : \"Show password\");\n\t\t\t\tvar eye = btn.querySelector('[data-icon=\"eye\"]');\n\t\t\t\tvar eyeOff = btn.querySelector('[data-icon=\"eye-off\"]');\n\t\t\t\tif (eye) eye.style.display = show ? \"none\" : \"\";\n\t\t\t\tif (eyeOff) eyeOff.style.display = show ? \"\" : \"none\";\n\t\t\t});\n\t\t})();\n\t</script><p class=\"mt-4 text-center text-sm text-ink-500\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "</form><p class=\"mt-4 text-center text-sm text-ink-500\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var8 string
-		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "auth.forgot_password"))
+		var templ_7745c5c3_Var10 string
+		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "auth.forgot_password"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 63, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 55, Col: 47}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, " <a class=\"font-medium text-steel-600 hover:text-steel-700\" href=\"/password/forgot\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var9 string
-		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "auth.reset_link"))
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 63, Col: 173}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, " <a class=\"font-medium text-steel-600 hover:text-steel-700\" href=\"/password/forgot\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</a></p>")
+		var templ_7745c5c3_Var11 string
+		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "auth.reset_link"))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/auth/templates/login.templ`, Line: 55, Col: 173}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</a></p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

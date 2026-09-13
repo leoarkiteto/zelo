@@ -107,6 +107,15 @@ frameworks and ORM)". All Technical Context unknowns resolved below.
   - Alpine.js or a JS component framework — violates CSS-first and no-frameworks
     (rejected).
   - No JS at all — would break the constitution's HTMX requirement (rejected).
+- **Superseded (2026-09-13)**: the Alpine.js rejection above was revisited when the
+  login password-reveal toggle turned out to need client-local interaction state that
+  Tailwind CSS cannot express and HTMX cannot serve. Constitution Principle VI now
+  carries a ratified, narrowly-scoped Alpine exception (CSP build only, strictly
+  last-resort, logic confined to `web/static/js/app.js`); see
+  `.specify/memory/constitution.md` and `REASONIX.md`. The claim that HTMX is "loaded
+  as the only JavaScript asset" therefore no longer holds. The rest of R8 stands:
+  Tailwind CSS still owns layout, styling, and interaction state wherever it can, and
+  HTMX still owns server-driven partial updates.
 
 ## R9 — Config and cookie flags
 

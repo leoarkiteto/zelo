@@ -87,7 +87,7 @@ Usage notes:
 - Icons are decorative by default (`aria-hidden="true"`); interactive icons
   (e.g. the password toggle) keep the accessible name on the enclosing
   button/link.
-- `DataIcon` adds a `data-icon` attribute for JS hooks (password toggle).
+- `DataIcon` adds a `data-icon` attribute (a stable hook for tests and DOM queries).
 - The font is served from `/static/fonts/material-symbols-outlined.woff2`.
 
 ## Page → reference mapping

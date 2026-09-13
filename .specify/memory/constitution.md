@@ -1,14 +1,15 @@
 <!--
 Sync Impact Report
-- Version change: 1.2.0 → 2.0.0 (MAJOR: Principle II redefined — the hexagonal
-  ports/adapters mandate is removed in favour of vertical slices only)
-- Modified principles: Principle II (Modular Monolith with Vertical Slices),
-  Principle III wording (no ports layer), Repository Layout section,
-  Development Workflow wording
+- Version change: 2.0.0 → 2.1.0 (MINOR: Principle VI gains an approved front-end
+  exception — Alpine.js for client-local interaction state)
+- Modified principles: Principle VI (Standard Library First & CSS-First) —
+  Alpine.js ratified as an approved exception, constrained to the CSP build
+  (no `unsafe-eval`), vendored/pinned like HTMX, and strictly last-resort
 - Added sections: n/a
 - Removed sections: n/a
 - Follow-up TODOs: amendment must be approved through PR review per Governance
-  (authored by spec 011-refactor-vertical-slice)
+  (authored to unblock the login password-reveal toggle, which needs
+  client-local state Tailwind CSS cannot express and HTMX cannot serve)
 -->
 
 # zelo Constitution
@@ -90,9 +91,23 @@ plain forward-only SQL files applied by a minimal runner. Front-end interaction
 MUST be CSS-first: presentation and interaction state come from Tailwind CSS;
 JavaScript is limited to the minimal HTMX progressive-enhancement required by
 the GOTTH stack, with no JS frameworks or SPA tooling. Approved exceptions
-(e.g., `golang.org/x/crypto` for Argon2id password hashing) MUST be justified in
-review. Rationale: fewer dependencies keep the codebase small, auditable, and
-maintainable.
+(e.g., `golang.org/x/crypto` for Argon2id password hashing, Alpine.js for
+client-local interaction state) MUST be justified in review.
+
+**Ratified exception — Alpine.js (2026-09-13)**: the CSP build of Alpine.js
+(`@alpinejs/csp`, vendored at `web/static/js/alpine-csp.min.js`, pinned like
+HTMX) MAY be used for **client-local interaction state**: behavior that needs no
+server round trip, and that Tailwind CSS cannot express (e.g. swapping an
+`<input>` between `type="password"` and `type="text"`). It is strictly
+last-resort — MUST NOT be used for anything HTMX or Tailwind CSS can already do
+— MUST be the CSP build so no `unsafe-eval` is required, MUST keep component
+logic in `web/static/js/app.js` (templates stay declarative and CSP-safe), and
+MUST preserve a working server-rendered fallback. SPA frameworks and SPA
+tooling remain forbidden. Rationale: without this exception a single
+client-local toggle would either be impossible or push ad-hoc inline scripts
+into every template; scoped this narrowly, Alpine replaces a bespoke script per
+interaction with one small, auditable, CSP-safe mechanism. Rationale: fewer
+dependencies keep the codebase small, auditable, and maintainable.
 
 ## Repository Layout & Conventions
 
@@ -153,4 +168,4 @@ expanded guidance, PATCH for clarifications and wording fixes. Every PR and
 review MUST verify compliance; runtime development guidance is captured per
 feature in `.specify/memory` (spec, plan, tasks).
 
-**Version**: 2.0.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-09-12
+**Version**: 2.1.0 | **Ratified**: 2026-08-22 | **Last Amended**: 2026-09-13

@@ -39,6 +39,12 @@ templ Layout(title string, locale i18n.Language, shell *ShellData, body templ.Co
 			<title>{ title } · zelo</title>
 			<link rel="stylesheet" href="/static/css/output.css"/>
 			<script src="/static/js/htmx.min.js" defer></script>
+			// Load order is load-bearing: app.js registers the Alpine components
+			// on `alpine:init`, and the Alpine CSP build calls Alpine.start() from
+			// a microtask, which fires before the next deferred script runs. Keep
+			// app.js ahead of alpine-csp.min.js — organisms_test.go locks this.
+			<script src="/static/js/app.js" defer></script>
+			<script src="/static/js/alpine-csp.min.js" defer></script>
 		</head>
 		<body>
 			if shell != nil {

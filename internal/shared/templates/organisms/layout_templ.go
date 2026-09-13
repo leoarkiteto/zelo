@@ -86,7 +86,7 @@ func Layout(title string, locale i18n.Language, shell *ShellData, body templ.Com
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, " · zelo</title><link rel=\"stylesheet\" href=\"/static/css/output.css\"><script src=\"/static/js/htmx.min.js\" defer></script></head><body>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, " · zelo</title><link rel=\"stylesheet\" href=\"/static/css/output.css\"><script src=\"/static/js/htmx.min.js\" defer></script><script src=\"/static/js/app.js\" defer></script><script src=\"/static/js/alpine-csp.min.js\" defer></script></head><body>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -137,7 +137,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.ResolveAttributeValue(shell.Locale)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 54, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 60, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var5)
 		if templ_7745c5c3_Err != nil {
@@ -158,7 +158,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(shell.Locale, "topbar.brand_subtitle"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 63, Col: 138}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 69, Col: 138}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -176,7 +176,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(shell.User.Initial)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 69, Col: 145}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 75, Col: 145}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -189,7 +189,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(shell.User.Email)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 72, Col: 87}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 78, Col: 87}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -202,7 +202,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(strings.Join(shell.User.Roles, " · "))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 74, Col: 113}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 80, Col: 113}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -215,7 +215,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(shell.CSRF)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 78, Col: 62}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 84, Col: 62}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
@@ -228,7 +228,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(shell.Locale, "topbar.sign_out"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 79, Col: 128}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 85, Col: 128}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -246,7 +246,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 		var templ_7745c5c3_Var12 string
 		templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(shell.Locale, "nav.group"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 87, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 93, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 		if templ_7745c5c3_Err != nil {
@@ -286,7 +286,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			var templ_7745c5c3_Var15 templ.SafeURL
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinURLErrs(item.Path)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 91, Col: 90}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 97, Col: 90}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -299,7 +299,7 @@ func Shell(shell *ShellData, body templ.Component) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(item.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 91, Col: 105}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/shared/templates/organisms/layout.templ`, Line: 97, Col: 105}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {

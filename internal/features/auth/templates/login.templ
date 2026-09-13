@@ -31,34 +31,26 @@ templ loginForm(data LoginPageData) {
 		@molecules.FormField(molecules.FormFieldProps{Label: i18n.T(data.Locale, "auth.email"), For: "email", Control: atoms.TextInput(atoms.InputProps{Type: "email", ID: "email", Name: "email", Placeholder: "you@example.com", Autocomplete: "email", Required: true})})
 		<div>
 			<label class="label" for="password">{ i18n.T(data.Locale, "auth.password") }</label>
-			<div class="relative" style="position:relative">
-				<input class="input pr-10" style="padding-right:2.5rem" type="password" id="password" name="password" placeholder={ i18n.T(data.Locale, "auth.password_placeholder") } autocomplete="current-password" required/>
-				<button type="button" data-password-toggle="#password" aria-label={ i18n.T(data.Locale, "auth.show_password") } aria-pressed="false" class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-400 transition-colors hover:text-ink-600" style="position:absolute;top:0;right:0;bottom:0;width:2.5rem;display:flex;align-items:center;justify-content:center">
-					@atoms.Icon(atoms.IconProps{Kind: atoms.IconKindEye, Class: "h-5 w-5", DataIcon: "eye"})
-					@atoms.Icon(atoms.IconProps{Kind: atoms.IconKindEyeOff, Class: "h-5 w-5", DataIcon: "eye-off", Style: "display:none"})
+			// The reveal control is client-local state (Alpine), not a server
+			// request: htmx has nothing to fetch here, and Tailwind CSS cannot
+			// swap an input between password and text. Every directive below is
+			// deliberately a bare identifier — see web/static/js/app.js for why
+			// (the CSP build) — and the static type/aria attributes remain as
+			// the server-rendered fallback for the pre-init and no-JS cases.
+			<div class="relative" style="position:relative" x-data="passwordToggle" data-label-show={ i18n.T(data.Locale, "auth.show_password") } data-label-hide={ i18n.T(data.Locale, "auth.hide_password") }>
+				<input class="input pr-10" style="padding-right:2.5rem" type="password" x-bind:type="inputType" id="password" name="password" placeholder={ i18n.T(data.Locale, "auth.password_placeholder") } autocomplete="current-password" required/>
+				<button type="button" x-on:click="toggle" aria-label={ i18n.T(data.Locale, "auth.show_password") } x-bind:aria-label="toggleLabel" aria-pressed="false" x-bind:aria-pressed="pressed" class="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-ink-400 transition-colors hover:text-ink-600" style="position:absolute;top:0;right:0;bottom:0;width:2.5rem;display:flex;align-items:center;justify-content:center">
+					<span x-show="eyeVisible">
+						@atoms.Icon(atoms.IconProps{Kind: atoms.IconKindEye, Class: "h-5 w-5", DataIcon: "eye"})
+					</span>
+					<span x-show="eyeOffVisible" style="display:none;">
+						@atoms.Icon(atoms.IconProps{Kind: atoms.IconKindEyeOff, Class: "h-5 w-5", DataIcon: "eye-off"})
+					</span>
 				</button>
 			</div>
 		</div>
 		@atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "auth.sign_in"), Variant: atoms.ButtonVariantPrimary, Type: "submit", Class: "btn-block"})
 	</form>
-	<script>
-		(function () {
-			document.addEventListener("click", function (event) {
-				var btn = event.target.closest("[data-password-toggle]");
-				if (!btn) return;
-				var input = document.querySelector(btn.getAttribute("data-password-toggle"));
-				if (!input) return;
-				var show = input.type === "password";
-				input.type = show ? "text" : "password";
-				btn.setAttribute("aria-pressed", show ? "true" : "false");
-				btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
-				var eye = btn.querySelector('[data-icon="eye"]');
-				var eyeOff = btn.querySelector('[data-icon="eye-off"]');
-				if (eye) eye.style.display = show ? "none" : "";
-				if (eyeOff) eyeOff.style.display = show ? "" : "none";
-			});
-		})();
-	</script>
 	<p class="mt-4 text-center text-sm text-ink-500">
 		{ i18n.T(data.Locale, "auth.forgot_password") } <a class="font-medium text-steel-600 hover:text-steel-700" href="/password/forgot">{ i18n.T(data.Locale, "auth.reset_link") }</a>
 	</p>

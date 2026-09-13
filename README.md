@@ -1,6 +1,6 @@
 # zelo
 
-GOTTH web app — **Go** + **OAuth** + **Tailwind CSS** + **HTMX** + **Templ**.
+GOTTH web app — **Go** + **OAuth** + **Tailwind CSS** + **HTMX** + **Templ**, plus a pinned Alpine.js CSP build for client-local interaction state.
 
 Layout follows the [golang-standards/project-layout](https://github.com/golang-standards/project-layout) conventions, extended with feature-first vertical slices (see the project constitution and `specs/004-feature-folder-isolation/contracts/feature-folder-layout.md`).
 
@@ -62,7 +62,8 @@ Layout follows the [golang-standards/project-layout](https://github.com/golang-s
 - **OAuth**: auth flows and session/CSRF primitives live in `internal/shared/security`; protect routes via `internal/shared/middleware`.
 - **Sessions**: server-side login sessions are stored in Redis (the `redis` service in `docker-compose.yml`, configured via `REDIS_URL`); the PostgreSQL `sessions` table is no longer used.
 - **Tailwind**: edit sources in `assets/css`, output the compiled stylesheet to `web/static/css` (keep built artifacts out of git or gitignore them). Tailwind is pinned as an npm devDependency — run `npm install` once, then `make tailwind`.
-- **HTMX**: vendored/bundled under `assets/js`, served from `web/static/js`. Pinned to v4.0.0 (`web/static/js/htmx.min.js`).
+- **HTMX**: served from `web/static/js`. Pinned to v4.0.0 (`web/static/js/htmx.min.js`).
+- **Alpine.js**: the CSP build (`@alpinejs/csp`, pinned to v3.17.2, served from `web/static/js/alpine-csp.min.js`) is a **ratified exception** to constitution Principle VI, scoped to client-local interaction state that needs no server round trip and that Tailwind CSS cannot express (e.g. the password reveal). Component logic lives in `web/static/js/app.js`, which **must load before** `alpine-csp.min.js`; see `REASONIX.md` for the full constraints.
 - **Templ**: feature templates live in `internal/features/<feature>/templates`; shared layout/error components in `internal/shared/templates`; run `templ generate` and commit the generated `*_templ.go`.
 - **Design system**: tokens and reusable components are documented in [`docs/design-system.md`](docs/design-system.md); the UI follows the reference screenshots in `docs/ui`.
 

@@ -123,9 +123,15 @@ available, installed under `.github/skills` and registered in `reasonix.toml`).
   vertical-slice boundary check fails.
 - Writing to the old PostgreSQL `sessions` table — sessions are Redis-only now.
 - Running `-seed` against production (`APP_ENV=production`) — it refuses on purpose.
-- Editing `web/static/js/htmx.min.js` — HTMX is pinned to v4.0.0, vendored under
-  `assets/js` and served from `web/static/js`.
-- Installing **AlpineJS** when HTMX or Tailwind CSS can already do the task —
-  AlpineJS is the **last resort only**: use it only when neither HTMX nor
-  Tailwind CSS can handle the required behavior (same vendoring pattern as HTMX:
-  `assets/js` → served from `web/static/js`).
+- Editing `web/static/js/*.min.js` — htmx (v4.0.0) and the Alpine CSP build are
+  both pinned vendored copies, served from `web/static/js` at `/static/js/`.
+- Vendoring **AlpineJS** outside the scope the constitution allows. Alpine is a
+  ratified exception to Principle VI (see `.specify/memory/constitution.md`) and
+  is **last resort only**: use it only when neither HTMX nor Tailwind CSS can do
+  the job, meaning client-local interaction state that needs no server round
+  trip. It MUST be the CSP build (so no `unsafe-eval` is needed), MUST keep
+  component logic in `web/static/js/app.js` (never an inline `<script>` in a
+  `.templ`), MUST load **before** `alpine-csp.min.js` in `layout.templ` — that
+  order is load-bearing — and MUST keep template directives to bare identifiers,
+  because the CSP build's evaluator rejects `!x`, method arguments, arrow
+  functions, template literals, and globals.

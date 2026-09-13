@@ -16,10 +16,18 @@ func TestLayoutRendersDocument(t *testing.T) {
 		Locale: i18n.LanguagePTBR,
 	}
 	html := testutil.RenderToString(t, Layout("Título", i18n.LanguagePTBR, shell, testutil.Component("body")))
-	for _, want := range []string{"<html", `lang="pt-br"`, "<title>Título · zelo</title>", `href="/static/css/output.css"`, `src="/static/js/htmx.min.js"`, "body"} {
+	for _, want := range []string{"<html", `lang="pt-br"`, "<title>Título · zelo</title>", `href="/static/css/output.css"`, `src="/static/js/htmx.min.js"`, `src="/static/js/app.js"`, `src="/static/js/alpine-csp.min.js"`, "body"} {
 		if !strings.Contains(html, want) {
 			t.Errorf("Layout is missing %q in %q", want, html)
 		}
+	}
+	// Load order is load-bearing: app.js registers the Alpine components on
+	// `alpine:init`, and the Alpine CSP build dispatches that event from a
+	// microtask, which runs before the next deferred script is executed.
+	appAt := strings.Index(html, `src="/static/js/app.js"`)
+	alpineAt := strings.Index(html, `src="/static/js/alpine-csp.min.js"`)
+	if appAt > alpineAt {
+		t.Errorf("Layout must load app.js before alpine-csp.min.js (app.js at %d, alpine at %d)", appAt, alpineAt)
 	}
 }
 
