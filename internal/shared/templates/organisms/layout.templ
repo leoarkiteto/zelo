@@ -36,7 +36,7 @@ templ Layout(title string, locale i18n.Language, shell *ShellData, body templ.Co
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>{ i18n.T(data.Locale, title) } · zelo</title>
+			<title>{  title } · zelo</title>
 			<link rel="stylesheet" href="/static/css/output.css"/>
 			<script src="/static/js/htmx.min.js" defer></script>
 			// Load order is load-bearing: app.js registers the Alpine components
