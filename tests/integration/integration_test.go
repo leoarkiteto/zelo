@@ -124,14 +124,16 @@ func newApp(t *testing.T) http.Handler {
 		},
 	})
 	homehandlers.RegisterRoutes(mux, homehandlers.Deps{Roles: roles, Audit: audit})
+	directorySvc := &dirservices.DirectoryService{
+		Listings: listings, Categories: categories, Units: units, Audit: audit,
+	}
 	directoryhandlers.RegisterRoutes(mux, directoryhandlers.Deps{
-		Roles:      roles,
-		Audit:      audit,
-		Listings:   listings,
-		Categories: categories,
-		Directory: &dirservices.DirectoryService{
-			Listings: listings, Categories: categories, Units: units, Audit: audit,
-		},
+		Roles:               roles,
+		Audit:               audit,
+		Listings:            listings,
+		Categories:          categories,
+		DirectoryListings:   directorySvc,
+		DirectoryCategories: directorySvc,
 	})
 	managementhandlers.RegisterRoutes(mux, managementhandlers.Deps{
 		Roles:       roles,

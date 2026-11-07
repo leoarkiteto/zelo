@@ -130,14 +130,16 @@ func main() {
 			Now:              time.Now,
 		},
 	}
+	directorySvc := &dirservices.DirectoryService{
+		Listings: listings, Categories: categories, Units: units, Audit: audit,
+	}
 	directoryDeps := directoryhandlers.Deps{
-		Roles:      roles,
-		Audit:      audit,
-		Listings:   listings,
-		Categories: categories,
-		Directory: &dirservices.DirectoryService{
-			Listings: listings, Categories: categories, Units: units, Audit: audit,
-		},
+		Roles:               roles,
+		Audit:               audit,
+		Listings:            listings,
+		Categories:          categories,
+		DirectoryListings:   directorySvc,
+		DirectoryCategories: directorySvc,
 	}
 	managementDeps := managementhandlers.Deps{
 		Roles:       roles,

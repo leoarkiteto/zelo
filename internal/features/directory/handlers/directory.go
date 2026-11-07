@@ -60,7 +60,12 @@ func (h *Handler) directoryCreatePOST(w http.ResponseWriter, r *http.Request) {
 		ConfirmDuplicate: r.FormValue("confirm_duplicate") == "1",
 	}
 
-	_, duplicate, err := h.deps.Directory.CreateListing(r.Context(), u.ID, sess.CondominiumID, in)
+	_, duplicate, err := h.deps.DirectoryListings.CreateListing(
+		r.Context(),
+		u.ID,
+		sess.CondominiumID,
+		in,
+	)
 	switch {
 	case duplicate:
 		h.renderListingForm(w, r, values, false, "",
@@ -159,7 +164,7 @@ func (h *Handler) directoryEditPOST(w http.ResponseWriter, r *http.Request) {
 		Phone:      r.FormValue("phone"),
 		Notes:      r.FormValue("notes"),
 	}
-	err := h.deps.Directory.EditListing(
+	err := h.deps.DirectoryListings.EditListing(
 		r.Context(),
 		u.ID,
 		id,
@@ -253,7 +258,7 @@ func (h *Handler) directoryDeletePOST(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	u := httpx.CurrentUser(r)
 	sess := httpx.CurrentSession(r)
-	if err := h.deps.Directory.DeleteListing(r.Context(), u.ID, id, sess.CondominiumID); err != nil {
+	if err := h.deps.DirectoryListings.DeleteListing(r.Context(), u.ID, id, sess.CondominiumID); err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			httpx.RenderError(
 				w,
@@ -292,7 +297,7 @@ func (h *Handler) categoriesCreatePOST(w http.ResponseWriter, r *http.Request) {
 	u := httpx.CurrentUser(r)
 	sess := httpx.CurrentSession(r)
 	name := r.FormValue("name")
-	if _, err := h.deps.Directory.CreateCategory(r.Context(), u.ID, sess.CondominiumID, name); err != nil {
+	if _, err := h.deps.DirectoryCategories.CreateCategory(r.Context(), u.ID, sess.CondominiumID, name); err != nil {
 		if errors.Is(err, services.ErrDuplicate) {
 			h.renderCategoriesWithError(
 				w,
@@ -325,7 +330,7 @@ func (h *Handler) categoriesRenamePOST(w http.ResponseWriter, r *http.Request) {
 	sess := httpx.CurrentSession(r)
 	id := r.PathValue("id")
 	name := r.FormValue("name")
-	if err := h.deps.Directory.RenameCategory(r.Context(), u.ID, id, sess.CondominiumID, name); err != nil {
+	if err := h.deps.DirectoryCategories.RenameCategory(r.Context(), u.ID, id, sess.CondominiumID, name); err != nil {
 		switch {
 		case errors.Is(err, services.ErrNotFound):
 			httpx.RenderError(
@@ -363,7 +368,7 @@ func (h *Handler) categoriesDeactivatePOST(w http.ResponseWriter, r *http.Reques
 	u := httpx.CurrentUser(r)
 	sess := httpx.CurrentSession(r)
 	id := r.PathValue("id")
-	if err := h.deps.Directory.DeactivateCategory(r.Context(), u.ID, id, sess.CondominiumID); err != nil {
+	if err := h.deps.DirectoryCategories.DeactivateCategory(r.Context(), u.ID, id, sess.CondominiumID); err != nil {
 		if errors.Is(err, services.ErrNotFound) {
 			httpx.RenderError(
 				w,
@@ -398,7 +403,7 @@ func (h *Handler) directoryData(
 	if err != nil {
 		return templates.DirectoryPageData{}, err
 	}
-	listings, err := h.deps.Directory.SearchListings(
+	listings, err := h.deps.DirectoryListings.SearchListings(
 		r.Context(),
 		sess.CondominiumID,
 		query,
