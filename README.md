@@ -4,6 +4,61 @@ GOTTH web app — **Go** + **OAuth** + **Tailwind CSS** + **HTMX** + **Templ**, 
 
 Layout follows the [golang-standards/project-layout](https://github.com/golang-standards/project-layout) conventions, extended with feature-first vertical slices (see the project constitution and `specs/004-feature-folder-isolation/contracts/feature-folder-layout.md`).
 
+## Running locally
+
+### Prerequisites
+
+- **Go** 1.27+ (see `go.mod`)
+- **Node.js + npm** (for the pinned Tailwind CLI)
+- **Docker** with Docker Compose (for PostgreSQL + Redis)
+- **templ** CLI — `go install github.com/a-h/templ/cmd/templ@latest` (pinned in `tools/tools.go`)
+- **air** (optional, live reload for `make dev`) — `go install github.com/air-verse/air@latest`
+
+### Steps
+
+```bash
+# 1. Configure the environment (the Makefile loads .env automatically)
+cp .env.example .env
+#    then set SESSION_SECRET and PASSWORD_PEPPER, e.g. with: openssl rand -hex 32
+
+# 2. Start PostgreSQL and Redis
+docker compose up -d
+
+# 3. Install frontend tooling and build the CSS
+npm install
+make tailwind
+
+# 4. Generate templ components (re-run after editing any *.templ file)
+make templ
+
+# 5. Apply database migrations (they also run automatically on startup)
+make migrate
+
+# 6. (Optional) Load demo data — see "Development seed" below
+set -a && source .env && set +a && go run ./cmd/web -seed
+
+# 7. Run the app
+make run        # or `make dev` for live reload with air
+```
+
+The app listens on `HTTP_ADDR` (default `:8080`) — open <http://localhost:8080>.
+
+### Make targets
+
+| Target          | What it does                                                              |
+| --------------- | ------------------------------------------------------------------------- |
+| `make run`      | Run the web server (`go run ./cmd/web`)                                   |
+| `make dev`      | Run with live reload via `air` (rebuilds on changes; run `make templ` / `make tailwind` yourself) |
+| `make build`    | Build the binary to `bin/web`                                             |
+| `make migrate`  | Apply pending migrations and exit                                         |
+| `make templ`    | Regenerate `*_templ.go` from `.templ` files                               |
+| `make tailwind` | Compile `assets/css/input.css` to `web/static/css/output.css`             |
+| `make test`     | Run unit tests (`go test ./...`)                                          |
+| `make check`    | Run tests plus feature-boundary, template-boundary, and inline-SVG checks |
+
+Integration tests under `tests/` additionally require `TEST_DATABASE_URL` and
+`TEST_REDIS_URL` pointing at a disposable PostgreSQL database and Redis instance.
+
 ## Directory layout
 
 ```
