@@ -1,4 +1,4 @@
-# REASONIX.md — zelo
+#  zelo
 
 Project instructions for LLM agents working in this repository. Read this first;
 it is loaded into every session. The full README (architecture, layout) lives in
@@ -103,15 +103,6 @@ tickets, roles/invitations, profile, i18n). Module path:
   reference screenshots in `docs/ui`; no new ad-hoc styling.
 - i18n: user-facing strings go through `internal/shared/i18n`; see
   `specs/005-i18n-language-switcher/`.
-
-## Working with specs
-
-Feature work is driven by artifacts under `specs/NNN-<feature>/`:
-`spec.md` (requirements + acceptance scenarios), `plan.md`, `tasks.md`,
-`research.md`, `contracts/`, `checklists/`, `quickstart.md`. When implementing a
-feature, follow its `tasks.md` and honor the acceptance criteria in `spec.md`;
-when adding a new feature, scaffold the spec folder first (spec-kit skills are
-available, installed under `.github/skills` and registered in `reasonix.toml`).
 
 ## Common pitfalls
 
