@@ -55,6 +55,22 @@ type SummaryStore interface {
 	SummaryForMonth(ctx context.Context, condominiumID string, month time.Time) (MonthSummary, error)
 }
 
+// OverviewStore is the read-only persistence port for the financial overview.
+// Month keys: stores return MonthFlow.Month as time.Date(y, m, 1, 0, 0, 0, 0, time.UTC).
+// Consumers match months by (Year(), Month()), never by time.Time equality.
+// Boundaries passed in are UTC first-of-month values compared against DATE columns.
+type OverviewStore interface {
+	// MonthlyRealized returns settled flows grouped by settlement month (sparse).
+	MonthlyRealized(ctx context.Context, condominiumID string, start, end time.Time) ([]MonthFlow, error)
+	// RealizedByCategory returns settled totals grouped by type and category.
+	RealizedByCategory(ctx context.Context, condominiumID string, start, end time.Time) ([]CategoryTotal, error)
+	// CurrentPosition returns the pending receivable/payable of the month
+	// [monthStart, monthEnd) and the overdue receivables before today.
+	CurrentPosition(ctx context.Context, condominiumID string, monthStart, monthEnd, today time.Time) (CurrentPosition, error)
+	// SettlementYears returns distinct settlement years, descending.
+	SettlementYears(ctx context.Context, condominiumID string) ([]int, error)
+}
+
 // UnitStore finds a user's active unit and lists a condominium's units.
 // The concrete *store.UnitStore satisfies this interface.
 type UnitStore interface {

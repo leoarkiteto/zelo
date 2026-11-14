@@ -247,38 +247,6 @@ func (h *Handler) myChargesGET(w http.ResponseWriter, r *http.Request) {
 	httpx.Render(w, r, financetemplates.ChargesPage(data))
 }
 
-// healthGET renders the aggregated financial health (FR-017).
-func (h *Handler) healthGET(w http.ResponseWriter, r *http.Request) {
-	sess := httpx.CurrentSession(r)
-	locale := i18n.LanguageFrom(r.Context())
-
-	shell, err := httpx.ShellData(r, h.deps.Roles, "/finance/health")
-	if err != nil {
-		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load_session"))
-		return
-	}
-	month := currentMonth(time.Now())
-	period := r.URL.Query().Get("period")
-	if m, err := time.Parse("2006-01", period); err == nil {
-		month = time.Date(m.Year(), m.Month(), 1, 0, 0, 0, 0, time.UTC)
-	}
-	sum, err := h.deps.Finance.Health(r.Context(), sess.CondominiumID, month)
-	if err != nil {
-		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load"))
-		return
-	}
-	data := financetemplates.HealthPageData{
-		Shell:          shell,
-		Locale:         locale,
-		CSRF:           sess.CSRFToken,
-		Period:         month.Format("2006-01"),
-		TotalSpent:     financetemplates.Money(locale, sum.RealizedPayableCents),
-		TotalCollected: financetemplates.Money(locale, sum.RealizedReceivableCents),
-		Empty:          sum.RealizedPayableCents == 0 && sum.RealizedReceivableCents == 0,
-	}
-	httpx.Render(w, r, financetemplates.HealthPage(data))
-}
-
 // --- shared helpers ---
 
 func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.FinancePageData, error) {

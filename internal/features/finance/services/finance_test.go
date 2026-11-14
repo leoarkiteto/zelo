@@ -251,15 +251,12 @@ func TestResidentChargesRequiresUnit(t *testing.T) {
 	}
 }
 
-func TestSummaryAndHealthPassthrough(t *testing.T) {
+func TestSummaryPassthrough(t *testing.T) {
 	sum := &fakeSummaryStore{sum: MonthSummary{TotalReceivableCents: 100, TotalPayableCents: 40, ProjectedBalanceCents: 60}}
 	svc := &FinanceService{Summaries: sum, Now: time.Now}
 	month := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
 	got, err := svc.Summary(context.Background(), "c1", month)
 	if err != nil || got.ProjectedBalanceCents != 60 {
 		t.Fatalf("Summary() = %+v, %v", got, err)
-	}
-	if _, err := svc.Health(context.Background(), "c1", month); err != nil {
-		t.Fatalf("Health() = %v", err)
 	}
 }

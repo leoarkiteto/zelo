@@ -15,14 +15,20 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 	u := httpx.CurrentUser(r)
 	sess := httpx.CurrentSession(r)
 	locale := i18n.LanguageFrom(r.Context())
-	roles, err := h.deps.Roles.ActiveRolesForUser(r.Context(), u.ID, sess.CondominiumID)
-	if err != nil {
-		http.Error(
-			w,
-			i18n.T(i18n.LanguageFrom(r.Context()), "home.error.load_roles"),
-			http.StatusInternalServerError,
-		)
-		return
+	// A user who has never had a role has no condominium in the session;
+	// skip the lookup (the uuid query would fail) and treat them as roleless.
+	var roles []model.Role
+	if sess.CondominiumID != "" {
+		var err error
+		roles, err = h.deps.Roles.ActiveRolesForUser(r.Context(), u.ID, sess.CondominiumID)
+		if err != nil {
+			http.Error(
+				w,
+				i18n.T(i18n.LanguageFrom(r.Context()), "home.error.load_roles"),
+				http.StatusInternalServerError,
+			)
+			return
+		}
 	}
 	roleStrs := make([]string, 0, len(roles))
 	for _, role := range roles {
@@ -102,6 +108,8 @@ func (h *Handler) home(w http.ResponseWriter, r *http.Request) {
 		Date:         i18n.FormatLongDate(locale, time.Now()),
 		Roles:        roleStrs,
 		QuickActions: actions,
+
+		ShowFinancePanel: has(model.RoleOwner) || has(model.RoleTenant) || has(model.RoleSyndic),
 	}))
 }
 

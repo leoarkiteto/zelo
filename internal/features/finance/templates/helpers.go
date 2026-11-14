@@ -134,17 +134,6 @@ type ChargesPageData struct {
 	Empty   bool
 }
 
-// HealthPageData backs the resident financial-health page.
-type HealthPageData struct {
-	Shell          *organisms.ShellData
-	Locale         i18n.Language
-	CSRF           string
-	Period         string
-	TotalSpent     string
-	TotalCollected string
-	Empty          bool
-}
-
 // Money renders integer cents as a localized BRL amount.
 func Money(locale i18n.Language, cents int64) string {
 	sign := ""

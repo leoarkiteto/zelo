@@ -65,6 +65,20 @@ func TestPagesRender(t *testing.T) {
 	}
 }
 
+func TestDashboardFinancePlaceholder(t *testing.T) {
+	data := DashboardData{Shell: shellFixture(), Greeting: "Hi", Name: "Anna", Date: "x"}
+	if html := renderToString(t, DashboardPage(data)); strings.Contains(html, "finance-overview") {
+		t.Error("placeholder rendered without ShowFinancePanel")
+	}
+	data.ShowFinancePanel = true
+	html := renderToString(t, DashboardPage(data))
+	for _, want := range []string{`id="finance-overview"`, `hx-get="/finance/overview"`, `hx-trigger="load"`, `hx-swap="outerHTML"`, `href="/finance/overview"`} {
+		if !strings.Contains(html, want) {
+			t.Errorf("placeholder missing %q", want)
+		}
+	}
+}
+
 // TestShellRendersMobileDrawer checks the CSS-only navigation toggle is
 // present on shell pages so mobile navigation keeps working.
 func TestShellRendersMobileDrawer(t *testing.T) {

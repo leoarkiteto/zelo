@@ -1,0 +1,358 @@
+package templates
+
+import (
+	"fmt"
+	"sort"
+	"strconv"
+	"time"
+
+	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
+	"github.com/leoarkiteto/zelo/internal/features/finance/services"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+)
+
+// OverviewData backs the financial overview panel. Embedding the service
+// Overview is an accepted decision: the panel only reads aggregated values.
+type OverviewData struct {
+	Locale   i18n.Language
+	Overview services.Overview
+	IsSyndic bool
+}
+
+type periodOption struct {
+	Value    string
+	Label    string
+	Selected bool
+}
+
+// periodOptions lists "last 12 months" plus every year with settlements. A
+// selected year missing from Years is still offered (and selected).
+func periodOptions(d OverviewData) []periodOption {
+	p := d.Overview.Period
+	years := append([]int(nil), d.Overview.Years...)
+	if p.Kind == domain.PeriodYear {
+		found := false
+		for _, y := range years {
+			if y == p.Year {
+				found = true
+			}
+		}
+		if !found {
+			years = append(years, p.Year)
+		}
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(years)))
+	opts := []periodOption{{
+		Value:    "",
+		Label:    i18n.T(d.Locale, "finance.overview.period_last12"),
+		Selected: p.Kind != domain.PeriodYear,
+	}}
+	for _, y := range years {
+		opts = append(opts, periodOption{
+			Value:    strconv.Itoa(y),
+			Label:    strconv.Itoa(y),
+			Selected: p.Kind == domain.PeriodYear && p.Year == y,
+		})
+	}
+	return opts
+}
+
+// periodLabel is the phrase used in the empty-state message.
+func periodLabel(locale i18n.Language, p domain.Period) string {
+	if p.Kind == domain.PeriodYear {
+		return strconv.Itoa(p.Year)
+	}
+	return i18n.T(locale, "finance.overview.period_in_last12")
+}
+
+func emptyMessage(locale i18n.Language, p domain.Period) string {
+	return fmt.Sprintf(i18n.T(locale, "finance.overview.empty"), periodLabel(locale, p))
+}
+
+// monthLabel is the short localized month name; the last-12-months axis adds
+// the two-digit year because it can span two calendar years.
+func monthLabel(locale i18n.Language, p domain.Period, m time.Time) string {
+	l := i18n.T(locale, i18n.MessageKey("month.short."+strconv.Itoa(int(m.Month()))))
+	if p.Kind == domain.PeriodYear {
+		return l
+	}
+	return fmt.Sprintf("%s/%02d", l, m.Year()%100)
+}
+
+func retryURL(period string) string {
+	if period == "" {
+		return "/finance/overview"
+	}
+	return "/finance/overview?period=" + period
+}
+
+func pctText(p float64) string { return fmt.Sprintf("%.1f%%", p) }
+
+func pctWidth(p float64) string { return fmt.Sprintf("%.1f%%", p) }
+
+// rankFill shades the category bars: darker steel for the larger shares.
+func rankFill(rank int) string {
+	switch {
+	case rank == 0:
+		return "fill-steel-700"
+	case rank == 1:
+		return "fill-steel-600"
+	case rank == 2:
+		return "fill-steel-500"
+	case rank == 3:
+		return "fill-steel-400"
+	default:
+		return "fill-steel-300"
+	}
+}
+
+func balanceTileClass(cents int64) string {
+	if cents < 0 {
+		return "text-red-700"
+	}
+	return "text-steel-800"
+}
+
+func barsAria(locale i18n.Language) string {
+	return i18n.T(locale, "finance.overview.chart_bars")
+}
+
+func monthSeries(months []services.MonthPoint) (ins, outs, bals []int64) {
+	for _, m := range months {
+		ins = append(ins, m.InCents)
+		outs = append(outs, m.OutCents)
+		bals = append(bals, m.BalanceCents)
+	}
+	return
+}
+
+templ OverviewPage(shell *organisms.ShellData, d OverviewData) {
+	@organisms.Layout(i18n.T(d.Locale, "finance.overview.title"), d.Locale, shell, overviewPageBody(d))
+}
+
+templ overviewPageBody(d OverviewData) {
+	<div class="page-head">
+		<div>
+			<h1 class="page-title">{ i18n.T(d.Locale, "finance.overview.title") }</h1>
+		</div>
+	</div>
+	@OverviewPanel(d)
+}
+
+templ OverviewPanel(d OverviewData) {
+	<section id="finance-overview" class="space-y-6" aria-labelledby="finance-overview-heading">
+		<div class="flex flex-wrap items-end justify-between gap-3">
+			<div>
+				<h2 id="finance-overview-heading" class="text-lg font-semibold text-ink-900">{ i18n.T(d.Locale, "finance.overview.title") }</h2>
+				<p class="text-sm text-ink-500">{ i18n.T(d.Locale, "finance.overview.subtitle") }</p>
+			</div>
+			<div class="flex flex-wrap items-end gap-3">
+				@overviewPeriodForm(d)
+				if d.IsSyndic {
+					<a href="/finance" class="btn btn-secondary">{ i18n.T(d.Locale, "finance.overview.manage") }</a>
+				}
+			</div>
+		</div>
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+			@kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_in"), Money(d.Locale, d.Overview.TotalInCents))
+			@kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_out"), Money(d.Locale, d.Overview.TotalOutCents))
+			@kpiTile("bg-steel-50", balanceTileClass(d.Overview.BalanceCents), i18n.T(d.Locale, "finance.overview.kpi_balance"), Money(d.Locale, d.Overview.BalanceCents))
+		</div>
+		<div>
+			<h3 class="mb-2 text-sm font-semibold text-ink-700">{ i18n.T(d.Locale, "finance.overview.current_title") }</h3>
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+				@kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_receivable"), Money(d.Locale, d.Overview.Current.ReceivableCents))
+				@kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_payable"), Money(d.Locale, d.Overview.Current.PayableCents))
+				@kpiTile("bg-amber-50", "text-amber-700", i18n.T(d.Locale, "finance.overview.kpi_overdue"), Money(d.Locale, d.Overview.Current.OverdueCents))
+			</div>
+		</div>
+		if d.Overview.Empty {
+			<div class="card card-pad text-center">
+				<p class="text-sm text-ink-600">{ emptyMessage(d.Locale, d.Overview.Period) }</p>
+				if d.IsSyndic {
+					<a href="/finance/new" class="btn btn-primary mt-4">{ i18n.T(d.Locale, "finance.overview.register") }</a>
+				}
+			</div>
+		} else {
+			<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+				<div class="card card-pad min-w-0 lg:col-span-2">
+					@barsChart(d)
+				</div>
+				<div class="card card-pad min-w-0">
+					@balanceChart(d)
+				</div>
+			</div>
+			<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+				<div class="card card-pad">
+					@categoryList(d.Locale, i18n.T(d.Locale, "finance.overview.out_by_category"), domain.AccountTypePayable, d.Overview.OutByCategory)
+				</div>
+				<div class="card card-pad">
+					@categoryList(d.Locale, i18n.T(d.Locale, "finance.overview.in_by_category"), domain.AccountTypeReceivable, d.Overview.InByCategory)
+				</div>
+			</div>
+		}
+	</section>
+}
+
+templ overviewPeriodForm(d OverviewData) {
+	<form method="GET" action="/finance/overview" hx-get="/finance/overview" hx-target="#finance-overview" hx-swap="outerHTML" hx-trigger="change" class="flex items-end gap-2">
+		<div>
+			<label for="finance-overview-period" class="label">{ i18n.T(d.Locale, "finance.overview.period") }</label>
+			<select id="finance-overview-period" name="period" class="input">
+				for _, o := range periodOptions(d) {
+					<option value={ o.Value } selected?={ o.Selected }>{ o.Label }</option>
+				}
+			</select>
+		</div>
+		<button type="submit" class="btn btn-secondary">{ i18n.T(d.Locale, "finance.overview.period_apply") }</button>
+	</form>
+}
+
+templ kpiTile(bg string, valueClass string, label string, value string) {
+	<div class={ "rounded-lg border border-chrome-200 p-4 " + bg }>
+		<p class="text-sm font-medium text-ink-600">{ label }</p>
+		<p class={ "mt-1 text-2xl font-semibold " + valueClass }>{ value }</p>
+	</div>
+}
+
+templ barsChart(d OverviewData) {
+	{{ ins, outs, _ := monthSeries(d.Overview.Months) }}
+	{{ c := Bars(ins, outs) }}
+	<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+		<h3 class="text-sm font-semibold text-ink-900">{ i18n.T(d.Locale, "finance.overview.chart_bars") }</h3>
+		<ul class="flex items-center gap-4 text-xs text-ink-600">
+			<li class="flex items-center gap-1.5"><span class="inline-block h-2.5 w-2.5 rounded-sm bg-green-500" aria-hidden="true"></span>{ i18n.T(d.Locale, "finance.overview.kpi_in") }</li>
+			<li class="flex items-center gap-1.5"><span class="inline-block h-2.5 w-2.5 rounded-sm bg-red-500" aria-hidden="true"></span>{ i18n.T(d.Locale, "finance.overview.kpi_out") }</li>
+		</ul>
+	</div>
+	<div class="overflow-x-auto">
+		<svg data-chart="bars" viewBox={ ChartViewBox() } class="h-auto w-full min-w-[640px]" role="img" aria-labelledby="fo-bars-title">
+			<title id="fo-bars-title">{ barsAria(d.Locale) }</title>
+			for _, t := range c.Scale.TickLines() {
+				<line x1={ coord(PlotLeft()) } x2={ coord(PlotRight()) } y1={ coord(t.Y) } y2={ coord(t.Y) } class="stroke-chrome-200" stroke-width="1"></line>
+				<text x={ coord(PlotLeft() - 6) } y={ coord(t.Y + 4) } text-anchor="end" class="fill-ink-500 text-[11px]">{ compactMoney(d.Locale, t.Value) }</text>
+			}
+			<line x1={ coord(PlotLeft()) } x2={ coord(PlotRight()) } y1={ coord(c.ZeroY) } y2={ coord(c.ZeroY) } class="stroke-chrome-500" stroke-width="1"></line>
+			for i, g := range c.Groups {
+				<rect x={ coord(g.In.X) } y={ coord(g.In.Y) } width={ coord(g.In.W) } height={ coord(g.In.H) } class="fill-green-500">
+					<title>{ i18n.T(d.Locale, "finance.overview.kpi_in") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, g.In.Cents) }</title>
+				</rect>
+				<rect x={ coord(g.Out.X) } y={ coord(g.Out.Y) } width={ coord(g.Out.W) } height={ coord(g.Out.H) } class="fill-red-500">
+					<title>{ i18n.T(d.Locale, "finance.overview.kpi_out") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, g.Out.Cents) }</title>
+				</rect>
+				<text x={ coord(g.LabelX) } y={ coord(LabelY()) } text-anchor="middle" class="fill-ink-500 text-[11px]">{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) }</text>
+			}
+		</svg>
+	</div>
+	@dataTable(d)
+}
+
+templ balanceChart(d OverviewData) {
+	{{ _, _, bals := monthSeries(d.Overview.Months) }}
+	{{ c := Line(bals) }}
+	<div class="mb-3">
+		<h3 class="text-sm font-semibold text-ink-900">{ i18n.T(d.Locale, "finance.overview.chart_balance") }</h3>
+	</div>
+	<div class="overflow-x-auto">
+		<svg data-chart="balance" viewBox={ ChartViewBox() } class="h-auto w-full min-w-[480px]" role="img" aria-labelledby="fo-balance-title">
+			<title id="fo-balance-title">{ i18n.T(d.Locale, "finance.overview.chart_balance") }</title>
+			for _, t := range c.Scale.TickLines() {
+				<line x1={ coord(PlotLeft()) } x2={ coord(PlotRight()) } y1={ coord(t.Y) } y2={ coord(t.Y) } class="stroke-chrome-200" stroke-width="1"></line>
+				<text x={ coord(PlotLeft() - 6) } y={ coord(t.Y + 4) } text-anchor="end" class="fill-ink-500 text-[11px]">{ compactMoney(d.Locale, t.Value) }</text>
+			}
+			<line x1={ coord(PlotLeft()) } x2={ coord(PlotRight()) } y1={ coord(c.ZeroY) } y2={ coord(c.ZeroY) } class="stroke-chrome-500" stroke-width="1.5" stroke-dasharray="4 4">
+				<title>{ i18n.T(d.Locale, "finance.overview.zero_line") }</title>
+			</line>
+			if c.Path != "" {
+				<path d={ c.Path } fill="none" class="stroke-steel-500" stroke-width="2" stroke-linejoin="round"></path>
+			}
+			for i, p := range c.Points {
+				if p.Negative {
+					<circle cx={ coord(p.X) } cy={ coord(p.Y) } r="4.5" class="fill-red-500 stroke-white" stroke-width="1.5">
+						<title>{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, p.Cents) }</title>
+					</circle>
+				} else {
+					<circle cx={ coord(p.X) } cy={ coord(p.Y) } r="4.5" class="fill-steel-500 stroke-white" stroke-width="1.5">
+						<title>{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, p.Cents) }</title>
+					</circle>
+				}
+				<text x={ coord(p.X) } y={ coord(LabelY()) } text-anchor="middle" class="fill-ink-500 text-[11px]">{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) }</text>
+			}
+		</svg>
+	</div>
+	@dataTable(d)
+}
+
+templ dataTable(d OverviewData) {
+	<details class="mt-3 text-sm">
+		<summary class="cursor-pointer text-steel-700">{ i18n.T(d.Locale, "finance.overview.data_table") }</summary>
+		<div class="mt-2 overflow-x-auto">
+			<table class="table">
+				<thead>
+					<tr>
+						<th scope="col">{ i18n.T(d.Locale, "finance.overview.col_month") }</th>
+						<th scope="col">{ i18n.T(d.Locale, "finance.overview.kpi_in") }</th>
+						<th scope="col">{ i18n.T(d.Locale, "finance.overview.kpi_out") }</th>
+						<th scope="col">{ i18n.T(d.Locale, "finance.overview.kpi_balance") }</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, m := range d.Overview.Months {
+						<tr>
+							<th scope="row">{ monthLabel(d.Locale, d.Overview.Period, m.Month) }</th>
+							<td>{ Money(d.Locale, m.InCents) }</td>
+							<td>{ Money(d.Locale, m.OutCents) }</td>
+							<td class={ balanceTileClass(m.BalanceCents) }>{ Money(d.Locale, m.BalanceCents) }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</details>
+}
+
+templ categoryList(locale i18n.Language, title string, t domain.AccountType, rows []services.CategoryShare) {
+	<h3 class="mb-3 text-sm font-semibold text-ink-900">{ title }</h3>
+	<ul class="space-y-3">
+		for i, r := range rows {
+			<li>
+				<div class="flex items-baseline justify-between gap-3 text-sm">
+					<span class="text-ink-700">{ CategoryLabel(locale, t, r.Category) }</span>
+					<span class="whitespace-nowrap text-ink-900">
+						{ Money(locale, r.Cents) }
+						<span class="ml-1 text-xs text-ink-500">{ pctText(r.Percent) }</span>
+					</span>
+				</div>
+				<svg data-chart="category-bar" class="mt-1 h-2 w-full" aria-hidden="true" focusable="false">
+					<rect x="0" y="0" width="100%" height="8" rx="4" class="fill-steel-50"></rect>
+					<rect x="0" y="0" width={ pctWidth(r.Percent) } height="8" rx="4" class={ rankFill(i) }></rect>
+				</svg>
+			</li>
+		}
+	</ul>
+}
+
+// OverviewError is the panel-shaped failure notice with a retry button that
+// re-requests the same period. Root element matches OverviewPanel so the htmx
+// outerHTML swap keeps working.
+templ OverviewError(locale i18n.Language, period string) {
+	<section id="finance-overview" class="space-y-6">
+		<div class="card card-pad text-center" role="alert">
+			<h2 class="text-lg font-semibold text-ink-900">{ i18n.T(locale, "finance.overview.error_title") }</h2>
+			<p class="mt-1 text-sm text-ink-600">{ i18n.T(locale, "finance.overview.error_text") }</p>
+			<button type="button" class="btn btn-secondary mt-4" hx-get={ retryURL(period) } hx-target="#finance-overview" hx-swap="outerHTML">{ i18n.T(locale, "finance.overview.retry") }</button>
+		</div>
+	</section>
+}
+
+// OverviewNoAccess is the no-access variant (T4 renders it with a 403 for
+// non-members): same root element, no retry button.
+templ OverviewNoAccess(locale i18n.Language) {
+	<section id="finance-overview" class="space-y-6">
+		<div class="card card-pad text-center" role="alert">
+			<h2 class="text-lg font-semibold text-ink-900">{ i18n.T(locale, "finance.overview.no_access_title") }</h2>
+			<p class="mt-1 text-sm text-ink-600">{ i18n.T(locale, "finance.overview.no_access_text") }</p>
+		</div>
+	</section>
+}

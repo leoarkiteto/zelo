@@ -20,6 +20,9 @@ import (
 	directoryhandlers "github.com/leoarkiteto/zelo/internal/features/directory/handlers"
 	"github.com/leoarkiteto/zelo/internal/features/directory/repositories"
 	dirservices "github.com/leoarkiteto/zelo/internal/features/directory/services"
+	financehandlers "github.com/leoarkiteto/zelo/internal/features/finance/handlers"
+	financerepositories "github.com/leoarkiteto/zelo/internal/features/finance/repositories"
+	financeservices "github.com/leoarkiteto/zelo/internal/features/finance/services"
 	homehandlers "github.com/leoarkiteto/zelo/internal/features/home/handlers"
 	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
 	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/services"
@@ -37,6 +40,14 @@ import (
 // newApp builds the full composed router against PostgreSQL. Tests are skipped
 // unless TEST_DATABASE_URL is set (see quickstart.md).
 func newApp(t *testing.T) http.Handler {
+	t.Helper()
+	h, _ := newAppDB(t)
+	return h
+}
+
+// newAppDB is newApp that also returns the test database handle so tests can
+// insert fixtures directly. The handle is closed automatically on cleanup.
+func newAppDB(t *testing.T) (http.Handler, *sql.DB) {
 	t.Helper()
 	url := testutil.TestDatabaseURL("integration")
 	if url == "" {
@@ -57,7 +68,7 @@ func newApp(t *testing.T) http.Handler {
 		t.Fatalf("migrate: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `
-		TRUNCATE audit_events, invitations, service_provider_listings,
+		TRUNCATE audit_events, finance_accounts, invitations, service_provider_listings,
 		service_categories, ticket_replies, tickets, unit_occupancies, user_roles,
 		units, condominiums, users RESTART IDENTITY CASCADE`); err != nil {
 		t.Fatalf("truncate: %v", err)
@@ -83,6 +94,7 @@ func newApp(t *testing.T) http.Handler {
 	listings := repositories.NewListingStore(db)
 	categories := repositories.NewCategoryStore(db)
 	ticketStore := ticketrepositories.NewTicketStore(db)
+	financeAccounts := financerepositories.NewAccountStore(db)
 	hasher := security.NewPasswordHasher("integration-test-pepper")
 	tokens := security.TokenHasher{}
 	sessMgr := security.NewSessionManager(sessions, false)
@@ -161,6 +173,21 @@ func newApp(t *testing.T) http.Handler {
 			Audit:   audit,
 		},
 	})
+	financehandlers.RegisterRoutes(mux, financehandlers.Deps{
+		Roles:     roles,
+		Audit:     audit,
+		Accounts:  financeAccounts,
+		Units:     units,
+		UploadDir: t.TempDir(),
+		Finance: &financeservices.FinanceService{
+			Accounts:  financeAccounts,
+			Summaries: financeAccounts,
+			Overviews: financeAccounts,
+			Units:     units,
+			Audit:     audit,
+			Now:       time.Now,
+		},
+	})
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../../web/static"))))
 
 	var root http.Handler = mux
@@ -170,7 +197,7 @@ func newApp(t *testing.T) http.Handler {
 	root = middleware.WithLocale(root)
 	root = middleware.WithUser(sessMgr, users)(root)
 	root = middleware.CSRF(sessMgr)(root)
-	return root
+	return root, db
 }
 
 func seedIntegration(t *testing.T, ctx context.Context, db *sql.DB) {

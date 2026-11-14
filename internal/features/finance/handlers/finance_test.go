@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -50,21 +51,24 @@ func (f *fakeUnitLister) ListUnitsForCondominium(context.Context, string) ([]mod
 }
 
 type fakeFinance struct {
-	createErr  error
-	editErr    error
-	settleErr  error
-	cancelErr  error
-	list       []domain.FinancialAccount
-	sum        services.MonthSummary
-	charges    []domain.FinancialAccount
-	chargesErr error
-	health     services.MonthSummary
-	created    bool
-	lastCreate services.AccountInput
-	lastSettle string
-	lastCancel string
-	lastEdit   string
-	lastFilter services.AccountFilter
+	createErr         error
+	editErr           error
+	settleErr         error
+	cancelErr         error
+	list              []domain.FinancialAccount
+	sum               services.MonthSummary
+	charges           []domain.FinancialAccount
+	chargesErr        error
+	overview          services.Overview
+	overviewErr       error
+	lastPeriod        domain.Period
+	lastOverviewCondo string
+	created           bool
+	lastCreate        services.AccountInput
+	lastSettle        string
+	lastCancel        string
+	lastEdit          string
+	lastFilter        services.AccountFilter
 }
 
 func (f *fakeFinance) CreateAccount(_ context.Context, _, _ string, in services.AccountInput) (domain.FinancialAccount, error) {
@@ -104,8 +108,22 @@ func (f *fakeFinance) ResidentCharges(context.Context, string, string) ([]domain
 	return f.charges, f.chargesErr
 }
 
-func (f *fakeFinance) Health(context.Context, string, time.Time) (services.MonthSummary, error) {
-	return f.health, nil
+func (f *fakeFinance) Overview(_ context.Context, condominiumID string, p domain.Period) (services.Overview, error) {
+	f.lastPeriod = p
+	f.lastOverviewCondo = condominiumID
+	if f.overviewErr != nil {
+		return services.Overview{}, f.overviewErr
+	}
+	o := f.overview
+	o.Period = p
+	return o, nil
+}
+
+type fakeAudit struct{ events []model.AuditEventType }
+
+func (f *fakeAudit) RecordEvent(_ context.Context, _ *string, t model.AuditEventType, _ map[string]any) error {
+	f.events = append(f.events, t)
+	return nil
 }
 
 func financeRouter(user *model.User, sess *model.Session, deps Deps) http.Handler {
@@ -302,23 +320,150 @@ func TestMyChargesNoUnit(t *testing.T) {
 	}
 }
 
-func TestHealthRendersAggregates(t *testing.T) {
+func TestHealthRedirectsToHome(t *testing.T) {
 	user, sess := syndicSession()
-	fin := &fakeFinance{health: services.MonthSummary{
-		RealizedPayableCents: 35000, RealizedReceivableCents: 50000,
-	}}
-	router := financeRouter(user, sess, baseDeps(fin))
+	router := financeRouter(user, sess, baseDeps(&fakeFinance{}))
 
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/finance/health", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("GET /finance/health = %d, want 200", rec.Code)
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/" {
+		t.Fatalf("GET /finance/health = %d %q, want 303 /", rec.Code, rec.Header().Get("Location"))
 	}
-	body := rec.Body.String()
-	for _, want := range []string{"Financial health", "R$ 350.00", "R$ 500.00"} {
-		if !strings.Contains(body, want) {
-			t.Errorf("health page missing %q", want)
+}
+
+func overviewReq(target string, hx bool) *http.Request {
+	req := httptest.NewRequest(http.MethodGet, target, nil)
+	if hx {
+		req.Header.Set("HX-Request", "true")
+	}
+	return req
+}
+
+func overviewFinance() *fakeFinance {
+	return &fakeFinance{overview: services.Overview{TotalInCents: 50000, TotalOutCents: 35000, BalanceCents: 15000}}
+}
+
+func TestOverviewFragmentVsFullPage(t *testing.T) {
+	user, sess := syndicSession()
+	deps := baseDeps(overviewFinance())
+	deps.Roles = &fakeRoles{roles: []model.Role{model.RoleOwner}}
+	router := financeRouter(user, sess, deps)
+
+	frag := httptest.NewRecorder()
+	router.ServeHTTP(frag, overviewReq("/finance/overview", true))
+	if frag.Code != http.StatusOK {
+		t.Fatalf("HX overview = %d, want 200", frag.Code)
+	}
+	if strings.Contains(frag.Body.String(), "<html") || !strings.Contains(frag.Body.String(), `id="finance-overview"`) {
+		t.Errorf("HX response should be the bare panel")
+	}
+	if frag.Header().Get("Vary") != "HX-Request" {
+		t.Errorf("Vary = %q, want HX-Request", frag.Header().Get("Vary"))
+	}
+
+	full := httptest.NewRecorder()
+	router.ServeHTTP(full, overviewReq("/finance/overview", false))
+	if full.Code != http.StatusOK {
+		t.Fatalf("full overview = %d, want 200", full.Code)
+	}
+	if !strings.Contains(full.Body.String(), "<html") || !strings.Contains(full.Body.String(), `id="finance-overview"`) {
+		t.Errorf("non-HX response should be the full page")
+	}
+	if full.Header().Get("Vary") != "HX-Request" {
+		t.Errorf("Vary = %q, want HX-Request", full.Header().Get("Vary"))
+	}
+}
+
+func TestOverviewNoRoleForbidden(t *testing.T) {
+	user, sess := syndicSession()
+	for _, hx := range []bool{true, false} {
+		audit := &fakeAudit{}
+		deps := baseDeps(overviewFinance())
+		deps.Roles = &fakeRoles{}
+		deps.Audit = audit
+		router := financeRouter(user, sess, deps)
+
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, overviewReq("/finance/overview", hx))
+		if rec.Code != http.StatusForbidden {
+			t.Fatalf("hx=%v: = %d, want 403", hx, rec.Code)
 		}
+		if hx && !strings.Contains(rec.Body.String(), "Financial panel unavailable") {
+			t.Errorf("hx: expected no-access partial, got %q", rec.Body.String())
+		}
+		if len(audit.events) != 1 || audit.events[0] != model.AuditAccessDenied {
+			t.Errorf("hx=%v: audit events = %v, want one access_denied", hx, audit.events)
+		}
+	}
+}
+
+func TestOverviewUnauthenticated(t *testing.T) {
+	router := financeRouter(nil, nil, baseDeps(overviewFinance()))
+
+	hx := httptest.NewRecorder()
+	router.ServeHTTP(hx, overviewReq("/finance/overview", true))
+	if hx.Header().Get("HX-Redirect") != "/login" || hx.Code/100 == 3 {
+		t.Fatalf("HX unauth = %d HX-Redirect=%q, want non-3xx with /login", hx.Code, hx.Header().Get("HX-Redirect"))
+	}
+
+	plain := httptest.NewRecorder()
+	router.ServeHTTP(plain, overviewReq("/finance/overview", false))
+	if plain.Code != http.StatusSeeOther || plain.Header().Get("Location") != "/login" {
+		t.Fatalf("plain unauth = %d %q, want 303 /login", plain.Code, plain.Header().Get("Location"))
+	}
+}
+
+func TestOverviewInvalidPeriodFallsBack(t *testing.T) {
+	user, sess := syndicSession()
+	fin := overviewFinance()
+	router := financeRouter(user, sess, baseDeps(fin))
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, overviewReq("/finance/overview?period=garbage", true))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("= %d, want 200", rec.Code)
+	}
+	if want := domain.ParsePeriod("", time.Now()); fin.lastPeriod.Param() != want.Param() {
+		t.Errorf("period = %q, want default %q", fin.lastPeriod.Param(), want.Param())
+	}
+	if fin.lastOverviewCondo != "c1" {
+		t.Errorf("condominium = %q, want session c1", fin.lastOverviewCondo)
+	}
+}
+
+func TestOverviewSyndicOnlyElements(t *testing.T) {
+	user, sess := syndicSession()
+	for _, tt := range []struct {
+		role model.Role
+		want bool
+	}{{model.RoleSyndic, true}, {model.RoleTenant, false}} {
+		deps := baseDeps(overviewFinance())
+		deps.Roles = &fakeRoles{roles: []model.Role{tt.role}}
+		rec := httptest.NewRecorder()
+		financeRouter(user, sess, deps).ServeHTTP(rec, overviewReq("/finance/overview", true))
+		if got := strings.Contains(rec.Body.String(), "Manage finances"); got != tt.want {
+			t.Errorf("role %s: manage link present = %v, want %v", tt.role, got, tt.want)
+		}
+	}
+}
+
+func TestOverviewServiceError(t *testing.T) {
+	user, sess := syndicSession()
+	fin := overviewFinance()
+	fin.overviewErr = errors.New("boom")
+	router := financeRouter(user, sess, baseDeps(fin))
+
+	hx := httptest.NewRecorder()
+	router.ServeHTTP(hx, overviewReq("/finance/overview", true))
+	if hx.Code != http.StatusInternalServerError || !strings.Contains(hx.Body.String(), "Try again") ||
+		!strings.Contains(hx.Body.String(), `id="finance-overview"`) {
+		t.Fatalf("HX error = %d %q, want 500 error partial", hx.Code, hx.Body.String())
+	}
+
+	plain := httptest.NewRecorder()
+	router.ServeHTTP(plain, overviewReq("/finance/overview", false))
+	if plain.Code != http.StatusInternalServerError || !strings.Contains(plain.Body.String(), "<html") {
+		t.Fatalf("plain error = %d, want 500 shared error page", plain.Code)
 	}
 }
 

@@ -95,10 +95,6 @@ func TestFinancePagesRender(t *testing.T) {
 		{"my-charges-no-unit",
 			ChargesPage(ChargesPageData{Shell: financeShellFixture(), Locale: ptBR, CSRF: "tok", NoUnit: true}),
 			[]string{"unidade ativa"}},
-		{"health",
-			HealthPage(HealthPageData{Shell: financeShellFixture(), Locale: ptBR, CSRF: "tok", Period: "2026-08",
-				TotalSpent: "R$ 350,00", TotalCollected: "R$ 500,00"}),
-			[]string{"Saúde financeira", "R$ 350,00", "R$ 500,00"}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

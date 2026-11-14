@@ -63,7 +63,6 @@ func NavFor(roles []model.Role, active string, locale i18n.Language) []organisms
 		{Label: i18n.T(locale, "nav.directory"), Path: "/directory"},
 		{Label: i18n.T(locale, "nav.tickets"), Path: "/tickets"},
 		{Label: i18n.T(locale, "nav.finance.my_charges"), Path: "/finance/my-charges"},
-		{Label: i18n.T(locale, "nav.finance.health"), Path: "/finance/health"},
 	}
 	if has(model.RoleSyndic) {
 		items = append(items,

@@ -58,7 +58,13 @@ Status colors use the Tailwind defaults: `green` (approved/used/success),
 All icons come from the self-hosted **Google Material Symbols** (outlined)
 font and MUST be rendered through the shared Templ component
 `atoms.Icon` in `internal/shared/templates/atoms`. Never hand-write inline
-`<svg>` markup in templates (enforced by `scripts/check-no-inline-svg.sh`).
+`<svg>` markup for icons in templates.
+
+The one exception is **data charts**: server-rendered visualisations (such as
+the financial overview bars and lines) may use inline `<svg data-chart="...">`,
+with the marker on the same line as `<svg`. This is never allowed for icons.
+There is no JS chart library (constitution Principle VI), so charts are drawn
+in Templ; `scripts/check-no-inline-svg.sh` fails any `<svg` without `data-chart`.
 
 ```text
 @atoms.Icon(atoms.IconProps{Kind: atoms.IconKindMail})

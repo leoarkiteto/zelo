@@ -102,9 +102,8 @@ type seedPayable struct {
 var seedPayables = []seedPayable{
 	{title: "Manutenção predial mensal", category: "maintenance", amountCents: 185000, dueInDays: 10, status: "pending", supplier: "Predial Serviços Ltda"},
 	{title: "Limpeza das áreas comuns", category: "cleaning", amountCents: 95000, dueInDays: -3, status: "pending", supplier: "LimpaTudo Serviços"},
-	{title: "Energia elétrica (Enel)", category: "utilities", amountCents: 234567, dueInDays: -45, status: "settled", settleAfterDays: 5, supplier: "Enel Distribuição"},
-	{title: "Água e esgoto (Sabesp)", category: "utilities", amountCents: 89000, dueInDays: -20, status: "settled", settleAfterDays: 2, supplier: "Sabesp"},
-	{title: "Salário do zelador", category: "payroll", amountCents: 320000, dueInDays: -5, status: "settled", settleAfterDays: 3, supplier: "Pedro Costa (zelador)"},
+	// Settled energy, water and payroll live in the 12-month history below
+	// (seedHistory) so they are not duplicated here.
 	{title: "Auditoria contábil anual", category: "third_party_services", amountCents: 150000, dueInDays: 30, status: "pending", supplier: "Andrade Contabilidade"},
 	{title: "Manutenção dos elevadores", category: "maintenance", amountCents: 120000, dueInDays: -60, status: "settled", settleAfterDays: 5, supplier: "Elevadores Modernos Ltda"},
 	{title: "Seguro do condomínio", category: "other", amountCents: 75000, dueInDays: 20, status: "pending", supplier: "Seguros Proteja"},
@@ -331,6 +330,41 @@ func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, password
 		}
 	}
 
+	// 5b. Twelve months of settled entradas and saídas for the financial charts.
+	skipFees := make(map[string]bool)
+	for _, f := range seedFees {
+		if f.status == "settled" {
+			skipFees[fmt.Sprintf("%d|%s", -1, f.unit)] = true // already seeded above
+		}
+	}
+	history := seedHistory(now)
+	historyCount := 0
+	for _, h := range history {
+		if h.accountType == "receivable" && h.category == "condo_fee" &&
+			skipFees[fmt.Sprintf("%d|%s", h.monthOffset, h.unit)] {
+			continue
+		}
+		var unitID, paymentCode, supplier any
+		if h.accountType == "receivable" {
+			if h.unit != "" {
+				unitID = unitIDs[h.unit]
+			}
+			paymentCode = h.paymentCode
+		} else {
+			supplier = h.supplier
+		}
+		if _, err := tx.ExecContext(ctx, `
+			INSERT INTO finance_accounts
+				(condominium_id, account_type, title, category, amount_cents, due_date,
+				 status, settlement_date, unit_id, payment_code, supplier_payee, created_by)
+			VALUES ($1, $2, $3, $4, $5, $6, 'settled', $7, $8, $9, $10, $11)`,
+			condoID, h.accountType, h.title, h.category, h.amountCents, h.dueDate,
+			h.settlementDate, unitID, paymentCode, supplier, userIDs[seedSyndicEmail]); err != nil {
+			return fmt.Errorf("seed history account %s: %w", h.title, err)
+		}
+		historyCount++
+	}
+
 	// 6. Pending invitations to unoccupied units.
 	for _, inv := range seedInvitations {
 		token := invitationTokenHash(inv.email)
@@ -380,9 +414,138 @@ func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, password
 		"units", len(seedUnits),
 		"categories", len(seedCategories),
 		"listings", len(seedListings),
-		"finance_accounts", len(seedPayables)+len(seedFees)+len(extraReceivables),
+		"finance_accounts", len(seedPayables)+len(seedFees)+len(extraReceivables)+historyCount,
 		"password", seedPassword)
 	return nil
+}
+
+// seedHistoryMonths is how many months (ending with the current one) of
+// settled history are seeded for the financial dashboard.
+const seedHistoryMonths = 12
+
+// seedDeficitOffset is the month offset (relative to now) that carries an
+// extraordinary expense so saídas exceed entradas.
+const seedDeficitOffset = -4
+
+// seedHistoryAccount is one settled account of the 12-month history.
+type seedHistoryAccount struct {
+	monthOffset    int // 0 = current month, -11 = eleven months ago
+	accountType    string
+	title          string
+	category       string
+	amountCents    int64
+	dueDate        time.Time
+	settlementDate time.Time
+	unit           string // receivables only
+	paymentCode    string // receivables only
+	supplier       string // payables only
+}
+
+// seedMonthlyExpense is a recurring payable; amounts vary by month via
+// seedVariation.
+type seedMonthlyExpense struct {
+	title     string
+	category  string
+	baseCents int64
+	supplier  string
+	day       int
+	varies    bool
+}
+
+var seedMonthlyExpenses = []seedMonthlyExpense{
+	{title: "Energia elétrica (Enel)", category: "utilities", baseCents: 234000, supplier: "Enel Distribuição", day: 12, varies: true},
+	{title: "Água e esgoto (Sabesp)", category: "utilities", baseCents: 89000, supplier: "Sabesp", day: 14, varies: true},
+	{title: "Salário do zelador", category: "payroll", baseCents: 320000, supplier: "Pedro Costa (zelador)", day: 5},
+	{title: "Salário da portaria", category: "payroll", baseCents: 280000, supplier: "Portaria 24h Ltda", day: 5},
+	{title: "Limpeza das áreas comuns", category: "cleaning", baseCents: 95000, supplier: "LimpaTudo Serviços", day: 8},
+	{title: "Manutenção predial mensal", category: "maintenance", baseCents: 135000, supplier: "Predial Serviços Ltda", day: 18, varies: true},
+	{title: "Jardinagem e piscina", category: "third_party_services", baseCents: 60000, supplier: "Verde Jardim", day: 20, varies: true},
+}
+
+// seedVariation is a deterministic per-month multiplier (in percent) so the
+// charts are not flat. Indexed by month offset modulo its length.
+var seedVariation = []int64{100, 108, 96, 112, 103, 94, 118, 99, 105, 91, 110, 101}
+
+func variationFor(offset int) int64 {
+	i := (-offset) % len(seedVariation)
+	return seedVariation[i]
+}
+
+// clampDay returns day `day` of the month at `offset` from now, never later
+// than today (settlements cannot lie in the future).
+func clampDay(now time.Time, offset, day int) time.Time {
+	d := monthDay(now, offset, day)
+	today := now.UTC().Truncate(24 * time.Hour)
+	if d.After(today) {
+		return today
+	}
+	return d
+}
+
+// seedHistory builds, without touching the database, twelve months of settled
+// entradas (condo fees per unit plus occasional extras) and saídas (recurring
+// expenses) ending with the current month. One month (seedDeficitOffset) has an
+// extraordinary maintenance expense so saídas exceed entradas.
+func seedHistory(now time.Time) []seedHistoryAccount {
+	var out []seedHistoryAccount
+	for i := seedHistoryMonths - 1; i >= 0; i-- {
+		offset := -i
+		month := monthDay(now, offset, 1).Format("2006-01")
+
+		for _, f := range seedFees {
+			out = append(out, seedHistoryAccount{
+				monthOffset: offset, accountType: "receivable",
+				title:       fmt.Sprintf("Taxa condominial — AP %s", f.unit),
+				category:    "condo_fee",
+				amountCents: f.amountCents,
+				dueDate:     clampDay(now, offset, 10), settlementDate: clampDay(now, offset, 10+int(f.amountCents%5)),
+				unit: f.unit, paymentCode: fmt.Sprintf("BOLETO-%s-%s", month, f.unit),
+			})
+		}
+		// Occasional extra entradas.
+		if i%3 == 1 {
+			out = append(out, seedHistoryAccount{
+				monthOffset: offset, accountType: "receivable",
+				title: "Reserva do salão de festas", category: "common_area_reservation",
+				amountCents: 30000 + int64(i)*2500,
+				dueDate:     clampDay(now, offset, 16), settlementDate: clampDay(now, offset, 17),
+				unit: "A-202", paymentCode: "RESERVA-" + month,
+			})
+		}
+		if i%4 == 2 {
+			out = append(out, seedHistoryAccount{
+				monthOffset: offset, accountType: "receivable",
+				title: "Juros de mora — AP B-201", category: "fine_interest",
+				amountCents: 2843 + int64(i)*100,
+				dueDate:     clampDay(now, offset, 12), settlementDate: clampDay(now, offset, 22),
+				unit: "B-201", paymentCode: "JUROS-" + month,
+			})
+		}
+
+		for _, e := range seedMonthlyExpenses {
+			amount := e.baseCents
+			if e.varies {
+				amount = amount * variationFor(offset) / 100
+			}
+			out = append(out, seedHistoryAccount{
+				monthOffset: offset, accountType: "payable",
+				title: e.title, category: e.category, amountCents: amount,
+				dueDate:        clampDay(now, offset, e.day),
+				settlementDate: clampDay(now, offset, e.day),
+				supplier:       e.supplier,
+			})
+		}
+		if offset == seedDeficitOffset {
+			out = append(out, seedHistoryAccount{
+				monthOffset: offset, accountType: "payable",
+				title: "Reforma emergencial do telhado", category: "maintenance",
+				amountCents: 950000,
+				dueDate:     clampDay(now, offset, 15), settlementDate: clampDay(now, offset, 15),
+				supplier: "Telhados & Cia Engenharia",
+			})
+		}
+	}
+	return out
 }
 
 // nullString maps an empty string to SQL NULL (for nullable text columns).

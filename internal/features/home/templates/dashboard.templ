@@ -23,6 +23,9 @@ type DashboardData struct {
 	Date         string
 	Roles        []string
 	QuickActions []QuickAction
+	// ShowFinancePanel renders the placeholder htmx replaces with the
+	// finance feature's fragment (ADR 0001).
+	ShowFinancePanel bool
 }
 
 templ DashboardPage(data DashboardData) {
@@ -47,6 +50,14 @@ templ dashboardBody(data DashboardData) {
 				}
 			</div>
 		</section>
+		if data.ShowFinancePanel {
+			<section id="finance-overview" hx-get="/finance/overview" hx-trigger="load" hx-swap="outerHTML" class="card card-pad">
+				<p class="text-sm text-ink-500">
+					{ i18n.T(data.Locale, "home.finance_loading") }
+					<a href="/finance/overview" class="font-medium text-steel-700 underline hover:text-steel-900">{ i18n.T(data.Locale, "home.finance_retry") }</a>
+				</p>
+			</section>
+		}
 		<section>
 			<h2 class="mb-3 text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "home.quick_actions") }</h2>
 			<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

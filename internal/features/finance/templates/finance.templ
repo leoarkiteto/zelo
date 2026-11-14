@@ -337,42 +337,6 @@ templ chargesBody(data ChargesPageData) {
 	</div>
 }
 
-templ HealthPage(data HealthPageData) {
-	@organisms.Layout(i18n.T(data.Locale, "finance.health_title"), data.Locale, data.Shell, healthBody(data))
-}
-
-templ healthBody(data HealthPageData) {
-	<div class="space-y-6">
-		<div class="page-head">
-			<div>
-				<h1 class="page-title">{ i18n.T(data.Locale, "finance.health_title") }</h1>
-				<p class="page-subtitle">{ i18n.T(data.Locale, "finance.health_subtitle") }</p>
-			</div>
-		</div>
-		<form method="GET" action="/finance/health" class="card card-pad flex flex-wrap items-end gap-2">
-			<div>
-				<label class="label" for="period">{ i18n.T(data.Locale, "finance.period") }</label>
-				<input class="input" type="month" id="period" name="period" value={ data.Period }/>
-			</div>
-			<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "common.search") }</button>
-		</form>
-		if data.Empty {
-			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "finance.health.empty")})
-		} else {
-			<section class="grid gap-4 md:grid-cols-2">
-				<div class="card card-pad">
-					<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "finance.health.total_spent") }</p>
-					<p class="text-2xl font-bold text-ink-900">{ data.TotalSpent }</p>
-				</div>
-				<div class="card card-pad">
-					<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "finance.health.total_collected") }</p>
-					<p class="text-2xl font-bold text-ink-900">{ data.TotalCollected }</p>
-				</div>
-			</section>
-		}
-	</div>
-}
-
 func formAction(data FinanceFormData) string {
 	if data.IsEdit {
 		return "/finance/" + data.AccountID + "/edit"

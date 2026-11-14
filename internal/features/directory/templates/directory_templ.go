@@ -517,7 +517,7 @@ func directoryBody(data DirectoryPageData) templ.Component {
 				var templ_7745c5c3_Var25 string
 				templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(l.Phone)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 172, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 173, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 				if templ_7745c5c3_Err != nil {
@@ -530,7 +530,7 @@ func directoryBody(data DirectoryPageData) templ.Component {
 				var templ_7745c5c3_Var26 string
 				templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(l.Notes)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 173, Col: 43}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 174, Col: 43}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 				if templ_7745c5c3_Err != nil {
@@ -543,7 +543,7 @@ func directoryBody(data DirectoryPageData) templ.Component {
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.unit_prefix"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 174, Col: 80}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 175, Col: 80}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 				if templ_7745c5c3_Err != nil {
@@ -556,7 +556,7 @@ func directoryBody(data DirectoryPageData) templ.Component {
 				var templ_7745c5c3_Var28 string
 				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(l.UnitCode)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 174, Col: 95}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 175, Col: 95}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 				if templ_7745c5c3_Err != nil {
@@ -574,7 +574,7 @@ func directoryBody(data DirectoryPageData) templ.Component {
 					var templ_7745c5c3_Var29 templ.SafeURL
 					templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/directory/" + l.ID + "/edit"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 178, Col: 96}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 179, Col: 96}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 					if templ_7745c5c3_Err != nil {
@@ -587,7 +587,7 @@ func directoryBody(data DirectoryPageData) templ.Component {
 					var templ_7745c5c3_Var30 string
 					templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.edit"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 178, Col: 135}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 179, Col: 135}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 					if templ_7745c5c3_Err != nil {
@@ -600,7 +600,7 @@ func directoryBody(data DirectoryPageData) templ.Component {
 					var templ_7745c5c3_Var31 templ.SafeURL
 					templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/directory/" + l.ID + "/delete"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 179, Col: 95}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 180, Col: 95}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 					if templ_7745c5c3_Err != nil {
@@ -613,7 +613,7 @@ func directoryBody(data DirectoryPageData) templ.Component {
 					var templ_7745c5c3_Var32 string
 					templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.delete"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 179, Col: 136}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 180, Col: 136}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 					if templ_7745c5c3_Err != nil {
@@ -704,7 +704,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 			var templ_7745c5c3_Var35 string
 			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.edit_title"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 202, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 203, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 			if templ_7745c5c3_Err != nil {
@@ -717,7 +717,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 			var templ_7745c5c3_Var36 string
 			templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.edit_subtitle"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 203, Col: 78}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 204, Col: 78}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 			if templ_7745c5c3_Err != nil {
@@ -735,7 +735,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.new_title"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 205, Col: 72}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 206, Col: 72}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -748,7 +748,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 			var templ_7745c5c3_Var38 string
 			templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.new_subtitle"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 206, Col: 77}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 207, Col: 77}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 			if templ_7745c5c3_Err != nil {
@@ -782,7 +782,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var39 templ.SafeURL
 		templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(listingFormAction(data)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 216, Col: 65}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 217, Col: 65}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 		if templ_7745c5c3_Err != nil {
@@ -795,7 +795,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var40 string
 		templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CSRF)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 217, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 218, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var40)
 		if templ_7745c5c3_Err != nil {
@@ -813,7 +813,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 			var templ_7745c5c3_Var41 string
 			templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.ListingID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 219, Col: 65}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 220, Col: 65}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var41)
 			if templ_7745c5c3_Err != nil {
@@ -831,7 +831,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var42 string
 		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.professional_name"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 222, Col: 88}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 223, Col: 88}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 		if templ_7745c5c3_Err != nil {
@@ -844,7 +844,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var43 string
 		templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 223, Col: 83}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 224, Col: 83}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var43)
 		if templ_7745c5c3_Err != nil {
@@ -857,7 +857,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var44 string
 		templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "directory.placeholder_name"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 223, Col: 174}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 224, Col: 174}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var44)
 		if templ_7745c5c3_Err != nil {
@@ -870,7 +870,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var45 string
 		templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.category"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 226, Col: 83}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 227, Col: 83}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 		if templ_7745c5c3_Err != nil {
@@ -888,7 +888,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 			var templ_7745c5c3_Var46 string
 			templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 229, Col: 26}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 230, Col: 26}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var46)
 			if templ_7745c5c3_Err != nil {
@@ -901,7 +901,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 			var templ_7745c5c3_Var47 string
 			templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.ID == data.Values.CategoryID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 229, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 230, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var47)
 			if templ_7745c5c3_Err != nil {
@@ -914,7 +914,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 			var templ_7745c5c3_Var48 string
 			templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinStringErrs(c.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 229, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 230, Col: 81}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var48))
 			if templ_7745c5c3_Err != nil {
@@ -932,7 +932,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var49 string
 		templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.phone_number"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 234, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 235, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 		if templ_7745c5c3_Err != nil {
@@ -945,7 +945,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var50 string
 		templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.Phone)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 235, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 236, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var50)
 		if templ_7745c5c3_Err != nil {
@@ -958,7 +958,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var51 string
 		templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.notes_optional"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 238, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 239, Col: 86}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 		if templ_7745c5c3_Err != nil {
@@ -971,7 +971,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var52 string
 		templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(data.Values.Notes)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 239, Col: 96}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 240, Col: 96}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 		if templ_7745c5c3_Err != nil {
@@ -989,7 +989,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 			var templ_7745c5c3_Var53 string
 			templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.confirm_duplicate"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 244, Col: 117}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 245, Col: 117}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 			if templ_7745c5c3_Err != nil {
@@ -1007,7 +1007,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var54 string
 		templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(listingSubmitLabel(data))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 248, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 249, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 		if templ_7745c5c3_Err != nil {
@@ -1020,7 +1020,7 @@ func listingFormBody(data ListingFormData) templ.Component {
 		var templ_7745c5c3_Var55 string
 		templ_7745c5c3_Var55, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.cancel"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 249, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 250, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var55))
 		if templ_7745c5c3_Err != nil {
@@ -1091,7 +1091,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 		var templ_7745c5c3_Var58 string
 		templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.categories_title"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 263, Col: 78}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 264, Col: 78}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
 		if templ_7745c5c3_Err != nil {
@@ -1104,7 +1104,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 		var templ_7745c5c3_Var59 string
 		templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.categories_subtitle"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 264, Col: 83}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 265, Col: 83}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 		if templ_7745c5c3_Err != nil {
@@ -1117,7 +1117,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 		var templ_7745c5c3_Var60 string
 		templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.back_to_directory"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 266, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 267, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 		if templ_7745c5c3_Err != nil {
@@ -1146,7 +1146,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 		var templ_7745c5c3_Var61 string
 		templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.add_category_heading"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 275, Col: 106}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 276, Col: 106}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 		if templ_7745c5c3_Err != nil {
@@ -1159,7 +1159,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 		var templ_7745c5c3_Var62 string
 		templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CSRF)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 277, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 278, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var62)
 		if templ_7745c5c3_Err != nil {
@@ -1172,7 +1172,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 		var templ_7745c5c3_Var63 string
 		templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.category_name"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 279, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 280, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 		if templ_7745c5c3_Err != nil {
@@ -1185,7 +1185,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 		var templ_7745c5c3_Var64 string
 		templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "directory.placeholder_category"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 280, Col: 151}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 281, Col: 151}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var64)
 		if templ_7745c5c3_Err != nil {
@@ -1198,7 +1198,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 		var templ_7745c5c3_Var65 string
 		templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.add_category"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 282, Col: 97}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 283, Col: 97}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
 		if templ_7745c5c3_Err != nil {
@@ -1211,7 +1211,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 		var templ_7745c5c3_Var66 string
 		templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.categories_heading"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 287, Col: 100}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 288, Col: 100}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 		if templ_7745c5c3_Err != nil {
@@ -1238,7 +1238,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 			var templ_7745c5c3_Var67 string
 			templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.name"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 300, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 301, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
 			if templ_7745c5c3_Err != nil {
@@ -1251,7 +1251,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 			var templ_7745c5c3_Var68 string
 			templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.status"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 301, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 302, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var68))
 			if templ_7745c5c3_Err != nil {
@@ -1264,7 +1264,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 			var templ_7745c5c3_Var69 string
 			templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.actions"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 302, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 303, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var69))
 			if templ_7745c5c3_Err != nil {
@@ -1282,7 +1282,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 				var templ_7745c5c3_Var70 string
 				templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.JoinStringErrs(c.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 308, Col: 54}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 309, Col: 54}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var70))
 				if templ_7745c5c3_Err != nil {
@@ -1310,7 +1310,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 				var templ_7745c5c3_Var71 templ.SafeURL
 				templ_7745c5c3_Var71, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/directory/categories/" + c.ID + "/rename"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 318, Col: 94}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 319, Col: 94}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var71))
 				if templ_7745c5c3_Err != nil {
@@ -1323,7 +1323,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 				var templ_7745c5c3_Var72 string
 				templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CSRF)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 319, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 320, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var72)
 				if templ_7745c5c3_Err != nil {
@@ -1336,7 +1336,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 				var templ_7745c5c3_Var73 string
 				templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.Name)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 320, Col: 71}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 321, Col: 71}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var73)
 				if templ_7745c5c3_Err != nil {
@@ -1349,7 +1349,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 				var templ_7745c5c3_Var74 string
 				templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.ResolveAttributeValue(i18n.T(data.Locale, "directory.new_name_aria"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 320, Col: 148}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 321, Col: 148}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var74)
 				if templ_7745c5c3_Err != nil {
@@ -1362,7 +1362,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 				var templ_7745c5c3_Var75 string
 				templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.rename"))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 321, Col: 108}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 322, Col: 108}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
 				if templ_7745c5c3_Err != nil {
@@ -1380,7 +1380,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 					var templ_7745c5c3_Var76 templ.SafeURL
 					templ_7745c5c3_Var76, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/directory/categories/" + c.ID + "/deactivate"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 324, Col: 99}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 325, Col: 99}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var76))
 					if templ_7745c5c3_Err != nil {
@@ -1393,7 +1393,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 					var templ_7745c5c3_Var77 string
 					templ_7745c5c3_Var77, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CSRF)
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 325, Col: 69}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 326, Col: 69}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var77)
 					if templ_7745c5c3_Err != nil {
@@ -1406,7 +1406,7 @@ func categoriesBody(data CategoriesPageData) templ.Component {
 					var templ_7745c5c3_Var78 string
 					templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.deactivate"))
 					if templ_7745c5c3_Err != nil {
-						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 326, Col: 110}
+						return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 327, Col: 110}
 					}
 					_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var78))
 					if templ_7745c5c3_Err != nil {
@@ -1492,7 +1492,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var81 string
 		templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.delete_title"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 349, Col: 74}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 350, Col: 74}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var81))
 		if templ_7745c5c3_Err != nil {
@@ -1505,7 +1505,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var82 string
 		templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.delete_subtitle"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 350, Col: 79}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 351, Col: 79}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var82))
 		if templ_7745c5c3_Err != nil {
@@ -1526,7 +1526,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var83 string
 		templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.col.professional"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 357, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 358, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var83))
 		if templ_7745c5c3_Err != nil {
@@ -1539,7 +1539,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var84 string
 		templ_7745c5c3_Var84, templ_7745c5c3_Err = templ.JoinStringErrs(data.Listing.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 358, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 359, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var84))
 		if templ_7745c5c3_Err != nil {
@@ -1552,7 +1552,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var85 string
 		templ_7745c5c3_Var85, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.category"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 361, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 362, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var85))
 		if templ_7745c5c3_Err != nil {
@@ -1565,7 +1565,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var86 string
 		templ_7745c5c3_Var86, templ_7745c5c3_Err = templ.JoinStringErrs(data.Listing.CategoryName)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 362, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 363, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var86))
 		if templ_7745c5c3_Err != nil {
@@ -1578,7 +1578,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var87 string
 		templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.phone"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 365, Col: 79}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 366, Col: 79}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 		if templ_7745c5c3_Err != nil {
@@ -1591,7 +1591,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var88 string
 		templ_7745c5c3_Var88, templ_7745c5c3_Err = templ.JoinStringErrs(data.Listing.Phone)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 366, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 367, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var88))
 		if templ_7745c5c3_Err != nil {
@@ -1604,7 +1604,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var89 string
 		templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.col.recommended_by"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 369, Col: 95}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 370, Col: 95}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var89))
 		if templ_7745c5c3_Err != nil {
@@ -1617,7 +1617,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var90 string
 		templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.unit_prefix"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 370, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 371, Col: 87}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var90))
 		if templ_7745c5c3_Err != nil {
@@ -1630,7 +1630,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var91 string
 		templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.JoinStringErrs(data.Listing.UnitCode)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 370, Col: 113}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 371, Col: 113}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var91))
 		if templ_7745c5c3_Err != nil {
@@ -1643,7 +1643,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var92 templ.SafeURL
 		templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/directory/" + data.Listing.ID + "/delete"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 373, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 374, Col: 86}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var92))
 		if templ_7745c5c3_Err != nil {
@@ -1656,7 +1656,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var93 string
 		templ_7745c5c3_Var93, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CSRF)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 374, Col: 60}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 375, Col: 60}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var93)
 		if templ_7745c5c3_Err != nil {
@@ -1669,7 +1669,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var94 string
 		templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "directory.delete_title"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 375, Col: 96}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 376, Col: 96}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
 		if templ_7745c5c3_Err != nil {
@@ -1682,7 +1682,7 @@ func deleteConfirmBody(data DeleteConfirmData) templ.Component {
 		var templ_7745c5c3_Var95 string
 		templ_7745c5c3_Var95, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.cancel"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 376, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/directory/templates/directory.templ`, Line: 377, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var95))
 		if templ_7745c5c3_Err != nil {

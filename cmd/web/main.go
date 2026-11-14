@@ -159,6 +159,7 @@ func main() {
 		Finance: &financeservices.FinanceService{
 			Accounts:  financeAccounts,
 			Summaries: financeAccounts,
+			Overviews: financeAccounts,
 			Units:     units,
 			Audit:     audit,
 			Now:       time.Now,

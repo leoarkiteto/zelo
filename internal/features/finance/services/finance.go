@@ -57,6 +57,7 @@ type FinanceService struct {
 	Summaries SummaryStore
 	Units     UnitStore
 	Audit     AuditRecorder
+	Overviews OverviewStore
 	Now       func() time.Time
 }
 
@@ -171,11 +172,6 @@ func (s *FinanceService) ResidentCharges(ctx context.Context, userID, condominiu
 		return nil, ErrNoUnit
 	}
 	return s.Accounts.ListPendingForUnit(ctx, condominiumID, unit.ID)
-}
-
-// Health returns the condominium-level aggregates for the month (FR-017).
-func (s *FinanceService) Health(ctx context.Context, condominiumID string, month time.Time) (MonthSummary, error) {
-	return s.Summaries.SummaryForMonth(ctx, condominiumID, month)
 }
 
 // validateAndBuild validates an AccountInput and produces a
