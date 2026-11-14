@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "validation": {
+    "commands": {
+      "format": "gofmt -w {file}",
+      "lint": "go vet ./...",
+      "test": "make test",
+      "build": "make build"
+    }
+  }
+}

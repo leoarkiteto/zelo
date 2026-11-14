@@ -29,3 +29,7 @@ node_modules/
 
 # Finance receipt attachments (never committed)
 /uploads/
+
+# factory:begin v1
+.factory/workflows/
+# factory:end

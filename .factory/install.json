@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kitVersion": "0.2.2-beta",
+  "installedAt": "2026-11-14T13:47:48.283Z",
+  "updatedAt": "2026-11-14T13:47:48.283Z",
+  "entries": [
+    {
+      "path": ".factory/config.json",
+      "component": "config",
+      "ownership": "file",
+      "sha256": "3a6d06d9f3c22d9e10e6e04c6b196bb77eb25f15de7f69e08e5090587dc6d831"
+    },
+    {
+      "path": ".gitignore",
+      "component": "gitignore-block",
+      "ownership": "block",
+      "sha256": "8004f3389ad5ef451b2a1b2ecbceefe074670735d684e82deb62fafe7981ce19"
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "component": "settings-permissions",
+      "ownership": "entries",
+      "sha256": "ec3d6257321d3277bfe0a8f4d0b05370a83b2f70f8ffe1dbd35b46c6171c7cb2",
+      "addedEntries": [
+        "allow:Bash(factory-state *)",
+        "allow:Edit(/.factory/**)",
+        "deny:Read(./.env)",
+        "deny:Read(./.env.*)",
+        "deny:Read(./**/*.pem)",
+        "deny:Read(./**/*.key)",
+        "deny:Read(./**/secrets/**)",
+        "deny:Bash(git push *)"
+      ]
+    },
+    {
+      "path": ".claude/rules/factory-workflow.md",
+      "component": "rules",
+      "ownership": "file",
+      "sha256": "f4621eb9488dbbeaf00f3facd0c17ca2b7194ebc1754bce8ba2ddba64ab6317d"
+    }
+  ]
+}
