@@ -119,6 +119,20 @@ func (f *fakeFinance) Overview(_ context.Context, condominiumID string, p domain
 	return o, nil
 }
 
+func (f *fakeFinance) ResolvePeriod(raw string) domain.Period {
+	return domain.ParsePeriod(raw, time.Now())
+}
+
+type countingRoles struct {
+	roles []model.Role
+	calls int
+}
+
+func (f *countingRoles) ActiveRolesForUser(_ context.Context, _, _ string) ([]model.Role, error) {
+	f.calls++
+	return f.roles, nil
+}
+
 type fakeAudit struct{ events []model.AuditEventType }
 
 func (f *fakeAudit) RecordEvent(_ context.Context, _ *string, t model.AuditEventType, _ map[string]any) error {
@@ -443,6 +457,31 @@ func TestOverviewSyndicOnlyElements(t *testing.T) {
 		financeRouter(user, sess, deps).ServeHTTP(rec, overviewReq("/finance/overview", true))
 		if got := strings.Contains(rec.Body.String(), "Manage finances"); got != tt.want {
 			t.Errorf("role %s: manage link present = %v, want %v", tt.role, got, tt.want)
+		}
+	}
+}
+
+func TestOverviewSingleRoleLookup(t *testing.T) {
+	user, sess := syndicSession()
+	for _, tt := range []struct {
+		role model.Role
+		want bool
+	}{{model.RoleSyndic, true}, {model.RoleTenant, false}} {
+		for _, hx := range []bool{true, false} {
+			roles := &countingRoles{roles: []model.Role{tt.role}}
+			deps := baseDeps(overviewFinance())
+			deps.Roles = roles
+			rec := httptest.NewRecorder()
+			financeRouter(user, sess, deps).ServeHTTP(rec, overviewReq("/finance/overview", hx))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("role %s hx=%v: = %d, want 200", tt.role, hx, rec.Code)
+			}
+			if roles.calls != 1 {
+				t.Errorf("role %s hx=%v: ActiveRolesForUser calls = %d, want 1", tt.role, hx, roles.calls)
+			}
+			if got := strings.Contains(rec.Body.String(), "Manage finances"); got != tt.want {
+				t.Errorf("role %s hx=%v: manage link present = %v, want %v", tt.role, hx, got, tt.want)
+			}
 		}
 	}
 }

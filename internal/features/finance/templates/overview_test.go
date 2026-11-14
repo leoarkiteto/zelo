@@ -107,13 +107,18 @@ func TestOverviewPanelNegativeBalance(t *testing.T) {
 func TestOverviewPanelEmptyState(t *testing.T) {
 	ov := overviewFixture(last12(), monthsFixture([][2]int64{{0, 0}, {0, 0}}))
 	html := renderToString(t, OverviewPanel(OverviewData{Locale: i18n.LanguagePTBR, Overview: ov}))
-	mustContain(t, html, "Nenhuma movimentação financeira em nos últimos 12 meses", "R$ 0,00", "R$ 450,00")
+	mustContain(t, html, "Nenhuma movimentação financeira nos últimos 12 meses", "R$ 0,00", "R$ 450,00")
+	mustNotContain(t, html, "em nos últimos")
+	htmlEN := renderToString(t, OverviewPanel(OverviewData{Locale: i18n.LanguageEN, Overview: ov}))
+	mustContain(t, htmlEN, "No financial activity in the last 12 months")
 	mustNotContain(t, html, "<svg", "<details", "Registrar conta", "Gerenciar finanças")
 
 	year := domain.ParsePeriod("2025", time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC))
 	ov = overviewFixture(year, nil)
 	html = renderToString(t, OverviewPanel(OverviewData{Locale: i18n.LanguagePTBR, Overview: ov, IsSyndic: true}))
 	mustContain(t, html, "Nenhuma movimentação financeira em 2025", `href="/finance/new"`, "Registrar conta", `href="/finance"`, "Gerenciar finanças")
+	htmlEN = renderToString(t, OverviewPanel(OverviewData{Locale: i18n.LanguageEN, Overview: ov}))
+	mustContain(t, htmlEN, "No financial activity in 2025")
 }
 
 func TestOverviewPanelSyndicLinks(t *testing.T) {
@@ -137,7 +142,7 @@ func TestOverviewPanelPeriodSelector(t *testing.T) {
 
 	ov = overviewFixture(last12(), monthsFixture([][2]int64{{100, 0}}))
 	html = renderToString(t, OverviewPanel(OverviewData{Locale: i18n.LanguagePTBR, Overview: ov}))
-	mustContain(t, html, `<option value="" selected>`)
+	mustContain(t, html, `<option value="" selected>`, `hx-trigger="change, submit"`, `method="GET"`, `action="/finance/overview"`)
 }
 
 func TestOverviewPanelEnglish(t *testing.T) {

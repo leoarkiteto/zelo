@@ -86,5 +86,8 @@ The font MUST be served from the application's own origin; no external CDN.
 
 - `go test ./internal/shared/templates/...` covers the rendered span, class,
   and fallback behavior.
-- `rg '<svg' internal --glob '*.templ'` must return no production template
-  matches after migration.
+- `scripts/check-no-inline-svg.sh` must pass. Icons always go through
+  `atoms.Icon`; the only allowed inline `<svg>` is a server-rendered data
+  chart (e.g. the financial overview bars and lines) marked `data-chart` on
+  the same line as `<svg`. Any `<svg` without `data-chart` fails the check.
+  This is consistent with the Icons section of `docs/design-system.md`.

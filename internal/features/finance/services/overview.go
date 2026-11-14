@@ -61,8 +61,14 @@ type monthKey struct {
 	month time.Month
 }
 
+// ResolvePeriod parses the raw period parameter using the service clock.
+func (s *FinanceService) ResolvePeriod(raw string) domain.Period {
+	return domain.ParsePeriod(raw, s.Now())
+}
+
 // Overview builds the realized overview of the period plus the current
-// position. today is derived once as s.Now().UTC().
+// position. today is derived once as s.Now().UTC() and passed to
+// CurrentPosition truncated to UTC midnight.
 func (s *FinanceService) Overview(ctx context.Context, condominiumID string, p domain.Period) (Overview, error) {
 	today := s.Now().UTC()
 	curStart := time.Date(today.Year(), today.Month(), 1, 0, 0, 0, 0, time.UTC)
@@ -76,7 +82,8 @@ func (s *FinanceService) Overview(ctx context.Context, condominiumID string, p d
 	if err != nil {
 		return Overview{}, err
 	}
-	cur, err := s.Overviews.CurrentPosition(ctx, condominiumID, curStart, curEnd, today)
+	todayDate := time.Date(today.Year(), today.Month(), today.Day(), 0, 0, 0, 0, time.UTC)
+	cur, err := s.Overviews.CurrentPosition(ctx, condominiumID, curStart, curEnd, todayDate)
 	if err != nil {
 		return Overview{}, err
 	}

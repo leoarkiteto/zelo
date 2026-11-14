@@ -21,6 +21,7 @@ type Finance interface {
 	Summary(ctx context.Context, condominiumID string, month time.Time) (services.MonthSummary, error)
 	ResidentCharges(ctx context.Context, userID, condominiumID string) ([]domain.FinancialAccount, error)
 	Overview(ctx context.Context, condominiumID string, p domain.Period) (services.Overview, error)
+	ResolvePeriod(raw string) domain.Period
 }
 
 // AccountReader loads a single account by id.
@@ -46,13 +47,4 @@ type Deps struct {
 // Handler bundles dependencies for finance handler methods.
 type Handler struct {
 	deps Deps
-	// nowFn is the clock used to resolve the overview period; nil means time.Now.
-	nowFn func() time.Time
-}
-
-func (h *Handler) now() time.Time {
-	if h.nowFn != nil {
-		return h.nowFn()
-	}
-	return time.Now()
 }

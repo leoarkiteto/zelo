@@ -72,6 +72,90 @@ func TestRequireRoleDeniesMissingRole(t *testing.T) {
 	}
 }
 
+func TestRequireRoleWithCustomDeniedAuditsFirst(t *testing.T) {
+	audit := &fakeAuditRecorder{}
+	var auditAtDenied int
+	handler := RequireRoleWith(
+		&fakeRoleChecker{roles: []model.Role{model.RoleOwner}},
+		audit,
+		RoleGuardResponders{Denied: func(w http.ResponseWriter, _ *http.Request) {
+			auditAtDenied = audit.denied
+			w.WriteHeader(http.StatusTeapot)
+		}},
+		model.RoleSyndic,
+	)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		t.Fatal("next must not run")
+	}))
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, authenticatedRequest(true))
+	if rec.Code != http.StatusTeapot {
+		t.Fatalf("status = %d, want 418", rec.Code)
+	}
+	if auditAtDenied != 1 {
+		t.Fatalf("audit events before Denied = %d, want 1", auditAtDenied)
+	}
+}
+
+func TestRequireRoleWithCustomUnauthenticated(t *testing.T) {
+	handler := RequireRoleWith(
+		&fakeRoleChecker{},
+		&fakeAuditRecorder{},
+		RoleGuardResponders{Unauthenticated: func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusUnauthorized)
+		}},
+		model.RoleSyndic,
+	)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {}))
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
+func TestRolesFromOnAllow(t *testing.T) {
+	var got []model.Role
+	handler := RequireRoleWith(
+		&fakeRoleChecker{roles: []model.Role{model.RoleOwner, model.RoleSyndic}},
+		&fakeAuditRecorder{},
+		RoleGuardResponders{},
+		model.RoleSyndic,
+	)(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		got = RolesFrom(r.Context())
+	}))
+
+	handler.ServeHTTP(httptest.NewRecorder(), authenticatedRequest(true))
+	if len(got) != 2 || got[0] != model.RoleOwner || got[1] != model.RoleSyndic {
+		t.Fatalf("roles = %v, want [owner syndic]", got)
+	}
+	if RolesFrom(context.Background()) != nil {
+		t.Fatal("RolesFrom on bare context must be nil")
+	}
+}
+
+func TestIsHX(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	if IsHX(r) {
+		t.Fatal("IsHX without header = true")
+	}
+	r.Header.Set("HX-Request", "true")
+	if !IsHX(r) {
+		t.Fatal("IsHX with header = false")
+	}
+}
+
+func TestHXRedirect(t *testing.T) {
+	rec := httptest.NewRecorder()
+	HXRedirect(rec, "/login")
+	if got := rec.Header().Get("HX-Redirect"); got != "/login" {
+		t.Fatalf("HX-Redirect = %q, want /login", got)
+	}
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 401", rec.Code)
+	}
+}
+
 func TestRequireRoleRedirectsAnonymous(t *testing.T) {
 	handler := RequireRole(
 		&fakeRoleChecker{roles: nil},

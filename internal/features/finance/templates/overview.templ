@@ -58,16 +58,12 @@ func periodOptions(d OverviewData) []periodOption {
 	return opts
 }
 
-// periodLabel is the phrase used in the empty-state message.
-func periodLabel(locale i18n.Language, p domain.Period) string {
-	if p.Kind == domain.PeriodYear {
-		return strconv.Itoa(p.Year)
-	}
-	return i18n.T(locale, "finance.overview.period_in_last12")
-}
-
+// emptyMessage picks the empty-state sentence for the period kind.
 func emptyMessage(locale i18n.Language, p domain.Period) string {
-	return fmt.Sprintf(i18n.T(locale, "finance.overview.empty"), periodLabel(locale, p))
+	if p.Kind == domain.PeriodYear {
+		return fmt.Sprintf(i18n.T(locale, "finance.overview.empty_year"), strconv.Itoa(p.Year))
+	}
+	return i18n.T(locale, "finance.overview.empty_last12")
 }
 
 // monthLabel is the short localized month name; the last-12-months axis adds
@@ -196,7 +192,7 @@ templ OverviewPanel(d OverviewData) {
 }
 
 templ overviewPeriodForm(d OverviewData) {
-	<form method="GET" action="/finance/overview" hx-get="/finance/overview" hx-target="#finance-overview" hx-swap="outerHTML" hx-trigger="change" class="flex items-end gap-2">
+	<form method="GET" action="/finance/overview" hx-get="/finance/overview" hx-target="#finance-overview" hx-swap="outerHTML" hx-trigger="change, submit" class="flex items-end gap-2">
 		<div>
 			<label for="finance-overview-period" class="label">{ i18n.T(d.Locale, "finance.overview.period") }</label>
 			<select id="finance-overview-period" name="period" class="input">

@@ -80,11 +80,40 @@ func TestOverviewDensifiesAndTotals(t *testing.T) {
 		t.Fatalf("store range = %v %v", st.gotStart, st.gotEnd)
 	}
 	if !st.gotMonthStart.Equal(time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)) ||
-		!st.gotMonthEnd.Equal(time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)) || !st.got.Equal(now) {
+		!st.gotMonthEnd.Equal(time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)) || !st.got.Equal(time.Date(2026, 11, 14, 0, 0, 0, 0, time.UTC)) {
 		t.Fatalf("current args = %v %v %v", st.gotMonthStart, st.gotMonthEnd, st.got)
 	}
 	if ov.Current != st.cur || len(ov.Years) != 2 || ov.Years[0] != 2026 {
 		t.Fatalf("current/years = %+v %v", ov.Current, ov.Years)
+	}
+}
+
+func TestOverviewPassesTruncatedToday(t *testing.T) {
+	now := time.Date(2026, 11, 14, 15, 30, 0, 0, time.UTC)
+	st := &fakeOverviewStore{}
+	if _, err := overviewSvc(st, now).Overview(context.Background(), "c1", domain.ParsePeriod("", now)); err != nil {
+		t.Fatal(err)
+	}
+	if want := time.Date(2026, 11, 14, 0, 0, 0, 0, time.UTC); !st.got.Equal(want) {
+		t.Fatalf("today = %v, want %v", st.got, want)
+	}
+}
+
+func TestResolvePeriodUsesServiceClock(t *testing.T) {
+	now := time.Date(2026, 11, 14, 15, 30, 0, 0, time.UTC)
+	svc := overviewSvc(&fakeOverviewStore{}, now)
+
+	cur := svc.ResolvePeriod("2026")
+	if cur.Kind != domain.PeriodYear || !cur.End.Equal(time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("current year period = %+v, want cut at December 2026", cur)
+	}
+	if got := svc.ResolvePeriod("2027"); got.Kind != domain.PeriodLast12 {
+		t.Fatalf("future year = %+v, want last12 default", got)
+	}
+	def := svc.ResolvePeriod("")
+	if def.Kind != domain.PeriodLast12 || !def.Start.Equal(time.Date(2025, 12, 1, 0, 0, 0, 0, time.UTC)) ||
+		!def.End.Equal(time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("default = %+v", def)
 	}
 }
 

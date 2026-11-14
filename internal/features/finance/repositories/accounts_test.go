@@ -110,7 +110,8 @@ func TestAccountStoreListFiltersOverdue(t *testing.T) {
 
 	pastDue := baseAccount(condoID, userID)
 	pastDue.Title = "Conta vencida"
-	pastDue.DueDate = time.Date(2026, 8, 20, 0, 0, 0, 0, time.UTC)
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	pastDue.DueDate = today.AddDate(0, 0, -10)
 	if _, err := store.Create(ctx, pastDue); err != nil {
 		t.Fatalf("create past due: %v", err)
 	}
@@ -120,6 +121,7 @@ func TestAccountStoreListFiltersOverdue(t *testing.T) {
 	receivable.Title = "Cota agosto"
 	receivable.AmountCents = 50000
 	receivable.UnitID = unitID
+	receivable.DueDate = today.AddDate(0, 0, 30)
 	if _, err := store.Create(ctx, receivable); err != nil {
 		t.Fatalf("create receivable: %v", err)
 	}

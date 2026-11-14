@@ -172,3 +172,24 @@ func TestOverviewStoreCurrentPosition(t *testing.T) {
 		t.Errorf("OverdueCents = %d, want 900 (due today is not overdue)", pos.OverdueCents)
 	}
 }
+
+func TestOverviewStoreCurrentPositionNonMidnightToday(t *testing.T) {
+	db := openFinanceTestDB(t)
+	ctx := context.Background()
+	condoID, _, userID := seedFinanceFixture(t, db)
+	store := NewAccountStore(db)
+
+	rec, pending := domain.AccountTypeReceivable, domain.StatusPending
+	today := utcDate(2026, 11, 14)
+	seedOverviewAccount(t, store, condoID, userID, rec, domain.CategoryCondoFee, 200, today, pending, time.Time{})
+	seedOverviewAccount(t, store, condoID, userID, rec, domain.CategoryCondoFee, 100, utcDate(2026, 11, 13), pending, time.Time{})
+
+	now := time.Date(2026, 11, 14, 15, 30, 0, 0, time.UTC)
+	pos, err := store.CurrentPosition(ctx, condoID, utcDate(2026, 11, 1), utcDate(2026, 12, 1), now)
+	if err != nil {
+		t.Fatalf("CurrentPosition() = %v", err)
+	}
+	if pos.OverdueCents != 100 {
+		t.Errorf("OverdueCents = %d, want 100 (due today is not overdue, due yesterday is)", pos.OverdueCents)
+	}
+}

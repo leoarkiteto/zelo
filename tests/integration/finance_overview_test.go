@@ -345,6 +345,28 @@ func TestFinanceOverviewEmptyPeriod(t *testing.T) {
 	}
 }
 
+// With no settlements in the last 12 months the default period shows the
+// "last 12 months" empty state, in en and pt-br.
+func TestFinanceOverviewEmptyDefaultPeriod(t *testing.T) {
+	e := newFinanceEnv(t)
+	if _, err := e.db.Exec(`DELETE FROM finance_accounts WHERE condominium_id=$1 AND status='settled'`, e.condoID); err != nil {
+		t.Fatalf("clear settlements: %v", err)
+	}
+	if _, err := e.db.Exec(`UPDATE users SET language_preference='pt-br' WHERE email='tenant-fin@example.com'`); err != nil {
+		t.Fatalf("set language: %v", err)
+	}
+	en := loginAs(t, e.base, "syndic@example.com", "syndic-pass-123")
+	_, _, body := get(t, en, e.base+"/finance/overview", nil)
+	if !strings.Contains(body, "No financial activity in the last 12 months") {
+		t.Fatalf("en default-period empty state missing")
+	}
+	pt := loginAs(t, e.base, "tenant-fin@example.com", memberPass)
+	_, _, body = get(t, pt, e.base+"/finance/overview", nil)
+	if !strings.Contains(body, "Nenhuma movimentação financeira nos últimos 12 meses") {
+		t.Fatalf("pt-br default-period empty state missing")
+	}
+}
+
 func TestFinanceOverviewSyndicOnlyLink(t *testing.T) {
 	e := newFinanceEnv(t)
 	syndic := loginAs(t, e.base, "syndic@example.com", "syndic-pass-123")

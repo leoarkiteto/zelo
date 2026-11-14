@@ -70,6 +70,40 @@ func TestSeedHistoryCoversTwelveMonths(t *testing.T) {
 	}
 }
 
+// TestSeedNoDuplicateFeesAcrossBaseAndHistory combines the base fees with the
+// history rows the seed actually inserts and rejects any repeated
+// (unit, month) condo fee or payment code.
+func TestSeedNoDuplicateFeesAcrossBaseAndHistory(t *testing.T) {
+	for _, now := range []time.Time{
+		time.Date(2026, 11, 14, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, 1, 31, 0, 0, 0, 0, time.UTC),
+	} {
+		unitMonths := map[string]bool{}
+		codes := map[string]bool{}
+		add := func(unit, month, code string) {
+			key := unit + "|" + month
+			if unitMonths[key] {
+				t.Errorf("now=%s: duplicate condo fee for %s", now.Format("2006-01-02"), key)
+			}
+			unitMonths[key] = true
+			if codes[code] {
+				t.Errorf("now=%s: duplicate payment code %s", now.Format("2006-01-02"), code)
+			}
+			codes[code] = true
+		}
+		for _, f := range seedFees {
+			month := seedFeeDueDate(f, now).Format("2006-01")
+			add(f.unit, month, seedFeePaymentCode(month, f.unit))
+		}
+		for _, h := range seedHistoryToInsert(now) {
+			if h.accountType != "receivable" || h.category != "condo_fee" {
+				continue
+			}
+			add(h.unit, h.dueDate.Format("2006-01"), h.paymentCode)
+		}
+	}
+}
+
 func TestSeedHistoryPaymentCodesUnique(t *testing.T) {
 	seen := map[string]bool{}
 	for _, h := range seedHistory(time.Date(2026, 11, 14, 0, 0, 0, 0, time.UTC)) {

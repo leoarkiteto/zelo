@@ -265,16 +265,11 @@ func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, password
 		}
 	}
 
-	lastMonth10 := monthDay(now, -1, 10)
-	nextMonth10 := monthDay(now, 1, 10)
 	for _, f := range seedFees {
-		dueDate := nextMonth10
+		dueDate := seedFeeDueDate(f, now)
 		status := f.status
 		if status == "overdue" {
 			status = "pending" // "overdue" is derived at read time, never persisted
-			dueDate = lastMonth10
-		} else if status == "settled" {
-			dueDate = lastMonth10
 		}
 		var settlementDate any
 		if f.status == "settled" {
@@ -286,7 +281,7 @@ func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, password
 				 status, settlement_date, unit_id, payment_code, created_by)
 			VALUES ($1, 'receivable', $2, 'condo_fee', $3, $4, $5, $6, $7, $8, $9)`,
 			condoID, fmt.Sprintf("Taxa condominial — AP %s", f.unit), f.amountCents, dueDate,
-			status, settlementDate, unitIDs[f.unit], fmt.Sprintf("BOLETO-%s-%s", dueDate.Format("2006-01"), f.unit),
+			status, settlementDate, unitIDs[f.unit], seedFeePaymentCode(dueDate.Format("2006-01"), f.unit),
 			userIDs[seedSyndicEmail]); err != nil {
 			return fmt.Errorf("seed condo fee for %s: %w", f.unit, err)
 		}
@@ -331,19 +326,9 @@ func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, password
 	}
 
 	// 5b. Twelve months of settled entradas and saídas for the financial charts.
-	skipFees := make(map[string]bool)
-	for _, f := range seedFees {
-		if f.status == "settled" {
-			skipFees[fmt.Sprintf("%d|%s", -1, f.unit)] = true // already seeded above
-		}
-	}
-	history := seedHistory(now)
+	history := seedHistoryToInsert(now)
 	historyCount := 0
 	for _, h := range history {
-		if h.accountType == "receivable" && h.category == "condo_fee" &&
-			skipFees[fmt.Sprintf("%d|%s", h.monthOffset, h.unit)] {
-			continue
-		}
 		var unitID, paymentCode, supplier any
 		if h.accountType == "receivable" {
 			if h.unit != "" {
@@ -499,7 +484,7 @@ func seedHistory(now time.Time) []seedHistoryAccount {
 				category:    "condo_fee",
 				amountCents: f.amountCents,
 				dueDate:     clampDay(now, offset, 10), settlementDate: clampDay(now, offset, 10+int(f.amountCents%5)),
-				unit: f.unit, paymentCode: fmt.Sprintf("BOLETO-%s-%s", month, f.unit),
+				unit: f.unit, paymentCode: seedFeePaymentCode(month, f.unit),
 			})
 		}
 		// Occasional extra entradas.
@@ -565,6 +550,44 @@ func phoneDigits(phone string) string {
 		}
 	}
 	return string(digits)
+}
+
+// seedHistoryToInsert is seedHistory minus the condo fees the base seedFees
+// already create for a month (settled or overdue base fees both sit in last
+// month), so no unit gets two fees, or the same payment code, for one month.
+func seedHistoryToInsert(now time.Time) []seedHistoryAccount {
+	skip := make(map[string]bool)
+	for _, f := range seedFees {
+		skip[fmt.Sprintf("%d|%s", seedFeeMonthOffset(f), f.unit)] = true
+	}
+	var out []seedHistoryAccount
+	for _, h := range seedHistory(now) {
+		if h.accountType == "receivable" && h.category == "condo_fee" &&
+			skip[fmt.Sprintf("%d|%s", h.monthOffset, h.unit)] {
+			continue
+		}
+		out = append(out, h)
+	}
+	return out
+}
+
+// seedFeePaymentCode is the payment code of a unit's condo fee; month is "YYYY-MM".
+func seedFeePaymentCode(month, unit string) string {
+	return fmt.Sprintf("BOLETO-%s-%s", month, unit)
+}
+
+// seedFeeMonthOffset is the month (relative to now) a base fee is due in:
+// settled and overdue fees fall in last month, pending ones in next month.
+func seedFeeMonthOffset(f seedFee) int {
+	if f.status == "settled" || f.status == "overdue" {
+		return -1
+	}
+	return 1
+}
+
+// seedFeeDueDate is the due date of a base condo fee (the 10th of its month).
+func seedFeeDueDate(f seedFee, now time.Time) time.Time {
+	return monthDay(now, seedFeeMonthOffset(f), 10)
 }
 
 // monthDay returns the `day` of a month shifted by `months` from now.
