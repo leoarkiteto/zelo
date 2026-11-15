@@ -1,0 +1,58 @@
+package templates
+
+import (
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/money"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+)
+
+// SettingsPageData backs the condominium currency settings page.
+type SettingsPageData struct {
+	Shell    *organisms.ShellData
+	Locale   i18n.Language
+	CSRF     string
+	Currency money.Currency
+	Flash    string
+	Error    string
+}
+
+templ SettingsPage(data SettingsPageData) {
+	@organisms.Layout(i18n.T(data.Locale, "settings.title"), data.Locale, data.Shell, settingsBody(data))
+}
+
+templ settingsBody(data SettingsPageData) {
+	<div class="max-w-2xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "settings.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "settings.subtitle") }</p>
+			</div>
+		</div>
+		if data.Flash != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
+		}
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<form method="POST" action="/condominium/settings" class="card card-pad space-y-4">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			<div>
+				<label class="label" for="currency">
+					{ i18n.T(data.Locale, "settings.currency") }
+					<span class="text-red-600" aria-hidden="true">*</span>
+				</label>
+				<select class="select" id="currency" name="currency" required aria-describedby="currency-warning">
+					<option value="EUR" selected?={ data.Currency == money.EUR }>{ i18n.T(data.Locale, "settings.currency.eur") }</option>
+					<option value="BRL" selected?={ data.Currency == money.BRL || data.Currency == "" }>{ i18n.T(data.Locale, "settings.currency.brl") }</option>
+				</select>
+				<p class="mt-1 text-xs text-ink-500">{ i18n.T(data.Locale, "settings.currency_hint") }</p>
+			</div>
+			<p class="alert alert-info" id="currency-warning" role="note">{ i18n.T(data.Locale, "settings.currency_warning") }</p>
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "common.save_changes") }</button>
+				<a class="btn btn-secondary" href="/condominium">{ i18n.T(data.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+	</div>
+}

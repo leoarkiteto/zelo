@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/leoarkiteto/zelo/internal/shared/money"
+)
 
 // OccupancyType describes the relationship between a user and a unit.
 type OccupancyType string
@@ -14,6 +18,7 @@ const (
 type Condominium struct {
 	ID        string
 	Name      string
+	Currency  money.Currency
 	CreatedAt time.Time
 }
 

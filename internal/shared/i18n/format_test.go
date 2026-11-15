@@ -13,6 +13,7 @@ func TestFormatDate(t *testing.T) {
 	}{
 		{LanguageEN, "August 23, 2026"},
 		{LanguagePTBR, "23/08/2026"},
+		{LanguagePTPT, "23/08/2026"},
 	}
 	for _, c := range cases {
 		if got := FormatDate(c.lang, ts); got != c.want {
@@ -29,6 +30,7 @@ func TestFormatLongDate(t *testing.T) {
 	}{
 		{LanguageEN, "Sunday, August 23, 2026"},
 		{LanguagePTBR, "domingo, 23 de agosto de 2026"},
+		{LanguagePTPT, "domingo, 23 de agosto de 2026"},
 	}
 	for _, c := range cases {
 		if got := FormatLongDate(c.lang, ts); got != c.want {
@@ -43,5 +45,17 @@ func TestFormatNumber(t *testing.T) {
 	}
 	if got := FormatNumber(LanguageEN, 1234); got != "1234" {
 		t.Errorf("FormatNumber(en) = %q, want %q", got, "1234")
+	}
+	cases := map[int]string{
+		0:        "0",
+		999:      "999",
+		1234:     "1 234",
+		1234567:  "1 234 567",
+		-1234567: "-1 234 567",
+	}
+	for n, want := range cases {
+		if got := FormatNumber(LanguagePTPT, n); got != want {
+			t.Errorf("FormatNumber(pt-pt, %d) = %q, want %q", n, got, want)
+		}
 	}
 }

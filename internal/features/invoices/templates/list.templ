@@ -1,0 +1,187 @@
+package templates
+
+import (
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/money"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+)
+
+templ ListPage(data ListPageData) {
+	@organisms.Layout(i18n.T(data.Locale, "invoices.title"), data.Locale, data.Shell, listBody(data))
+}
+
+templ listBody(d ListPageData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(d.Locale, "invoices.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(d.Locale, "invoices.subtitle") }</p>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<a class="btn btn-secondary" href="/suppliers">{ i18n.T(d.Locale, "nav.suppliers") }</a>
+				<a class="btn btn-primary" href="/invoices/new">{ i18n.T(d.Locale, "invoices.new") }</a>
+			</div>
+		</div>
+		if d.Flash != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: d.Flash})
+		}
+		if d.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: d.Error})
+		}
+		@listFilters(d)
+		<section class="card">
+			if len(d.Rows) == 0 {
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Title:  i18n.T(d.Locale, "invoices.empty_title"),
+					Copy:   i18n.T(d.Locale, "invoices.empty_copy"),
+					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(d.Locale, "invoices.new"), Variant: atoms.ButtonVariantPrimary, Href: "/invoices/new", Class: "btn-sm mt-2"}),
+				})
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(d.Locale, "invoices.col.number") }</th>
+								<th>{ i18n.T(d.Locale, "invoices.col.supplier") }</th>
+								<th>{ i18n.T(d.Locale, "invoices.col.nif") }</th>
+								<th>{ i18n.T(d.Locale, "invoices.col.expense_type") }</th>
+								<th>{ i18n.T(d.Locale, "invoices.col.issue_date") }</th>
+								<th>{ i18n.T(d.Locale, "invoices.col.due_date") }</th>
+								<th class="text-right">{ i18n.T(d.Locale, "invoices.col.total") }</th>
+								<th class="text-right">{ i18n.T(d.Locale, "invoices.col.paid") }</th>
+								<th class="text-right">{ i18n.T(d.Locale, "invoices.col.debt") }</th>
+								<th>{ i18n.T(d.Locale, "invoices.col.status") }</th>
+								<th class="text-right"><span class="sr-only">{ i18n.T(d.Locale, "common.actions") }</span></th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, r := range d.Rows {
+								<tr>
+									<td class="font-medium text-ink-800">
+										<a class="text-steel-700 hover:underline" href={ templ.URL(invoiceHref(r.ID)) }>{ orDash(r.Number) }</a>
+									</td>
+									<td>{ orDash(r.SupplierName) }</td>
+									<td>{ orDash(r.SupplierNIF) }</td>
+									<td>{ tr(d.Locale, r.ExpenseType.LabelKey()) }</td>
+									<td>{ dateText(d.Locale, r.IssueDate) }</td>
+									<td>{ dateText(d.Locale, r.DueDate) }</td>
+									<td class="text-right">{ money.Format(d.Locale, money.From(ctx), r.TotalCents) }</td>
+									<td class="text-right">{ money.Format(d.Locale, money.From(ctx), r.PaidCents) }</td>
+									<td class="text-right">{ money.Format(d.Locale, money.From(ctx), r.DebtCents) }</td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: tr(d.Locale, r.Status.LabelKey()), Variant: statusVariant(r.Status)})</td>
+									<td class="text-right">
+										<a class="btn btn-secondary btn-sm" href={ templ.URL(invoiceHref(r.ID)) }>{ i18n.T(d.Locale, "invoices.view") }</a>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+		@totalsFooter(d)
+		@pagination(d)
+	</div>
+}
+
+templ listFilters(d ListPageData) {
+	<form method="GET" action="/invoices" class="card card-pad space-y-4" aria-label={ i18n.T(d.Locale, "invoices.filter.title") }>
+		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+			<div>
+				<label class="label" for="f-supplier">{ i18n.T(d.Locale, "invoices.col.supplier") }</label>
+				<input class="input" type="search" id="f-supplier" name="supplier" value={ d.Filter.SupplierName }/>
+			</div>
+			<div>
+				<label class="label" for="f-nif">{ i18n.T(d.Locale, "invoices.col.nif") }</label>
+				<input class="input" type="search" id="f-nif" name="nif" value={ d.Filter.NIF }/>
+			</div>
+			<div>
+				<label class="label" for="f-number">{ i18n.T(d.Locale, "invoices.col.number") }</label>
+				<input class="input" type="search" id="f-number" name="number" value={ d.Filter.Number }/>
+			</div>
+			<div>
+				<label class="label" for="f-document-type">{ i18n.T(d.Locale, "invoices.field.document_type") }</label>
+				@selectInput("f-document-type", "document_type", withAll(d.Locale, documentTypeOptions(d.Locale)), d.Filter.DocumentType, false)
+			</div>
+			<div>
+				<label class="label" for="f-expense-type">{ i18n.T(d.Locale, "invoices.col.expense_type") }</label>
+				@selectInput("f-expense-type", "expense_type", withAll(d.Locale, expenseTypeOptions(d.Locale)), d.Filter.ExpenseType, false)
+			</div>
+			<div>
+				<label class="label" for="f-category">{ i18n.T(d.Locale, "invoices.field.category") }</label>
+				@selectInput("f-category", "category", withAll(d.Locale, categoryOptions(d.Locale)), d.Filter.Category, false)
+			</div>
+			<div>
+				<label class="label" for="f-status">{ i18n.T(d.Locale, "invoices.col.status") }</label>
+				@selectInput("f-status", "status", withAll(d.Locale, statusOptions(d.Locale)), d.Filter.Status, false)
+			</div>
+			<div>
+				<label class="label" for="f-period">{ i18n.T(d.Locale, "invoices.field.reference_period") }</label>
+				<input class="input" type="month" id="f-period" name="period" value={ d.Filter.ReferencePeriod }/>
+			</div>
+			<div>
+				<label class="label" for="f-issue-from">{ i18n.T(d.Locale, "invoices.filter.issue_from") }</label>
+				<input class="input" type="date" id="f-issue-from" name="issue_from" value={ d.Filter.IssueFrom }/>
+			</div>
+			<div>
+				<label class="label" for="f-issue-to">{ i18n.T(d.Locale, "invoices.filter.issue_to") }</label>
+				<input class="input" type="date" id="f-issue-to" name="issue_to" value={ d.Filter.IssueTo }/>
+			</div>
+			<div>
+				<label class="label" for="f-due-from">{ i18n.T(d.Locale, "invoices.filter.due_from") }</label>
+				<input class="input" type="date" id="f-due-from" name="due_from" value={ d.Filter.DueFrom }/>
+			</div>
+			<div>
+				<label class="label" for="f-due-to">{ i18n.T(d.Locale, "invoices.filter.due_to") }</label>
+				<input class="input" type="date" id="f-due-to" name="due_to" value={ d.Filter.DueTo }/>
+			</div>
+		</div>
+		<div class="flex gap-2">
+			<button class="btn btn-primary" type="submit">{ i18n.T(d.Locale, "common.search") }</button>
+			<a class="btn btn-secondary" href="/invoices">{ i18n.T(d.Locale, "common.clear") }</a>
+		</div>
+	</form>
+}
+
+// totalsFooter shows the totals of the whole filtered set. Drafts and annulled
+// invoices are excluded, as the note says.
+templ totalsFooter(d ListPageData) {
+	<section class="card card-pad" data-totals-footer aria-label={ i18n.T(d.Locale, "invoices.totals.title") }>
+		<h2 class="text-base font-bold text-ink-900">{ i18n.T(d.Locale, "invoices.totals.title") }</h2>
+		<dl class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+			<div>
+				<dt class="text-sm text-ink-500">{ i18n.T(d.Locale, "invoices.col.total") }</dt>
+				<dd class="text-xl font-bold text-ink-900">{ money.Format(d.Locale, money.From(ctx), d.Totals.TotalCents) }</dd>
+			</div>
+			<div>
+				<dt class="text-sm text-ink-500">{ i18n.T(d.Locale, "invoices.summary.payable") }</dt>
+				<dd class="text-xl font-bold text-ink-900">{ money.Format(d.Locale, money.From(ctx), d.Totals.PayableCents) }</dd>
+			</div>
+			<div>
+				<dt class="text-sm text-ink-500">{ i18n.T(d.Locale, "invoices.col.paid") }</dt>
+				<dd class="text-xl font-bold text-ink-900">{ money.Format(d.Locale, money.From(ctx), d.Totals.PaidCents) }</dd>
+			</div>
+			<div>
+				<dt class="text-sm text-ink-500">{ i18n.T(d.Locale, "invoices.col.debt") }</dt>
+				<dd class="text-xl font-bold text-ink-900">{ money.Format(d.Locale, money.From(ctx), d.Totals.DebtCents) }</dd>
+			</div>
+		</dl>
+		<p class="mt-3 text-xs text-ink-500">{ i18n.T(d.Locale, "invoices.totals.note") }</p>
+	</section>
+}
+
+templ pagination(d ListPageData) {
+	<nav class="flex items-center justify-between" aria-label={ i18n.T(d.Locale, "invoices.list.pagination") }>
+		<p class="text-sm text-ink-600">{ pageIndicator(d.Locale, d.ListResult) }</p>
+		<div class="flex gap-2">
+			if currentPage(d.ListResult) > 1 {
+				<a class="btn btn-secondary btn-sm" href={ templ.URL(pageURL(d.Filter, currentPage(d.ListResult)-1)) }>{ i18n.T(d.Locale, "invoices.list.previous") }</a>
+			}
+			if currentPage(d.ListResult) < totalPages(d.ListResult) {
+				<a class="btn btn-secondary btn-sm" href={ templ.URL(pageURL(d.Filter, currentPage(d.ListResult)+1)) }>{ i18n.T(d.Locale, "invoices.list.next") }</a>
+			}
+		</div>
+	</nav>
+}

@@ -284,15 +284,15 @@ func OverviewPanel(d OverviewData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_in"), Money(d.Locale, d.Overview.TotalInCents)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_in"), Money(ctx, d.Locale, d.Overview.TotalInCents)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_out"), Money(d.Locale, d.Overview.TotalOutCents)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_out"), Money(ctx, d.Locale, d.Overview.TotalOutCents)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = kpiTile("bg-steel-50", balanceTileClass(d.Overview.BalanceCents), i18n.T(d.Locale, "finance.overview.kpi_balance"), Money(d.Locale, d.Overview.BalanceCents)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = kpiTile("bg-steel-50", balanceTileClass(d.Overview.BalanceCents), i18n.T(d.Locale, "finance.overview.kpi_balance"), Money(ctx, d.Locale, d.Overview.BalanceCents)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -313,15 +313,15 @@ func OverviewPanel(d OverviewData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_receivable"), Money(d.Locale, d.Overview.Current.ReceivableCents)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_receivable"), Money(ctx, d.Locale, d.Overview.Current.ReceivableCents)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_payable"), Money(d.Locale, d.Overview.Current.PayableCents)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_payable"), Money(ctx, d.Locale, d.Overview.Current.PayableCents)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = kpiTile("bg-amber-50", "text-amber-700", i18n.T(d.Locale, "finance.overview.kpi_overdue"), Money(d.Locale, d.Overview.Current.OverdueCents)).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = kpiTile("bg-amber-50", "text-amber-700", i18n.T(d.Locale, "finance.overview.kpi_overdue"), Money(ctx, d.Locale, d.Overview.Current.OverdueCents)).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -788,9 +788,9 @@ func barsChart(d OverviewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var35 string
-			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(compactMoney(d.Locale, t.Value))
+			templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(compactMoney(ctx, d.Locale, t.Value))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 230, Col: 143}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 230, Col: 147}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 			if templ_7745c5c3_Err != nil {
@@ -915,9 +915,9 @@ func barsChart(d OverviewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var44 string
-			templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "finance.overview.kpi_in") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, g.In.Cents))
+			templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "finance.overview.kpi_in") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(ctx, d.Locale, g.In.Cents))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 235, Col: 170}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 235, Col: 174}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 			if templ_7745c5c3_Err != nil {
@@ -980,9 +980,9 @@ func barsChart(d OverviewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var49 string
-			templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "finance.overview.kpi_out") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, g.Out.Cents))
+			templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "finance.overview.kpi_out") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(ctx, d.Locale, g.Out.Cents))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 238, Col: 172}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 238, Col: 176}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 			if templ_7745c5c3_Err != nil {
@@ -1194,9 +1194,9 @@ func balanceChart(d OverviewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var63 string
-			templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(compactMoney(d.Locale, t.Value))
+			templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(compactMoney(ctx, d.Locale, t.Value))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 258, Col: 143}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 258, Col: 147}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 			if templ_7745c5c3_Err != nil {
@@ -1328,9 +1328,9 @@ func balanceChart(d OverviewData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var72 string
-				templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.JoinStringErrs(monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, p.Cents))
+				templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.JoinStringErrs(monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(ctx, d.Locale, p.Cents))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 269, Col: 116}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 269, Col: 120}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var72))
 				if templ_7745c5c3_Err != nil {
@@ -1372,9 +1372,9 @@ func balanceChart(d OverviewData) templ.Component {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var75 string
-				templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, p.Cents))
+				templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(ctx, d.Locale, p.Cents))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 273, Col: 116}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 273, Col: 120}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
 				if templ_7745c5c3_Err != nil {
@@ -1550,9 +1550,9 @@ func dataTable(d OverviewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var86 string
-			templ_7745c5c3_Var86, templ_7745c5c3_Err = templ.JoinStringErrs(Money(d.Locale, m.InCents))
+			templ_7745c5c3_Var86, templ_7745c5c3_Err = templ.JoinStringErrs(Money(ctx, d.Locale, m.InCents))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 300, Col: 39}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 300, Col: 43}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var86))
 			if templ_7745c5c3_Err != nil {
@@ -1563,9 +1563,9 @@ func dataTable(d OverviewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var87 string
-			templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(Money(d.Locale, m.OutCents))
+			templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(Money(ctx, d.Locale, m.OutCents))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 301, Col: 40}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 301, Col: 44}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 			if templ_7745c5c3_Err != nil {
@@ -1598,9 +1598,9 @@ func dataTable(d OverviewData) templ.Component {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var90 string
-			templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.JoinStringErrs(Money(d.Locale, m.BalanceCents))
+			templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.JoinStringErrs(Money(ctx, d.Locale, m.BalanceCents))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 302, Col: 87}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 302, Col: 91}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var90))
 			if templ_7745c5c3_Err != nil {
@@ -1676,9 +1676,9 @@ func categoryList(locale i18n.Language, title string, t domain.AccountType, rows
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var94 string
-			templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs(Money(locale, r.Cents))
+			templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs(Money(ctx, locale, r.Cents))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 319, Col: 30}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/overview.templ`, Line: 319, Col: 35}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
 			if templ_7745c5c3_Err != nil {

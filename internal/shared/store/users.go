@@ -72,7 +72,7 @@ func (s *UserStore) GetUserByID(ctx context.Context, id string) (model.User, err
 }
 
 // UpdateLanguagePreference saves the user's interface language preference.
-// The caller must pass a valid language code ('en' or 'pt-br').
+// The caller must pass a valid language code ('en', 'pt-br' or 'pt-pt').
 func (s *UserStore) UpdateLanguagePreference(ctx context.Context, userID, language string) error {
 	res, err := s.db.ExecContext(ctx,
 		`UPDATE users SET language_preference = $1, updated_at = now() WHERE id = $2`,

@@ -123,6 +123,34 @@ func TestProfileLanguageHTMXSwapsShell(t *testing.T) {
 	}
 }
 
+func TestProfileLanguageHTMXAppliesPTPT(t *testing.T) {
+	user := &model.User{ID: "u1", Email: "syndic@example.com", Status: model.UserStatusActive}
+	sess := &model.Session{TokenHash: "th", UserID: "u1", CondominiumID: "c1", CSRFToken: "x"}
+	svc := &fakeProfileService{profile: domain.Profile{Language: i18n.LanguageEN}}
+	router := profileRouter(user, sess, svc)
+
+	form := url.Values{"language": {"pt-pt"}}
+	req := httptest.NewRequest(http.MethodPost, "/profile/language", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("HX-Request", "true")
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST /profile/language (HTMX) = %d, want 200", rec.Code)
+	}
+	if !svc.changed || svc.lastLang != i18n.LanguagePTPT {
+		t.Fatalf("service not called with pt-pt: changed=%v lastLang=%q", svc.changed, svc.lastLang)
+	}
+	body := rec.Body.String()
+	if !strings.Contains(body, `<div id="app-shell" lang="pt-pt"`) {
+		t.Errorf("HTMX response missing re-rendered shell with lang=pt-pt")
+	}
+	if !strings.Contains(body, `value="pt-pt" checked`) {
+		t.Errorf("HTMX response does not mark pt-pt selected")
+	}
+}
+
 func TestProfileLanguagePlainFormRedirects(t *testing.T) {
 	user := &model.User{ID: "u1", Email: "syndic@example.com", Status: model.UserStatusActive}
 	sess := &model.Session{TokenHash: "th", UserID: "u1", CondominiumID: "c1", CSRFToken: "x"}

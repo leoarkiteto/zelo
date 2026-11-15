@@ -1,0 +1,317 @@
+package templates
+
+import (
+	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/money"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+)
+
+templ ViewPage(data ViewPageData) {
+	@organisms.Layout(i18n.T(data.Locale, "invoices.view.title"), data.Locale, data.Shell, viewBody(data))
+}
+
+func paidOf(inv domain.Invoice) int64 { return inv.PaidCents() }
+
+func statusOf(inv domain.Invoice) domain.PaymentStatus {
+	return domain.Status(inv.State, inv.Totals.PayableCents, inv.PaidCents())
+}
+
+templ viewBody(d ViewPageData) {
+	<div class="max-w-5xl space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(d.Locale, "invoices.view.title") } { orDash(d.Invoice.Number) }</h1>
+				<p class="page-subtitle flex flex-wrap items-center gap-2">
+					@atoms.Badge(atoms.BadgeProps{Label: tr(d.Locale, statusOf(d.Invoice).LabelKey()), Variant: statusVariant(statusOf(d.Invoice))})
+					<span>{ tr(d.Locale, d.Invoice.DocumentType.LabelKey()) }</span>
+				</p>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<a class="btn btn-secondary" href="/invoices">{ i18n.T(d.Locale, "common.back") }</a>
+				if d.Invoice.State != domain.StateAnnulled {
+					<a class="btn btn-primary" href={ templ.URL(invoiceHref(d.Invoice.ID) + "/edit") }>{ i18n.T(d.Locale, "common.edit") }</a>
+				}
+			</div>
+		</div>
+		if d.Flash != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: d.Flash})
+		}
+		if d.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: d.Error})
+		}
+		if d.Invoice.State == domain.StateAnnulled {
+			<div class="alert alert-error" data-annulled>
+				<p class="font-medium">{ i18n.T(d.Locale, "invoices.view.annulled_notice") }</p>
+				<p class="text-sm">{ i18n.T(d.Locale, "invoices.annul.reason") }: { orDash(d.Invoice.AnnulReason) } · { dateText(d.Locale, d.Invoice.AnnulledAt) }</p>
+			</div>
+		}
+		@legalHelp(d.Locale)
+		<section class="card card-pad space-y-3">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.identification"), true)
+			<dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+				@kv(i18n.T(d.Locale, "invoices.field.document_type"), tr(d.Locale, d.Invoice.DocumentType.LabelKey()))
+				@kv(i18n.T(d.Locale, "invoices.field.number"), orDash(d.Invoice.Number))
+				@kv(i18n.T(d.Locale, "invoices.field.issue_date"), dateText(d.Locale, d.Invoice.IssueDate))
+				@kv(i18n.T(d.Locale, "invoices.field.due_date"), dateText(d.Locale, d.Invoice.DueDate))
+				@kv(i18n.T(d.Locale, "invoices.field.operation_date"), dateText(d.Locale, d.Invoice.OperationDate))
+				@kv(i18n.T(d.Locale, "invoices.field.fiscal_region"), tr(d.Locale, d.Invoice.FiscalRegion.LabelKey()))
+			</dl>
+			if d.Invoice.DueJustification != "" {
+				<p class="text-sm text-ink-700">{ i18n.T(d.Locale, "invoices.field.due_justification") }: { d.Invoice.DueJustification }</p>
+			}
+		</section>
+		<section class="card card-pad space-y-3">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.supplier"), true)
+			if d.Invoice.Supplier != nil {
+				<dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+					@kv(i18n.T(d.Locale, "invoices.supplier.name"), d.Invoice.Supplier.Name)
+					@kv(i18n.T(d.Locale, "invoices.supplier.nif"), orDash(d.Invoice.Supplier.NIF))
+					@kv(i18n.T(d.Locale, "invoices.supplier.country"), orDash(d.Invoice.Supplier.Country))
+					@kv(i18n.T(d.Locale, "invoices.supplier.address"), orDash(d.Invoice.Supplier.Address))
+					@kv(i18n.T(d.Locale, "invoices.supplier.postal_code"), orDash(d.Invoice.Supplier.PostalCode))
+					@kv(i18n.T(d.Locale, "invoices.supplier.locality"), orDash(d.Invoice.Supplier.Locality))
+				</dl>
+			} else {
+				<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "invoices.supplier.none_selected") }</p>
+			}
+		</section>
+		<section class="card card-pad space-y-3">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.expense"), false)
+			<dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+				@kv(i18n.T(d.Locale, "invoices.field.expense_type"), tr(d.Locale, d.Invoice.ExpenseType.LabelKey()))
+				@kv(i18n.T(d.Locale, "invoices.field.category"), tr(d.Locale, d.Invoice.Category.LabelKey()))
+				@kv(i18n.T(d.Locale, "invoices.field.description"), orDash(d.Invoice.Description))
+				@kv(i18n.T(d.Locale, "invoices.field.project"), orDash(d.Invoice.Project))
+				@kv(i18n.T(d.Locale, "invoices.field.cost_center"), orDash(d.Invoice.CostCenter))
+				@kv(i18n.T(d.Locale, "invoices.field.reference_period"), orDash(d.Invoice.ReferencePeriod))
+				@kv(i18n.T(d.Locale, "common.notes"), orDash(d.Invoice.Notes))
+			</dl>
+			switch d.Invoice.ExpenseType {
+				case domain.ExpensePrestacaoServicos:
+					<dl class="grid gap-3 border-t border-chrome-100 pt-3 text-sm sm:grid-cols-2 lg:grid-cols-3" data-section="prestacao_servicos">
+						@kv(i18n.T(d.Locale, "invoices.field.service_description"), orDash(d.Invoice.Service.Description))
+						@kv(i18n.T(d.Locale, "invoices.field.start_date"), dateText(d.Locale, d.Invoice.Service.StartDate))
+						@kv(i18n.T(d.Locale, "invoices.field.end_date"), dateText(d.Locale, d.Invoice.Service.EndDate))
+						@kv(i18n.T(d.Locale, "invoices.field.contract"), orDash(d.Invoice.Service.Contract))
+					</dl>
+				case domain.ExpenseDespesaMensal:
+					<dl class="grid gap-3 border-t border-chrome-100 pt-3 text-sm sm:grid-cols-2 lg:grid-cols-3" data-section="despesa_mensal">
+						@kv(i18n.T(d.Locale, "invoices.field.service_type"), orDash(d.Invoice.Monthly.ServiceType))
+						@kv(i18n.T(d.Locale, "invoices.field.billing_period"), orDash(d.Invoice.Monthly.BillingPeriod))
+						@kv(i18n.T(d.Locale, "invoices.field.start_date"), dateText(d.Locale, d.Invoice.Monthly.StartDate))
+						@kv(i18n.T(d.Locale, "invoices.field.end_date"), dateText(d.Locale, d.Invoice.Monthly.EndDate))
+						@kv(i18n.T(d.Locale, "invoices.field.contract_number"), orDash(d.Invoice.Monthly.ContractNumber))
+						@kv(i18n.T(d.Locale, "invoices.field.meter_id"), orDash(d.Invoice.Monthly.MeterID))
+						@kv(i18n.T(d.Locale, "invoices.field.cpe"), orDash(d.Invoice.Monthly.CPE))
+						@kv(i18n.T(d.Locale, "invoices.field.cui"), orDash(d.Invoice.Monthly.CUI))
+						@kv(i18n.T(d.Locale, "invoices.field.consumption_place"), orDash(d.Invoice.Monthly.ConsumptionPlace))
+						@kv(i18n.T(d.Locale, "invoices.field.recurring"), yesNo(d.Locale, d.Invoice.Monthly.Recurring))
+					</dl>
+			}
+		</section>
+		<section class="card card-pad space-y-3">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.values"), true)
+			@viewLines(d)
+			@SummaryFragment(SummaryData{
+				Locale:    d.Locale,
+				Totals:    d.Invoice.Totals,
+				ShowPaid:  true,
+				PaidCents: paidOf(d.Invoice),
+				DebtCents: d.Invoice.Totals.PayableCents - paidOf(d.Invoice),
+			})
+		</section>
+		<section class="card card-pad space-y-4" id="payments">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.payments"), false)
+			if len(d.Invoice.Payments) == 0 {
+				<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "invoices.payments.none") }</p>
+			} else {
+				@paymentsTable(d.Locale, d.Invoice.Payments)
+			}
+			if canPay(d.Invoice) {
+				@paymentForm(d)
+			} else if d.Invoice.State == domain.StateDraft {
+				<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "invoices.error.draft_no_payments") }</p>
+			}
+		</section>
+		<section class="card card-pad space-y-4" id="attachments">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.attachments"), false)
+			if d.AttachError != "" {
+				@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: d.AttachError})
+			}
+			if len(d.Invoice.Attachments) == 0 {
+				<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "invoices.attachments.none") }</p>
+			} else {
+				<ul class="divide-y divide-chrome-100 text-sm">
+					for _, a := range d.Invoice.Attachments {
+						<li class="flex flex-wrap items-center justify-between gap-2 py-2">
+							<a class="text-steel-700 hover:underline" href={ templ.URL(attachmentHref(d.Invoice.ID, a.ID)) }>{ a.OriginalName }</a>
+							<span class="text-ink-500">{ humanSize(a.SizeBytes) }</span>
+							if d.Invoice.State != domain.StateAnnulled {
+								<form method="POST" action={ templ.URL(attachmentHref(d.Invoice.ID, a.ID) + "/delete") }>
+									<input type="hidden" name="csrf_token" value={ d.CSRF }/>
+									<button class="btn btn-danger btn-sm" type="submit">{ i18n.T(d.Locale, "invoices.attachments.remove") }</button>
+								</form>
+							}
+						</li>
+					}
+				</ul>
+			}
+			if d.Invoice.State != domain.StateAnnulled {
+				<form method="POST" action={ templ.URL(invoiceHref(d.Invoice.ID) + "/attachments") } enctype="multipart/form-data" class="space-y-2">
+					<input type="hidden" name="csrf_token" value={ d.CSRF }/>
+					<label class="label" for="files">{ i18n.T(d.Locale, "invoices.attachments.add") }</label>
+					<input class="input" type="file" id="files" name="files" multiple accept="application/pdf,image/jpeg,image/png"/>
+					<p class="text-xs text-ink-500">{ i18n.T(d.Locale, "invoices.attachments.limits") }</p>
+					<button class="btn btn-secondary btn-sm" type="submit">{ i18n.T(d.Locale, "invoices.attachments.upload") }</button>
+				</form>
+			}
+		</section>
+		if d.Invoice.State == domain.StateRegistered {
+			@annulForm(d)
+		}
+		if d.Invoice.State == domain.StateDraft {
+			<form method="POST" action={ templ.URL(invoiceHref(d.Invoice.ID) + "/delete") } class="card card-pad flex items-center justify-between gap-4">
+				<input type="hidden" name="csrf_token" value={ d.CSRF }/>
+				<p class="text-sm text-ink-700">{ i18n.T(d.Locale, "invoices.view.delete_draft_copy") }</p>
+				<button class="btn btn-danger" type="submit">{ i18n.T(d.Locale, "invoices.view.delete_draft") }</button>
+			</form>
+		}
+	</div>
+}
+
+templ kv(label, value string) {
+	<div>
+		<dt class="text-ink-500">{ label }</dt>
+		<dd class="font-medium text-ink-900">{ value }</dd>
+	</div>
+}
+
+func yesNo(l i18n.Language, b bool) string {
+	if b {
+		return tr(l, "invoices.yes")
+	}
+	return tr(l, "invoices.no")
+}
+
+templ viewLines(d ViewPageData) {
+	<div class="table-wrap">
+		<table class="table">
+			<thead>
+				<tr>
+					if isProduct(d.Invoice.ExpenseType) {
+						<th>{ i18n.T(d.Locale, "invoices.lines.product") }</th>
+						<th>{ i18n.T(d.Locale, "invoices.lines.reference") }</th>
+						<th class="text-right">{ i18n.T(d.Locale, "invoices.lines.quantity") }</th>
+						<th>{ i18n.T(d.Locale, "invoices.lines.unit") }</th>
+						<th class="text-right">{ i18n.T(d.Locale, "invoices.lines.unit_price") }</th>
+						<th class="text-right">{ i18n.T(d.Locale, "invoices.lines.discount") }</th>
+					} else {
+						<th>{ i18n.T(d.Locale, "invoices.lines.description") }</th>
+					}
+					<th class="text-right">{ i18n.T(d.Locale, "invoices.lines.base") }</th>
+					<th>{ i18n.T(d.Locale, "invoices.lines.vat_treatment") }</th>
+					<th class="text-right">{ i18n.T(d.Locale, "invoices.lines.vat_rate") }</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, ln := range d.Invoice.Lines {
+					<tr>
+						if isProduct(d.Invoice.ExpenseType) {
+							<td>{ orDash(ln.Product) }</td>
+							<td>{ orDash(ln.Reference) }</td>
+							<td class="text-right">{ milliText(ln.QuantityMilli) }</td>
+							<td>{ orDash(ln.Unit) }</td>
+							<td class="text-right">{ money.Format(d.Locale, money.From(ctx), ln.UnitPriceCents) }</td>
+							<td class="text-right">{ money.Format(d.Locale, money.From(ctx), ln.DiscountCents) }</td>
+						} else {
+							<td>{ orDash(ln.Description) }</td>
+						}
+						<td class="text-right">{ money.Format(d.Locale, money.From(ctx), ln.BaseCents) }</td>
+						<td>
+							{ tr(d.Locale, ln.Treatment.LabelKey()) }
+							if ln.Treatment == domain.TreatmentExempt {
+								<span class="block text-xs text-ink-500">{ ln.ExemptionCode }</span>
+							}
+						</td>
+						<td class="text-right">
+							if ln.Treatment == domain.TreatmentRate {
+								{ pctLabel(ln.RateBP) }
+							} else {
+								0 %
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ paymentForm(d ViewPageData) {
+	<form method="POST" action={ templ.URL(invoiceHref(d.Invoice.ID) + "/payments") } class="space-y-4 rounded-md border border-chrome-200 p-4" id="payment-form">
+		<input type="hidden" name="csrf_token" value={ d.CSRF }/>
+		<h3 class="text-base font-bold text-ink-900">{ i18n.T(d.Locale, "invoices.payments.add") }</h3>
+		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+			@field(d.Locale, "payment_date", i18n.T(d.Locale, "invoices.payments.date"), true, fieldError(d.PaymentErrors, d.Locale, "payment_date"), "") {
+				@textInput("payment_date", "payment_date", "date", d.Payment.Date, true)
+			}
+			@field(d.Locale, "payment_amount", i18n.T(d.Locale, "invoices.payments.amount"), true, fieldError(d.PaymentErrors, d.Locale, "payment_amount"), "") {
+				@moneyInput("payment_amount", "payment_amount", d.Payment.Amount, true)
+			}
+			@field(d.Locale, "payment_method", i18n.T(d.Locale, "invoices.payments.method"), true, fieldError(d.PaymentErrors, d.Locale, "payment_method"), "") {
+				@selectInput("payment_method", "payment_method", methodOptions(d.Locale), d.Payment.Method, true)
+			}
+			@field(d.Locale, "payment_reference", i18n.T(d.Locale, "invoices.payments.reference"), false, fieldError(d.PaymentErrors, d.Locale, "payment_reference"), "") {
+				@textInput("payment_reference", "payment_reference", "text", d.Payment.Reference, false)
+			}
+			@field(d.Locale, "payment_bank_account", i18n.T(d.Locale, "invoices.payments.bank_account"), false, fieldError(d.PaymentErrors, d.Locale, "payment_bank_account"), "") {
+				@textInput("payment_bank_account", "payment_bank_account", "text", d.Payment.BankAccount, false)
+			}
+		</div>
+		@field(d.Locale, "payment_justification", i18n.T(d.Locale, "invoices.payments.justification"), false, fieldError(d.PaymentErrors, d.Locale, "payment_justification"), i18n.T(d.Locale, "invoices.hint.overpayment_justification")) {
+			@textArea("payment_justification", "payment_justification", d.Payment.Justification, "2")
+		}
+		<button class="btn btn-primary" type="submit">{ i18n.T(d.Locale, "invoices.payments.add") }</button>
+	</form>
+}
+
+templ annulForm(d ViewPageData) {
+	<form method="POST" action={ templ.URL(invoiceHref(d.Invoice.ID) + "/annul") } class="card card-pad space-y-3" id="annul-form">
+		<input type="hidden" name="csrf_token" value={ d.CSRF }/>
+		<h2 class="text-lg font-bold text-ink-900">{ i18n.T(d.Locale, "invoices.annul.title") }</h2>
+		<p class="text-sm text-ink-700">{ i18n.T(d.Locale, "invoices.annul.copy") }</p>
+		@field(d.Locale, "annul_reason", i18n.T(d.Locale, "invoices.annul.reason"), true, annulErr(d), "") {
+			@textArea("annul_reason", "annul_reason", d.AnnulReason, "2")
+		}
+		<button class="btn btn-danger" type="submit">{ i18n.T(d.Locale, "invoices.annul.submit") }</button>
+	</form>
+}
+
+func annulErr(d ViewPageData) string {
+	if d.AnnulError == "" {
+		return ""
+	}
+	return tr(d.Locale, d.AnnulError)
+}
+
+// milliText renders milli-units without floats: 2500 -> "2.5", 3000 -> "3".
+func milliText(m int64) string {
+	whole, frac := m/1000, m%1000
+	if frac < 0 {
+		frac = -frac
+	}
+	if frac == 0 {
+		return itoa(int(whole))
+	}
+	s := itoa(int(frac))
+	for len(s) < 3 {
+		s = "0" + s
+	}
+	for s[len(s)-1] == '0' {
+		s = s[:len(s)-1]
+	}
+	return itoa(int(whole)) + "." + s
+}

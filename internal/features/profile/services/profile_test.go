@@ -76,6 +76,30 @@ func TestChangeLanguagePersistsPreference(t *testing.T) {
 	}
 }
 
+func TestGetProfileResolvesPTPT(t *testing.T) {
+	svc := &ProfileService{
+		Users: &fakeUserStore{user: model.User{ID: "u1", LanguagePreference: "pt-pt"}},
+	}
+	prof, err := svc.GetProfile(context.Background(), "u1")
+	if err != nil {
+		t.Fatalf("GetProfile: %v", err)
+	}
+	if prof.Language != i18n.LanguagePTPT {
+		t.Errorf("Language = %q, want %q", prof.Language, i18n.LanguagePTPT)
+	}
+}
+
+func TestChangeLanguagePersistsPTPT(t *testing.T) {
+	updater := &fakePreferenceUpdater{}
+	svc := &ProfileService{Preferences: updater}
+	if err := svc.ChangeLanguage(context.Background(), "u1", i18n.LanguagePTPT); err != nil {
+		t.Fatalf("ChangeLanguage: %v", err)
+	}
+	if updater.language != "pt-pt" {
+		t.Errorf("persisted %q, want pt-pt", updater.language)
+	}
+}
+
 func TestChangeLanguageRejectsInvalid(t *testing.T) {
 	updater := &fakePreferenceUpdater{}
 	svc := &ProfileService{Preferences: updater}

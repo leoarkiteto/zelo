@@ -30,6 +30,7 @@ templ ProfileBody(data ProfilePageData) {
 						<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 							@languageOption(data, "en", "🇺🇸", i18n.T(data.Shell.Locale, "profile.option_en"))
 							@languageOption(data, "pt-br", "🇧🇷", i18n.T(data.Shell.Locale, "profile.option_pt_br"))
+							@languageOption(data, "pt-pt", "🇵🇹", i18n.T(data.Shell.Locale, "profile.option_pt_pt"))
 						</div>
 					</fieldset>
 					<p class="text-xs text-ink-500">{ i18n.T(data.Shell.Locale, "profile.language_hint") }</p>

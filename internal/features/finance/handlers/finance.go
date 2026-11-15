@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -241,7 +242,7 @@ func (h *Handler) myChargesGET(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		for _, c := range charges {
-			data.Charges = append(data.Charges, h.accountView(locale, c))
+			data.Charges = append(data.Charges, h.accountView(r.Context(), locale, c))
 		}
 	}
 	httpx.Render(w, r, financetemplates.ChargesPage(data))
@@ -312,26 +313,26 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 		Statuses:   financetemplates.StatusOptions(locale),
 		Types:      financetemplates.TypeOptions(locale),
 		Summary: financetemplates.SummaryView{
-			TotalReceivable:  financetemplates.Money(locale, sum.TotalReceivableCents),
-			TotalPayable:     financetemplates.Money(locale, sum.TotalPayableCents),
-			ProjectedBalance: financetemplates.Money(locale, sum.ProjectedBalanceCents),
-			RealizedBalance:  financetemplates.Money(locale, sum.RealizedBalanceCents),
+			TotalReceivable:  financetemplates.Money(r.Context(), locale, sum.TotalReceivableCents),
+			TotalPayable:     financetemplates.Money(r.Context(), locale, sum.TotalPayableCents),
+			ProjectedBalance: financetemplates.Money(r.Context(), locale, sum.ProjectedBalanceCents),
+			RealizedBalance:  financetemplates.Money(r.Context(), locale, sum.RealizedBalanceCents),
 		},
 		Flash: flash,
 	}
 	for _, a := range accounts {
-		data.Accounts = append(data.Accounts, h.accountView(locale, a))
+		data.Accounts = append(data.Accounts, h.accountView(r.Context(), locale, a))
 	}
 	return data, nil
 }
 
-func (h *Handler) accountView(locale i18n.Language, a domain.FinancialAccount) financetemplates.AccountView {
+func (h *Handler) accountView(ctx context.Context, locale i18n.Language, a domain.FinancialAccount) financetemplates.AccountView {
 	view := financetemplates.AccountView{
 		ID:              a.ID,
 		Type:            a.Type,
 		Title:           a.Title,
 		CategoryLabel:   financetemplates.CategoryLabel(locale, a.Type, a.Category),
-		Amount:          financetemplates.Money(locale, a.AmountCents),
+		Amount:          financetemplates.Money(ctx, locale, a.AmountCents),
 		DueDate:         i18n.FormatDate(locale, a.DueDate),
 		EffectiveStatus: a.EffectiveStatus(time.Now()),
 		StatusLabel:     financetemplates.StatusLabel(locale, a.EffectiveStatus(time.Now())),
@@ -459,7 +460,7 @@ func (h *Handler) settleData(r *http.Request, account domain.FinancialAccount, e
 		Shell:   shell,
 		Locale:  locale,
 		CSRF:    sess.CSRFToken,
-		Account: h.accountView(locale, account),
+		Account: h.accountView(r.Context(), locale, account),
 		Error:   errorMsg,
 	}
 }
@@ -472,7 +473,7 @@ func (h *Handler) cancelData(r *http.Request, account domain.FinancialAccount, e
 		Shell:   shell,
 		Locale:  locale,
 		CSRF:    sess.CSRFToken,
-		Account: h.accountView(locale, account),
+		Account: h.accountView(r.Context(), locale, account),
 		Error:   errorMsg,
 	}
 }

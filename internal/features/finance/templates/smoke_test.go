@@ -9,6 +9,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/money"
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
@@ -121,8 +122,38 @@ func TestMoneyFormatting(t *testing.T) {
 		{i18n.LanguagePTBR, 0, "R$ 0,00"},
 	}
 	for _, c := range cases {
-		if got := Money(c.lang, c.cents); got != c.want {
+		if got := Money(context.Background(), c.lang, c.cents); got != c.want {
 			t.Errorf("Money(%v, %d) = %q, want %q", c.lang, c.cents, got, c.want)
 		}
+	}
+}
+
+func TestMoneyFormattingEUR(t *testing.T) {
+	ctx := money.WithCurrency(context.Background(), money.EUR)
+	if got, want := Money(ctx, i18n.LanguagePTPT, 123456), "1 234,56 €"; got != want {
+		t.Errorf("Money EUR pt-pt = %q, want %q", got, want)
+	}
+	if got, want := compactMoney(ctx, i18n.LanguagePTPT, 150000), "1,5k €"; got != want {
+		t.Errorf("compactMoney EUR pt-pt = %q, want %q", got, want)
+	}
+	if got, want := compactMoney(ctx, i18n.LanguageEN, 150000), "€1.5k"; got != want {
+		t.Errorf("compactMoney EUR en = %q, want %q", got, want)
+	}
+}
+
+func TestOverviewRendersEUR(t *testing.T) {
+	ctx := money.WithCurrency(context.Background(), money.EUR)
+	var buf bytes.Buffer
+	ov := overviewFixture(last12(), monthsFixture([][2]int64{{123456, 40000}}))
+	d := OverviewData{Locale: i18n.LanguagePTPT, Overview: ov}
+	if err := OverviewPanel(d).Render(ctx, &buf); err != nil {
+		t.Fatal(err)
+	}
+	html := buf.String()
+	if !strings.Contains(html, "1 234,56 €") {
+		t.Errorf("EUR amount missing from overview")
+	}
+	if strings.Contains(html, "R$") {
+		t.Errorf("unexpected BRL symbol in EUR overview")
 	}
 }

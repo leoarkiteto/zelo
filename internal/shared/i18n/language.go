@@ -10,11 +10,13 @@ const (
 	LanguageEN Language = "en"
 	// LanguagePTBR is Brazilian Portuguese.
 	LanguagePTBR Language = "pt-br"
+	// LanguagePTPT is European Portuguese.
+	LanguagePTPT Language = "pt-pt"
 )
 
 // Valid reports whether l is a supported interface language.
 func (l Language) Valid() bool {
-	return l == LanguageEN || l == LanguagePTBR
+	return l == LanguageEN || l == LanguagePTBR || l == LanguagePTPT
 }
 
 // Default returns the default interface language, English (FR-007).

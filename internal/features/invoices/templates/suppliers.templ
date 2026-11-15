@@ -1,0 +1,115 @@
+package templates
+
+import (
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+)
+
+templ SupplierListPage(data SupplierListData) {
+	@organisms.Layout(i18n.T(data.Locale, "suppliers.title"), data.Locale, data.Shell, supplierListBody(data))
+}
+
+templ supplierListBody(d SupplierListData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(d.Locale, "suppliers.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(d.Locale, "suppliers.subtitle") }</p>
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<a class="btn btn-secondary" href="/invoices">{ i18n.T(d.Locale, "nav.invoices") }</a>
+				<a class="btn btn-primary" href="/suppliers/new">{ i18n.T(d.Locale, "suppliers.new") }</a>
+			</div>
+		</div>
+		if d.Flash != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: d.Flash})
+		}
+		<form method="GET" action="/suppliers" class="card card-pad flex flex-wrap items-end gap-3">
+			<div class="min-w-[16rem] flex-1">
+				<label class="label" for="sq">{ i18n.T(d.Locale, "common.search") }</label>
+				<input class="input" type="search" id="sq" name="q" value={ d.Query } placeholder={ i18n.T(d.Locale, "invoices.supplier.search_placeholder") }/>
+			</div>
+			<button class="btn btn-primary" type="submit">{ i18n.T(d.Locale, "common.search") }</button>
+			<a class="btn btn-secondary" href="/suppliers">{ i18n.T(d.Locale, "common.clear") }</a>
+		</form>
+		<section class="card">
+			if len(d.Suppliers) == 0 {
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Title:  i18n.T(d.Locale, "suppliers.empty_title"),
+					Copy:   i18n.T(d.Locale, "suppliers.empty_copy"),
+					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(d.Locale, "suppliers.new"), Variant: atoms.ButtonVariantPrimary, Href: "/suppliers/new", Class: "btn-sm mt-2"}),
+				})
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(d.Locale, "invoices.supplier.name") }</th>
+								<th>{ i18n.T(d.Locale, "invoices.supplier.nif") }</th>
+								<th>{ i18n.T(d.Locale, "invoices.supplier.country") }</th>
+								<th>{ i18n.T(d.Locale, "common.email") }</th>
+								<th>{ i18n.T(d.Locale, "common.phone") }</th>
+								<th class="text-right">{ i18n.T(d.Locale, "common.actions") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, s := range d.Suppliers {
+								<tr>
+									<td class="font-medium text-ink-800">{ s.Name }</td>
+									<td>{ orDash(s.NIF) }</td>
+									<td>{ orDash(s.Country) }</td>
+									<td>{ orDash(s.Email) }</td>
+									<td>{ orDash(s.Phone) }</td>
+									<td class="text-right">
+										<a class="btn btn-secondary btn-sm" href={ templ.URL("/suppliers/" + s.ID + "/edit") }>{ i18n.T(d.Locale, "common.edit") }</a>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</section>
+	</div>
+}
+
+templ SupplierFormPage(data SupplierPageData) {
+	@organisms.Layout(supplierFormTitle(data), data.Locale, data.Shell, supplierFormBody(data))
+}
+
+func supplierFormTitle(d SupplierPageData) string {
+	if d.Edit {
+		return tr(d.Locale, "suppliers.edit")
+	}
+	return tr(d.Locale, "suppliers.new")
+}
+
+templ supplierFormBody(d SupplierPageData) {
+	<div class="max-w-3xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ supplierFormTitle(d) }</h1>
+				<p class="page-subtitle">{ i18n.T(d.Locale, "suppliers.subtitle") }</p>
+			</div>
+		</div>
+		if d.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: d.Error})
+		}
+		<form method="POST" action={ templ.URL(supplierFormAction(d)) } class="card card-pad space-y-4">
+			<input type="hidden" name="csrf_token" value={ d.CSRF }/>
+			@supplierFields(d.Locale, "", d.Values, d.Errors)
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">
+					if d.Edit {
+						{ i18n.T(d.Locale, "common.save_changes") }
+					} else {
+						{ i18n.T(d.Locale, "suppliers.create") }
+					}
+				</button>
+				<a class="btn btn-secondary" href="/suppliers">{ i18n.T(d.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+	</div>
+}

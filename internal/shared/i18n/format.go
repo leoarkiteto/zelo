@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -32,10 +33,37 @@ var ptBRMonth = map[time.Month]string{
 	time.December:  "dezembro",
 }
 
+// ptPTWeekday maps Go weekdays to European Portuguese names.
+var ptPTWeekday = map[time.Weekday]string{
+	time.Sunday:    "domingo",
+	time.Monday:    "segunda-feira",
+	time.Tuesday:   "terça-feira",
+	time.Wednesday: "quarta-feira",
+	time.Thursday:  "quinta-feira",
+	time.Friday:    "sexta-feira",
+	time.Saturday:  "sábado",
+}
+
+// ptPTMonth maps Go months to European Portuguese names.
+var ptPTMonth = map[time.Month]string{
+	time.January:   "janeiro",
+	time.February:  "fevereiro",
+	time.March:     "março",
+	time.April:     "abril",
+	time.May:       "maio",
+	time.June:      "junho",
+	time.July:      "julho",
+	time.August:    "agosto",
+	time.September: "setembro",
+	time.October:   "outubro",
+	time.November:  "novembro",
+	time.December:  "dezembro",
+}
+
 // FormatDate renders a date using the locale's display convention (FR-010).
 func FormatDate(lang Language, t time.Time) string {
 	switch lang {
-	case LanguagePTBR:
+	case LanguagePTBR, LanguagePTPT:
 		return t.Format("02/01/2006")
 	default:
 		return t.Format("January 2, 2006")
@@ -49,14 +77,35 @@ func FormatLongDate(lang Language, t time.Time) string {
 	case LanguagePTBR:
 		return ptBRWeekday[t.Weekday()] + ", " + t.Format("02") + " de " +
 			ptBRMonth[t.Month()] + " de " + t.Format("2006")
+	case LanguagePTPT:
+		return ptPTWeekday[t.Weekday()] + ", " + t.Format("02") + " de " +
+			ptPTMonth[t.Month()] + " de " + t.Format("2006")
 	default:
 		return t.Format("Monday, January 2, 2006")
 	}
 }
 
 // FormatNumber renders an integer using the locale's convention (FR-010).
-// Both supported locales use the same integer rendering today; the function
-// exists as the single seam for number formatting.
+// pt-pt groups thousands with a no-break space (U+00A0); en and pt-br render
+// plain digits. The function is the single seam for number formatting.
 func FormatNumber(lang Language, n int) string {
-	return fmt.Sprintf("%d", n)
+	if lang != LanguagePTPT {
+		return fmt.Sprintf("%d", n)
+	}
+	neg := n < 0
+	digits := fmt.Sprintf("%d", n)
+	if neg {
+		digits = digits[1:]
+	}
+	var b strings.Builder
+	if neg {
+		b.WriteString("-")
+	}
+	for i, r := range digits {
+		if i > 0 && (len(digits)-i)%3 == 0 {
+			b.WriteString(" ")
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }

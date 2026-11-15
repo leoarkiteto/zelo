@@ -20,6 +20,9 @@ import (
 	financerepositories "github.com/leoarkiteto/zelo/internal/features/finance/repositories"
 	financeservices "github.com/leoarkiteto/zelo/internal/features/finance/services"
 	homehandlers "github.com/leoarkiteto/zelo/internal/features/home/handlers"
+	invoicehandlers "github.com/leoarkiteto/zelo/internal/features/invoices/handlers"
+	invoicerepositories "github.com/leoarkiteto/zelo/internal/features/invoices/repositories"
+	invoiceservices "github.com/leoarkiteto/zelo/internal/features/invoices/services"
 	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
 	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/services"
 	profilehandlers "github.com/leoarkiteto/zelo/internal/features/profile/handlers"
@@ -86,6 +89,7 @@ func main() {
 	invitations := store.NewInvitationStore(db)
 	sessions := store.NewRedisSessionStore(redisClient)
 	audit := store.NewAuditStore(db)
+	condominiums := store.NewCondominiumStore(db)
 	listings := repositories.NewListingStore(db)
 	categories := repositories.NewCategoryStore(db)
 	financeAccounts := financerepositories.NewAccountStore(db)
@@ -148,6 +152,27 @@ func main() {
 		Invitations: invitations,
 		Units:       units,
 		RoleService: &mgmtservices.RoleService{Roles: roles, Audit: audit},
+
+		Condominiums:    condominiums,
+		SettingsService: &mgmtservices.SettingsService{Condominiums: condominiums, Audit: audit},
+	}
+	supplierStore := invoicerepositories.NewSupplierStore(db)
+	invoiceStore := invoicerepositories.NewInvoiceStore(db)
+	invoicesDeps := invoicehandlers.Deps{
+		Roles: roles,
+		Audit: audit,
+		Suppliers: &invoiceservices.SupplierService{
+			Suppliers: supplierStore,
+			Audit:     audit,
+			Now:       time.Now,
+		},
+		Invoices: &invoiceservices.InvoiceService{
+			Invoices:  invoiceStore,
+			Suppliers: supplierStore,
+			Audit:     audit,
+			UploadDir: cfg.UploadDir,
+			Now:       time.Now,
+		},
 	}
 	homeDeps := homehandlers.Deps{Roles: roles, Audit: audit}
 	financeDeps := financehandlers.Deps{
@@ -191,6 +216,7 @@ func main() {
 	managementhandlers.RegisterRoutes(mux, managementDeps)
 	profilehandlers.RegisterRoutes(mux, profileDeps)
 	financehandlers.RegisterRoutes(mux, financeDeps)
+	invoicehandlers.RegisterRoutes(mux, invoicesDeps)
 	tickethandlers.RegisterRoutes(mux, ticketsDeps)
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static"))))
 
@@ -199,8 +225,14 @@ func main() {
 	root = middleware.Logging(logger)(root)
 	root = middleware.SecurityHeaders(root)
 	root = middleware.WithLocale(root)
+	root = middleware.WithCurrency(condominiums)(root)
 	root = middleware.WithUser(sessMgr, users)(root)
 	root = middleware.CSRF(sessMgr)(root)
+	root = middleware.BodyLimit(1<<20, []middleware.BodyLimitRule{
+		{Method: http.MethodPost, Segments: []string{"finance"}, Bytes: 6 << 20},
+		{Method: http.MethodPost, Segments: []string{"finance", "*", "edit"}, Bytes: 6 << 20},
+		{Method: http.MethodPost, Segments: []string{"invoices", "*", "attachments"}, Bytes: 52 << 20},
+	})(root)
 
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,

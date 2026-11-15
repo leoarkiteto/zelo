@@ -151,16 +151,16 @@ templ OverviewPanel(d OverviewData) {
 			</div>
 		</div>
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-			@kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_in"), Money(d.Locale, d.Overview.TotalInCents))
-			@kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_out"), Money(d.Locale, d.Overview.TotalOutCents))
-			@kpiTile("bg-steel-50", balanceTileClass(d.Overview.BalanceCents), i18n.T(d.Locale, "finance.overview.kpi_balance"), Money(d.Locale, d.Overview.BalanceCents))
+			@kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_in"), Money(ctx, d.Locale,d.Overview.TotalInCents))
+			@kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_out"), Money(ctx, d.Locale,d.Overview.TotalOutCents))
+			@kpiTile("bg-steel-50", balanceTileClass(d.Overview.BalanceCents), i18n.T(d.Locale, "finance.overview.kpi_balance"), Money(ctx, d.Locale,d.Overview.BalanceCents))
 		</div>
 		<div>
 			<h3 class="mb-2 text-sm font-semibold text-ink-700">{ i18n.T(d.Locale, "finance.overview.current_title") }</h3>
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-				@kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_receivable"), Money(d.Locale, d.Overview.Current.ReceivableCents))
-				@kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_payable"), Money(d.Locale, d.Overview.Current.PayableCents))
-				@kpiTile("bg-amber-50", "text-amber-700", i18n.T(d.Locale, "finance.overview.kpi_overdue"), Money(d.Locale, d.Overview.Current.OverdueCents))
+				@kpiTile("bg-green-50", "text-green-700", i18n.T(d.Locale, "finance.overview.kpi_receivable"), Money(ctx, d.Locale,d.Overview.Current.ReceivableCents))
+				@kpiTile("bg-red-50", "text-red-700", i18n.T(d.Locale, "finance.overview.kpi_payable"), Money(ctx, d.Locale,d.Overview.Current.PayableCents))
+				@kpiTile("bg-amber-50", "text-amber-700", i18n.T(d.Locale, "finance.overview.kpi_overdue"), Money(ctx, d.Locale,d.Overview.Current.OverdueCents))
 			</div>
 		</div>
 		if d.Overview.Empty {
@@ -227,15 +227,15 @@ templ barsChart(d OverviewData) {
 			<title id="fo-bars-title">{ barsAria(d.Locale) }</title>
 			for _, t := range c.Scale.TickLines() {
 				<line x1={ coord(PlotLeft()) } x2={ coord(PlotRight()) } y1={ coord(t.Y) } y2={ coord(t.Y) } class="stroke-chrome-200" stroke-width="1"></line>
-				<text x={ coord(PlotLeft() - 6) } y={ coord(t.Y + 4) } text-anchor="end" class="fill-ink-500 text-[11px]">{ compactMoney(d.Locale, t.Value) }</text>
+				<text x={ coord(PlotLeft() - 6) } y={ coord(t.Y + 4) } text-anchor="end" class="fill-ink-500 text-[11px]">{ compactMoney(ctx, d.Locale,t.Value) }</text>
 			}
 			<line x1={ coord(PlotLeft()) } x2={ coord(PlotRight()) } y1={ coord(c.ZeroY) } y2={ coord(c.ZeroY) } class="stroke-chrome-500" stroke-width="1"></line>
 			for i, g := range c.Groups {
 				<rect x={ coord(g.In.X) } y={ coord(g.In.Y) } width={ coord(g.In.W) } height={ coord(g.In.H) } class="fill-green-500">
-					<title>{ i18n.T(d.Locale, "finance.overview.kpi_in") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, g.In.Cents) }</title>
+					<title>{ i18n.T(d.Locale, "finance.overview.kpi_in") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(ctx, d.Locale,g.In.Cents) }</title>
 				</rect>
 				<rect x={ coord(g.Out.X) } y={ coord(g.Out.Y) } width={ coord(g.Out.W) } height={ coord(g.Out.H) } class="fill-red-500">
-					<title>{ i18n.T(d.Locale, "finance.overview.kpi_out") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, g.Out.Cents) }</title>
+					<title>{ i18n.T(d.Locale, "finance.overview.kpi_out") + " " + monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(ctx, d.Locale,g.Out.Cents) }</title>
 				</rect>
 				<text x={ coord(g.LabelX) } y={ coord(LabelY()) } text-anchor="middle" class="fill-ink-500 text-[11px]">{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) }</text>
 			}
@@ -255,7 +255,7 @@ templ balanceChart(d OverviewData) {
 			<title id="fo-balance-title">{ i18n.T(d.Locale, "finance.overview.chart_balance") }</title>
 			for _, t := range c.Scale.TickLines() {
 				<line x1={ coord(PlotLeft()) } x2={ coord(PlotRight()) } y1={ coord(t.Y) } y2={ coord(t.Y) } class="stroke-chrome-200" stroke-width="1"></line>
-				<text x={ coord(PlotLeft() - 6) } y={ coord(t.Y + 4) } text-anchor="end" class="fill-ink-500 text-[11px]">{ compactMoney(d.Locale, t.Value) }</text>
+				<text x={ coord(PlotLeft() - 6) } y={ coord(t.Y + 4) } text-anchor="end" class="fill-ink-500 text-[11px]">{ compactMoney(ctx, d.Locale,t.Value) }</text>
 			}
 			<line x1={ coord(PlotLeft()) } x2={ coord(PlotRight()) } y1={ coord(c.ZeroY) } y2={ coord(c.ZeroY) } class="stroke-chrome-500" stroke-width="1.5" stroke-dasharray="4 4">
 				<title>{ i18n.T(d.Locale, "finance.overview.zero_line") }</title>
@@ -266,11 +266,11 @@ templ balanceChart(d OverviewData) {
 			for i, p := range c.Points {
 				if p.Negative {
 					<circle cx={ coord(p.X) } cy={ coord(p.Y) } r="4.5" class="fill-red-500 stroke-white" stroke-width="1.5">
-						<title>{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, p.Cents) }</title>
+						<title>{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(ctx, d.Locale,p.Cents) }</title>
 					</circle>
 				} else {
 					<circle cx={ coord(p.X) } cy={ coord(p.Y) } r="4.5" class="fill-steel-500 stroke-white" stroke-width="1.5">
-						<title>{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(d.Locale, p.Cents) }</title>
+						<title>{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) + ": " + Money(ctx, d.Locale,p.Cents) }</title>
 					</circle>
 				}
 				<text x={ coord(p.X) } y={ coord(LabelY()) } text-anchor="middle" class="fill-ink-500 text-[11px]">{ monthLabel(d.Locale, d.Overview.Period, d.Overview.Months[i].Month) }</text>
@@ -297,9 +297,9 @@ templ dataTable(d OverviewData) {
 					for _, m := range d.Overview.Months {
 						<tr>
 							<th scope="row">{ monthLabel(d.Locale, d.Overview.Period, m.Month) }</th>
-							<td>{ Money(d.Locale, m.InCents) }</td>
-							<td>{ Money(d.Locale, m.OutCents) }</td>
-							<td class={ balanceTileClass(m.BalanceCents) }>{ Money(d.Locale, m.BalanceCents) }</td>
+							<td>{ Money(ctx, d.Locale,m.InCents) }</td>
+							<td>{ Money(ctx, d.Locale,m.OutCents) }</td>
+							<td class={ balanceTileClass(m.BalanceCents) }>{ Money(ctx, d.Locale,m.BalanceCents) }</td>
 						</tr>
 					}
 				</tbody>
@@ -316,7 +316,7 @@ templ categoryList(locale i18n.Language, title string, t domain.AccountType, row
 				<div class="flex items-baseline justify-between gap-3 text-sm">
 					<span class="text-ink-700">{ CategoryLabel(locale, t, r.Category) }</span>
 					<span class="whitespace-nowrap text-ink-900">
-						{ Money(locale, r.Cents) }
+						{ Money(ctx, locale, r.Cents) }
 						<span class="ml-1 text-xs text-ink-500">{ pctText(r.Percent) }</span>
 					</span>
 				</div>

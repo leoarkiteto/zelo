@@ -16,7 +16,7 @@ var requiredMessages = map[string][]MessageKey{
 	},
 	"profile": {
 		"profile.title", "profile.subtitle", "profile.language_heading",
-		"profile.language_hint", "profile.option_en", "profile.option_pt_br",
+		"profile.language_hint", "profile.option_en", "profile.option_pt_br", "profile.option_pt_pt",
 		"profile.error.invalid_language", "profile.error.load_failed",
 		"profile.error.save_failed",
 	},
@@ -111,16 +111,61 @@ var requiredMessages = map[string][]MessageKey{
 }
 
 // TestCatalogCoversRequiredFeatureMessages guards FR-008: every required
-// user-facing message must exist in both en and pt-br.
+// user-facing message must exist in en, pt-br and pt-pt.
 func TestCatalogCoversRequiredFeatureMessages(t *testing.T) {
 	for group, keys := range requiredMessages {
 		for _, key := range keys {
-			if _, ok := catalog[LanguageEN][key]; !ok {
-				t.Errorf("missing English message %q in group %s", key, group)
-			}
-			if _, ok := catalog[LanguagePTBR][key]; !ok {
-				t.Errorf("missing pt-br message %q in group %s", key, group)
+			for _, lang := range []Language{LanguageEN, LanguagePTBR, LanguagePTPT} {
+				if _, ok := catalog[lang][key]; !ok {
+					t.Errorf("missing %s message %q in group %s", lang, key, group)
+				}
 			}
 		}
+	}
+}
+
+// TestCatalogComplete checks that pt-br and pt-pt have exactly the keys en
+// has, and that no translation is empty.
+func TestCatalogComplete(t *testing.T) {
+	en := catalog[LanguageEN]
+	if len(en) == 0 {
+		t.Fatal("English catalog is empty")
+	}
+	for _, lang := range []Language{LanguagePTBR, LanguagePTPT} {
+		msgs := catalog[lang]
+		for k := range en {
+			v, ok := msgs[k]
+			if !ok {
+				t.Errorf("%s is missing key %q", lang, k)
+			} else if v == "" {
+				t.Errorf("%s has empty text for key %q", lang, k)
+			}
+		}
+		for k := range msgs {
+			if _, ok := en[k]; !ok {
+				t.Errorf("%s has extra key %q not in en", lang, k)
+			}
+		}
+	}
+}
+
+// TestCatalogNoDuplicateKeys fails when two areas (or one area twice) define
+// the same key for the same language.
+func TestCatalogNoDuplicateKeys(t *testing.T) {
+	for _, d := range duplicateKeys {
+		t.Errorf("duplicate catalog key: %s", d)
+	}
+}
+
+func TestRegisterAreaDetectsDuplicates(t *testing.T) {
+	saved := duplicateKeys
+	defer func() { duplicateKeys = saved }()
+	duplicateKeys = nil
+	registerArea("probe", map[MessageKey]string{"nav.dashboard": "x"}, nil, nil)
+	if len(duplicateKeys) != 1 {
+		t.Fatalf("duplicateKeys = %v, want one entry", duplicateKeys)
+	}
+	if catalog[LanguageEN]["nav.dashboard"] != "Dashboard" {
+		t.Error("duplicate overwrote the original message")
 	}
 }

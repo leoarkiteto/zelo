@@ -1,11 +1,13 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/money"
 )
 
 // Fixed SVG viewBox and plot area, shared by both charts. The templates only
@@ -220,8 +222,10 @@ func LabelY() float64 { return ChartH - 10 }
 // coord formats a coordinate for an SVG attribute.
 func coord(v float64) string { return strconv.FormatFloat(v, 'f', 1, 64) }
 
-// compactMoney renders an axis label such as "R$ 1,5k" from cents.
-func compactMoney(locale i18n.Language, cents int64) string {
+// compactMoney renders an axis label such as "R$ 1,5k" from cents, using the
+// currency carried by ctx (BRL when unset). Symbol placement mirrors
+// money.Format.
+func compactMoney(ctx context.Context, locale i18n.Language, cents int64) string {
 	sign := ""
 	if cents < 0 {
 		sign = "-"
@@ -238,12 +242,22 @@ func compactMoney(locale i18n.Language, cents int64) string {
 	default:
 		num = trimDecimals(strconv.FormatFloat(v, 'f', -1, 64))
 	}
-	if locale == i18n.LanguagePTBR {
+	if locale == i18n.LanguagePTBR || locale == i18n.LanguagePTPT {
 		for i := range num {
 			if num[i] == '.' {
 				num = num[:i] + "," + num[i+1:]
 				break
 			}
+		}
+	}
+	if money.From(ctx) == money.EUR {
+		switch locale {
+		case i18n.LanguagePTPT:
+			return sign + num + suffix + " €"
+		case i18n.LanguagePTBR:
+			return sign + "€ " + num + suffix
+		default:
+			return sign + "€" + num + suffix
 		}
 	}
 	return sign + "R$ " + num + suffix

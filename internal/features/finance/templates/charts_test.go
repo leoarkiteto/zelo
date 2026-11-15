@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"context"
 	"math"
 	"strings"
 	"testing"
@@ -113,7 +114,7 @@ func TestCompactMoney(t *testing.T) {
 		{i18n.LanguageEN, 250000000, "R$ 2.5M"},
 	}
 	for _, c := range cases {
-		if got := compactMoney(c.loc, c.in); got != c.want {
+		if got := compactMoney(context.Background(), c.loc, c.in); got != c.want {
 			t.Errorf("compactMoney(%d) = %q, want %q", c.in, got, c.want)
 		}
 	}

@@ -1,0 +1,662 @@
+package templates
+
+import (
+	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/money"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+)
+
+templ FormPage(data FormData) {
+	@organisms.Layout(formTitle(data), data.Locale, data.Shell, formBody(data))
+}
+
+func formTitle(d FormData) string {
+	if d.Edit {
+		return tr(d.Locale, "invoices.form.title_edit")
+	}
+	return tr(d.Locale, "invoices.form.title_new")
+}
+
+templ formBody(d FormData) {
+	<div class="max-w-5xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ formTitle(d) }</h1>
+				<p class="page-subtitle">{ i18n.T(d.Locale, "invoices.form.subtitle") }</p>
+			</div>
+			<a class="btn btn-secondary" href="/invoices">{ i18n.T(d.Locale, "common.cancel") }</a>
+		</div>
+		if d.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: d.Error})
+		}
+		@legalHelp(d.Locale)
+		<form id="invoice-form" method="POST" action={ templ.URL(formAction(d)) } class="space-y-6">
+			<input type="hidden" name="csrf_token" value={ d.CSRF }/>
+			if !d.Edit {
+				<input type="hidden" name="idempotency_key" value={ d.Values.IdempotencyKey }/>
+			}
+			@identificationSection(d)
+			@supplierSection(d)
+			@expenseSection(d)
+			@valuesSection(d)
+			@paymentsSection(d)
+			@attachmentsSection(d)
+			<div class="flex flex-wrap gap-2">
+				if !d.Edit || d.State == domain.StateDraft {
+					<button class="btn btn-secondary" type="submit" name="action" value="draft" formnovalidate>{ i18n.T(d.Locale, "invoices.form.save_draft") }</button>
+				}
+				<button class="btn btn-primary" type="submit" name="action" value="register">
+					if d.Edit && d.State == domain.StateRegistered {
+						{ i18n.T(d.Locale, "common.save_changes") }
+					} else {
+						{ i18n.T(d.Locale, "invoices.form.register") }
+					}
+				</button>
+				<a class="btn btn-ghost" href="/invoices">{ i18n.T(d.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+	</div>
+}
+
+templ identificationSection(d FormData) {
+	<section class="card card-pad space-y-4" aria-labelledby="sec-identification">
+		<div id="sec-identification">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.identification"), true)
+		</div>
+		<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+			@field(d.Locale, "document_type", i18n.T(d.Locale, "invoices.field.document_type"), true, fieldError(d.Errors, d.Locale, "document_type"), "") {
+				@selectInput("document_type", "document_type", documentTypeOptions(d.Locale), orDefault(d.Values.DocumentType, string(domain.DocumentFatura)), true)
+			}
+			@field(d.Locale, "number", i18n.T(d.Locale, "invoices.field.number"), true, fieldError(d.Errors, d.Locale, "number"), "") {
+				@textInput("number", "number", "text", d.Values.Number, true)
+			}
+			@field(d.Locale, "issue_date", i18n.T(d.Locale, "invoices.field.issue_date"), true, fieldError(d.Errors, d.Locale, "issue_date"), "") {
+				@textInput("issue_date", "issue_date", "date", d.Values.IssueDate, true)
+			}
+			@field(d.Locale, "due_date", i18n.T(d.Locale, "invoices.field.due_date"), false, fieldError(d.Errors, d.Locale, "due_date"), "") {
+				@textInput("due_date", "due_date", "date", d.Values.DueDate, false)
+			}
+			@field(d.Locale, "operation_date", i18n.T(d.Locale, "invoices.field.operation_date"), false, fieldError(d.Errors, d.Locale, "operation_date"), "") {
+				@textInput("operation_date", "operation_date", "date", d.Values.OperationDate, false)
+			}
+		</div>
+		@field(d.Locale, "due_justification", i18n.T(d.Locale, "invoices.field.due_justification"), false, fieldError(d.Errors, d.Locale, "due_justification"), i18n.T(d.Locale, "invoices.hint.due_justification")) {
+			@textArea("due_justification", "due_justification", d.Values.DueJustification, "2")
+		}
+	</section>
+}
+
+templ supplierSection(d FormData) {
+	<section class="card card-pad space-y-4" aria-labelledby="sec-supplier">
+		<div id="sec-supplier">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.supplier"), true)
+		</div>
+		@field(d.Locale, "supplier-search", i18n.T(d.Locale, "invoices.supplier.search"), false, "", i18n.T(d.Locale, "invoices.supplier.search_hint")) {
+			<input
+				class="input"
+				type="search"
+				id="supplier-search"
+				name="q"
+				autocomplete="off"
+				placeholder={ i18n.T(d.Locale, "invoices.supplier.search_placeholder") }
+				hx-get="/suppliers/search"
+				hx-trigger="input changed delay:300ms, search"
+				hx-target="#supplier-results"
+				hx-swap="innerHTML"
+			/>
+		}
+		<div id="supplier-results" aria-live="polite"></div>
+		<div id="supplier-selected" aria-live="polite">
+			@SupplierSelected(SupplierSelectedData{Locale: d.Locale, Supplier: d.Supplier, Errors: d.Errors})
+		</div>
+		<details class="rounded-md border border-chrome-200 p-4">
+			<summary class="cursor-pointer text-sm font-medium text-steel-700">{ i18n.T(d.Locale, "invoices.supplier.new_inline") }</summary>
+			<div id="new-supplier" class="mt-4 space-y-4">
+				@supplierFields(d.Locale, "supplier_", SupplierValues{Country: "PT"}, d.Errors)
+				<button
+					type="button"
+					class="btn btn-secondary btn-sm"
+					hx-post="/suppliers/inline"
+					hx-include="#invoice-form"
+					hx-target="#supplier-selected"
+					hx-swap="innerHTML"
+				>{ i18n.T(d.Locale, "invoices.supplier.create_and_select") }</button>
+			</div>
+		</details>
+	</section>
+}
+
+// supplierFields renders the supplier inputs. The prefix is "supplier_" for the
+// inline form on the invoice page and "" on the supplier page.
+templ supplierFields(l i18n.Language, prefix string, v SupplierValues, errs domain.FieldErrors) {
+	<div class="grid gap-4 md:grid-cols-2">
+		@field(l, prefix+"name", i18n.T(l, "invoices.supplier.name"), true, fieldError(errs, l, prefix+"name"), "") {
+			@textInput(prefix+"name", prefix+"name", "text", v.Name, prefix == "")
+		}
+		@field(l, prefix+"nif", i18n.T(l, "invoices.supplier.nif"), false, fieldError(errs, l, prefix+"nif"), i18n.T(l, "invoices.supplier.nif_hint")) {
+			@textInput(prefix+"nif", prefix+"nif", "text", v.NIF, false)
+		}
+		@field(l, prefix+"country", i18n.T(l, "invoices.supplier.country"), false, fieldError(errs, l, prefix+"country"), "") {
+			@selectInput(prefix+"country", prefix+"country", countryOptions(), orDefault(v.Country, "PT"), false)
+		}
+		@field(l, prefix+"address", i18n.T(l, "invoices.supplier.address"), false, fieldError(errs, l, prefix+"address"), "") {
+			@textInput(prefix+"address", prefix+"address", "text", v.Address, false)
+		}
+		@field(l, prefix+"postal_code", i18n.T(l, "invoices.supplier.postal_code"), false, fieldError(errs, l, prefix+"postal_code"), "") {
+			@textInput(prefix+"postal_code", prefix+"postal_code", "text", v.PostalCode, false)
+		}
+		@field(l, prefix+"locality", i18n.T(l, "invoices.supplier.locality"), false, fieldError(errs, l, prefix+"locality"), "") {
+			@textInput(prefix+"locality", prefix+"locality", "text", v.Locality, false)
+		}
+		@field(l, prefix+"email", i18n.T(l, "common.email"), false, fieldError(errs, l, prefix+"email"), "") {
+			@textInput(prefix+"email", prefix+"email", "email", v.Email, false)
+		}
+		@field(l, prefix+"phone", i18n.T(l, "common.phone"), false, fieldError(errs, l, prefix+"phone"), "") {
+			@textInput(prefix+"phone", prefix+"phone", "tel", v.Phone, false)
+		}
+	</div>
+}
+
+// SupplierSelected is the selected-supplier fragment: a hidden supplier_id and
+// a read-only summary.
+templ SupplierSelected(d SupplierSelectedData) {
+	if d.Supplier.ID != "" {
+		<input type="hidden" name="supplier_id" value={ d.Supplier.ID }/>
+		<div class="rounded-md bg-steel-50 p-4 text-sm" data-supplier-selected>
+			<p class="font-medium text-ink-900">{ d.Supplier.Name }</p>
+			<p class="text-ink-700">
+				{ i18n.T(d.Locale, "invoices.supplier.nif") }: { orDash(d.Supplier.NIF) }
+				· { orDefault(d.Supplier.Country, "PT") }
+			</p>
+			if d.Supplier.Address != "" {
+				<p class="text-ink-700">{ d.Supplier.Address } { d.Supplier.PostalCode } { d.Supplier.Locality }</p>
+			}
+		</div>
+	} else {
+		<input type="hidden" name="supplier_id" value=""/>
+		<p class="text-sm text-ink-500">{ i18n.T(d.Locale, "invoices.supplier.none_selected") }</p>
+	}
+	if fieldError(d.Errors, d.Locale, "supplier_id") != "" {
+		<p class="mt-1 text-sm text-red-600" role="alert">{ fieldError(d.Errors, d.Locale, "supplier_id") }</p>
+	}
+}
+
+// SupplierSearchResults is the autocomplete fragment. Selecting a result swaps
+// the selected-supplier fragment, which fills in the supplier fields.
+templ SupplierSearchResults(d SupplierSearchData) {
+	if len(d.Results) == 0 {
+		<p class="text-sm text-ink-500">{ i18n.T(d.Locale, "invoices.supplier.no_results") }</p>
+	} else {
+		<ul class="divide-y divide-chrome-100 rounded-md border border-chrome-200 bg-white">
+			for _, s := range d.Results {
+				<li>
+					<button
+						type="button"
+						class="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-steel-50"
+						hx-get="/suppliers/search"
+						hx-vals={ selectVals(s.ID) }
+						hx-target="#supplier-selected"
+						hx-swap="innerHTML"
+					>
+						<span class="font-medium text-ink-900">{ s.Name }</span>
+						<span class="text-xs text-ink-500">{ i18n.T(d.Locale, "invoices.supplier.nif") }: { orDash(s.NIF) }</span>
+					</button>
+				</li>
+			}
+		</ul>
+	}
+}
+
+templ expenseSection(d FormData) {
+	<section class="card card-pad space-y-4" aria-labelledby="sec-expense">
+		<div id="sec-expense">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.expense"), false)
+		</div>
+		<div class="grid gap-4 md:grid-cols-2">
+			@field(d.Locale, "expense_type", i18n.T(d.Locale, "invoices.field.expense_type"), true, fieldError(d.Errors, d.Locale, "expense_type"), "") {
+				<select
+					class="select"
+					id="expense_type"
+					name="expense_type"
+					required
+					hx-get="/invoices/form/section"
+					hx-trigger="change"
+					hx-target="#expense-section"
+					hx-swap="innerHTML"
+				>
+					for _, o := range expenseTypeOptions(d.Locale) {
+						<option value={ o.Value } selected?={ o.Value == orDefault(d.Values.ExpenseType, string(domain.ExpenseCompraProdutos)) }>{ o.Label }</option>
+					}
+				</select>
+			}
+			@field(d.Locale, "category", i18n.T(d.Locale, "invoices.field.category"), true, fieldError(d.Errors, d.Locale, "category"), "") {
+				@selectInput("category", "category", categoryOptions(d.Locale), d.Values.Category, true)
+			}
+			@field(d.Locale, "description", i18n.T(d.Locale, "invoices.field.description"), true, fieldError(d.Errors, d.Locale, "description"), "") {
+				@textInput("description", "description", "text", d.Values.Description, true)
+			}
+			@field(d.Locale, "project", i18n.T(d.Locale, "invoices.field.project"), false, fieldError(d.Errors, d.Locale, "project"), "") {
+				@textInput("project", "project", "text", d.Values.Project, false)
+			}
+			@field(d.Locale, "cost_center", i18n.T(d.Locale, "invoices.field.cost_center"), false, fieldError(d.Errors, d.Locale, "cost_center"), "") {
+				@textInput("cost_center", "cost_center", "text", d.Values.CostCenter, false)
+			}
+			@field(d.Locale, "reference_period", i18n.T(d.Locale, "invoices.field.reference_period"), false, fieldError(d.Errors, d.Locale, "reference_period"), "") {
+				@textInput("reference_period", "reference_period", "month", d.Values.ReferencePeriod, false)
+			}
+		</div>
+		@field(d.Locale, "notes", i18n.T(d.Locale, "common.notes"), false, fieldError(d.Errors, d.Locale, "notes"), "") {
+			@textArea("notes", "notes", d.Values.Notes, "3")
+		}
+		<div id="expense-section" aria-live="polite">
+			@ExpenseSection(ExpenseSectionData{
+				Locale:      d.Locale,
+				ExpenseType: domain.ExpenseType(orDefault(d.Values.ExpenseType, string(domain.ExpenseCompraProdutos))),
+				Values:      d.Values,
+				Errors:      d.Errors,
+			})
+		</div>
+	</section>
+}
+
+// ExpenseSection is the conditional fragment of an expense type (FR-10). Types
+// without specific fields render nothing.
+templ ExpenseSection(d ExpenseSectionData) {
+	switch d.ExpenseType {
+		case domain.ExpensePrestacaoServicos:
+			<fieldset class="space-y-4 rounded-md border border-chrome-200 p-4" data-section="prestacao_servicos">
+				<legend class="px-2 text-sm font-medium text-ink-800">{ i18n.T(d.Locale, "invoices.expense_section.service") }</legend>
+				@field(d.Locale, "service_description", i18n.T(d.Locale, "invoices.field.service_description"), false, fieldError(d.Errors, d.Locale, "service_description"), "") {
+					@textInput("service_description", "service_description", "text", d.Values.ServiceDescription, false)
+				}
+				<div class="grid gap-4 md:grid-cols-2">
+					@field(d.Locale, "service_start", i18n.T(d.Locale, "invoices.field.start_date"), false, fieldError(d.Errors, d.Locale, "service_start"), "") {
+						@textInput("service_start", "service_start", "date", d.Values.ServiceStart, false)
+					}
+					@field(d.Locale, "service_end", i18n.T(d.Locale, "invoices.field.end_date"), false, fieldError(d.Errors, d.Locale, "service_end"), "") {
+						@textInput("service_end", "service_end", "date", d.Values.ServiceEnd, false)
+					}
+					@field(d.Locale, "service_contract", i18n.T(d.Locale, "invoices.field.contract"), false, fieldError(d.Errors, d.Locale, "service_contract"), "") {
+						@textInput("service_contract", "service_contract", "text", d.Values.ServiceContract, false)
+					}
+				</div>
+			</fieldset>
+		case domain.ExpenseDespesaMensal:
+			<fieldset class="space-y-4 rounded-md border border-chrome-200 p-4" data-section="despesa_mensal">
+				<legend class="px-2 text-sm font-medium text-ink-800">{ i18n.T(d.Locale, "invoices.expense_section.monthly") }</legend>
+				<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+					@field(d.Locale, "monthly_service_type", i18n.T(d.Locale, "invoices.field.service_type"), false, fieldError(d.Errors, d.Locale, "monthly_service_type"), "") {
+						@textInput("monthly_service_type", "monthly_service_type", "text", d.Values.MonthlyServiceType, false)
+					}
+					@field(d.Locale, "billing_period", i18n.T(d.Locale, "invoices.field.billing_period"), false, fieldError(d.Errors, d.Locale, "billing_period"), "") {
+						@textInput("billing_period", "billing_period", "month", d.Values.BillingPeriod, false)
+					}
+					@field(d.Locale, "contract_number", i18n.T(d.Locale, "invoices.field.contract_number"), false, fieldError(d.Errors, d.Locale, "contract_number"), "") {
+						@textInput("contract_number", "contract_number", "text", d.Values.ContractNumber, false)
+					}
+					@field(d.Locale, "monthly_start", i18n.T(d.Locale, "invoices.field.start_date"), false, fieldError(d.Errors, d.Locale, "monthly_start"), "") {
+						@textInput("monthly_start", "monthly_start", "date", d.Values.MonthlyStart, false)
+					}
+					@field(d.Locale, "monthly_end", i18n.T(d.Locale, "invoices.field.end_date"), false, fieldError(d.Errors, d.Locale, "monthly_end"), "") {
+						@textInput("monthly_end", "monthly_end", "date", d.Values.MonthlyEnd, false)
+					}
+					@field(d.Locale, "meter_id", i18n.T(d.Locale, "invoices.field.meter_id"), false, fieldError(d.Errors, d.Locale, "meter_id"), "") {
+						@textInput("meter_id", "meter_id", "text", d.Values.MeterID, false)
+					}
+					@field(d.Locale, "cpe", i18n.T(d.Locale, "invoices.field.cpe"), false, fieldError(d.Errors, d.Locale, "cpe"), "") {
+						@textInput("cpe", "cpe", "text", d.Values.CPE, false)
+					}
+					@field(d.Locale, "cui", i18n.T(d.Locale, "invoices.field.cui"), false, fieldError(d.Errors, d.Locale, "cui"), "") {
+						@textInput("cui", "cui", "text", d.Values.CUI, false)
+					}
+					@field(d.Locale, "consumption_place", i18n.T(d.Locale, "invoices.field.consumption_place"), false, fieldError(d.Errors, d.Locale, "consumption_place"), "") {
+						@textInput("consumption_place", "consumption_place", "text", d.Values.ConsumptionPlace, false)
+					}
+				</div>
+				<label class="flex items-center gap-2 text-sm text-ink-800">
+					<input type="checkbox" id="recurring" name="recurring" value="1" checked?={ d.Values.Recurring }/>
+					{ i18n.T(d.Locale, "invoices.field.recurring") }
+				</label>
+			</fieldset>
+	}
+}
+
+templ valuesSection(d FormData) {
+	<section class="card card-pad space-y-4" aria-labelledby="sec-values">
+		<div id="sec-values">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.values"), true)
+		</div>
+		<div
+			id="values-section"
+			class="space-y-4"
+			hx-post="/invoices/form/preview"
+			hx-trigger="change"
+			hx-include="#invoice-form"
+			hx-target="#summary"
+			hx-swap="innerHTML"
+		>
+			<div class="grid gap-4 md:grid-cols-2">
+				@field(d.Locale, "fiscal_region", i18n.T(d.Locale, "invoices.field.fiscal_region"), true, fieldError(d.Errors, d.Locale, "fiscal_region"), "") {
+					@selectInput("fiscal_region", "fiscal_region", regionOptions(d.Locale), orDefault(d.Values.FiscalRegion, string(domain.RegionContinental)), true)
+				}
+				@field(d.Locale, "withholding", i18n.T(d.Locale, "invoices.field.withholding"), false, fieldError(d.Errors, d.Locale, "withholding"), i18n.T(d.Locale, "invoices.hint.withholding")) {
+					@moneyInput("withholding", "withholding", d.Values.Withholding, false)
+				}
+			</div>
+			@LinesFragment(LinesFragmentData{
+				Locale:      d.Locale,
+				ExpenseType: domain.ExpenseType(orDefault(d.Values.ExpenseType, string(domain.ExpenseCompraProdutos))),
+				Region:      domain.FiscalRegion(orDefault(d.Values.FiscalRegion, string(domain.RegionContinental))),
+				Lines:       d.Lines,
+				Errors:      d.Errors,
+			})
+		</div>
+		<div id="summary" aria-live="polite">
+			@SummaryFragment(d.Summary)
+		</div>
+	</section>
+}
+
+// LinesFragment is the line table (FR-11). Adding or removing a line posts the
+// form to /invoices/form/lines, which re-renders this fragment from the posted
+// values. It also re-renders when the expense type, the fiscal region or a VAT
+// treatment changes, because the columns and rate options depend on them.
+templ LinesFragment(d LinesFragmentData) {
+	<div
+		id="lines-fragment"
+		class="space-y-3"
+		data-expense-type={ string(d.ExpenseType) }
+		hx-post="/invoices/form/lines"
+		hx-trigger="change from:#expense_type, change from:#fiscal_region"
+		hx-include="#invoice-form"
+		hx-target="#lines-fragment"
+		hx-swap="outerHTML"
+	>
+		<h3 class="text-base font-bold text-ink-900">{ i18n.T(d.Locale, "invoices.lines.title") }</h3>
+		if msg := fieldError(d.Errors, d.Locale, "lines"); msg != "" {
+			<p class="text-sm text-red-600" role="alert">{ msg }</p>
+		}
+		<div class="table-wrap">
+			<table class="table">
+				<thead>
+					<tr>
+						if isProduct(d.ExpenseType) {
+							<th>{ i18n.T(d.Locale, "invoices.lines.product") } <span class="text-red-600" aria-hidden="true">*</span></th>
+							<th>{ i18n.T(d.Locale, "invoices.lines.reference") }</th>
+							<th>{ i18n.T(d.Locale, "invoices.lines.quantity") } <span class="text-red-600" aria-hidden="true">*</span></th>
+							<th>{ i18n.T(d.Locale, "invoices.lines.unit") }</th>
+							<th>{ i18n.T(d.Locale, "invoices.lines.unit_price") } <span class="text-red-600" aria-hidden="true">*</span></th>
+							<th>{ i18n.T(d.Locale, "invoices.lines.discount") }</th>
+						} else {
+							<th>{ i18n.T(d.Locale, "invoices.lines.description") } <span class="text-red-600" aria-hidden="true">*</span></th>
+							<th>{ i18n.T(d.Locale, "invoices.lines.base") } <span class="text-red-600" aria-hidden="true">*</span></th>
+						}
+						<th>{ i18n.T(d.Locale, "invoices.lines.vat_treatment") }</th>
+						<th>{ i18n.T(d.Locale, "invoices.lines.vat_rate") }</th>
+						<th class="text-right">{ i18n.T(d.Locale, "invoices.lines.total") }</th>
+						<th class="text-right"><span class="sr-only">{ i18n.T(d.Locale, "common.actions") }</span></th>
+					</tr>
+				</thead>
+				<tbody>
+					for i, ln := range d.Lines {
+						@lineRow(d, i, ln)
+					}
+				</tbody>
+			</table>
+		</div>
+		<button
+			type="button"
+			class="btn btn-secondary btn-sm"
+			hx-post="/invoices/form/lines"
+			hx-vals='{"op":"add"}'
+			hx-include="#invoice-form"
+			hx-target="#lines-fragment"
+			hx-swap="outerHTML"
+		>{ i18n.T(d.Locale, "invoices.lines.add") }</button>
+		<span
+			hx-post="/invoices/form/preview"
+			hx-trigger="load"
+			hx-include="#invoice-form"
+			hx-target="#summary"
+			hx-swap="innerHTML"
+		></span>
+	</div>
+}
+
+templ lineRow(d LinesFragmentData, i int, ln LineForm) {
+	<tr data-line={ itoa(i) }>
+		if isProduct(d.ExpenseType) {
+			<td>
+				<input class="input" type="text" name={ lineName(i, "product") } id={ lineID(i, "product") } value={ ln.Product } required aria-label={ i18n.T(d.Locale, "invoices.lines.product") }/>
+				@cellError(d, i, "product")
+			</td>
+			<td>
+				<input class="input" type="text" name={ lineName(i, "reference") } value={ ln.Reference } aria-label={ i18n.T(d.Locale, "invoices.lines.reference") }/>
+			</td>
+			<td>
+				<input class="input" type="text" inputmode="decimal" name={ lineName(i, "qty") } id={ lineID(i, "qty") } value={ ln.Qty } required aria-label={ i18n.T(d.Locale, "invoices.lines.quantity") }/>
+				@cellError(d, i, "qty")
+			</td>
+			<td>
+				<input class="input" type="text" name={ lineName(i, "unit") } value={ ln.Unit } aria-label={ i18n.T(d.Locale, "invoices.lines.unit") }/>
+			</td>
+			<td>
+				<input class="input" type="text" inputmode="decimal" name={ lineName(i, "unit_price") } id={ lineID(i, "unit_price") } value={ ln.UnitPrice } required aria-label={ i18n.T(d.Locale, "invoices.lines.unit_price") }/>
+				@cellError(d, i, "unit_price")
+			</td>
+			<td>
+				<input class="input" type="text" inputmode="decimal" name={ lineName(i, "discount") } id={ lineID(i, "discount") } value={ ln.Discount } aria-label={ i18n.T(d.Locale, "invoices.lines.discount") }/>
+				@cellError(d, i, "discount")
+			</td>
+		} else {
+			<td>
+				<input class="input" type="text" name={ lineName(i, "description") } id={ lineID(i, "description") } value={ ln.Description } required aria-label={ i18n.T(d.Locale, "invoices.lines.description") }/>
+				@cellError(d, i, "description")
+			</td>
+			<td>
+				<input class="input" type="text" inputmode="decimal" name={ lineName(i, "base") } id={ lineID(i, "base") } value={ ln.Base } required aria-label={ i18n.T(d.Locale, "invoices.lines.base") }/>
+				@cellError(d, i, "base")
+			</td>
+		}
+		<td class="space-y-2">
+			<select
+				class="select"
+				name={ lineName(i, "treatment") }
+				aria-label={ i18n.T(d.Locale, "invoices.lines.vat_treatment") }
+				hx-post="/invoices/form/lines"
+				hx-trigger="change"
+				hx-include="#invoice-form"
+				hx-target="#lines-fragment"
+				hx-swap="outerHTML"
+			>
+				for _, o := range treatmentOptions(d.Locale) {
+					<option value={ o.Value } selected?={ o.Value == orDefault(ln.Treatment, string(domain.TreatmentRate)) }>{ o.Label }</option>
+				}
+			</select>
+			@cellError(d, i, "treatment")
+			if ln.Treatment == string(domain.TreatmentExempt) {
+				<select class="select" name={ lineName(i, "exemption_code") } required aria-label={ i18n.T(d.Locale, "invoices.lines.exemption_code") }>
+					for _, o := range exemptionOptions(d.Locale) {
+						<option value={ o.Value } selected?={ o.Value == ln.ExemptionCode }>{ o.Label }</option>
+					}
+				</select>
+				@cellError(d, i, "exemption_code")
+				<input class="input" type="text" name={ lineName(i, "exemption_reason") } value={ ln.ExemptionReason } required placeholder={ i18n.T(d.Locale, "invoices.lines.exemption_reason") } aria-label={ i18n.T(d.Locale, "invoices.lines.exemption_reason") }/>
+				@cellError(d, i, "exemption_reason")
+			}
+		</td>
+		<td>
+			if ln.Treatment == "" || ln.Treatment == string(domain.TreatmentRate) {
+				<select class="select" name={ lineName(i, "rate") } aria-label={ i18n.T(d.Locale, "invoices.lines.vat_rate") }>
+					for _, o := range rateOptions(d.Region) {
+						<option value={ o.Value } selected?={ o.Value == ln.Rate }>{ o.Label }</option>
+					}
+				</select>
+				@cellError(d, i, "rate")
+			} else {
+				<span class="text-sm text-ink-500">0 %</span>
+			}
+		</td>
+		<td class="text-right text-ink-700">
+			if ln.ShowTotal {
+				{ money.Format(d.Locale, money.From(ctx), ln.TotalCents) }
+			} else {
+				—
+			}
+		</td>
+		<td class="text-right">
+			<button
+				type="button"
+				class="btn btn-ghost btn-sm"
+				hx-post="/invoices/form/lines"
+				hx-vals={ removeVals(i) }
+				hx-include="#invoice-form"
+				hx-target="#lines-fragment"
+				hx-swap="outerHTML"
+				aria-label={ i18n.T(d.Locale, "invoices.lines.remove") }
+			>{ i18n.T(d.Locale, "invoices.lines.remove") }</button>
+		</td>
+	</tr>
+}
+
+templ cellError(d LinesFragmentData, i int, name string) {
+	if msg := fieldError(d.Errors, d.Locale, lineName(i, name)); msg != "" {
+		<p class="mt-1 text-xs text-red-600" role="alert">{ msg }</p>
+	}
+}
+
+// SummaryFragment is the financial summary: the VAT breakdown and the totals
+// (FR-29, FR-30). The server computes every figure.
+templ SummaryFragment(s SummaryData) {
+	<section class="rounded-md border border-chrome-200 bg-chrome-50 p-4 space-y-3" data-summary>
+		<h3 class="text-base font-bold text-ink-900">{ i18n.T(s.Locale, "invoices.summary.title") }</h3>
+		if s.Error != "" {
+			<p class="text-sm text-ink-600">{ s.Error }</p>
+		} else {
+			if len(s.Totals.Taxes) > 0 {
+				<div class="table-wrap">
+					<table class="table">
+						<caption class="sr-only">{ i18n.T(s.Locale, "invoices.summary.vat_breakdown") }</caption>
+						<thead>
+							<tr>
+								<th>{ i18n.T(s.Locale, "invoices.summary.vat_breakdown") }</th>
+								<th class="text-right">{ i18n.T(s.Locale, "invoices.summary.base") }</th>
+								<th class="text-right">{ i18n.T(s.Locale, "invoices.summary.vat") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, b := range s.Totals.Taxes {
+								<tr>
+									<td>
+										if b.Treatment == domain.TreatmentRate {
+											{ pctLabel(b.RateBP) }
+										} else {
+											{ tr(s.Locale, b.Treatment.LabelKey()) }
+										}
+									</td>
+									<td class="text-right">{ money.Format(s.Locale, money.From(ctx), b.BaseCents) }</td>
+									<td class="text-right">{ money.Format(s.Locale, money.From(ctx), b.VATCents) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+			<dl class="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+				@summaryRow(s.Locale, "invoices.summary.gross", money.Format(s.Locale, money.From(ctx), s.Totals.GrossCents), false)
+				@summaryRow(s.Locale, "invoices.summary.discounts", money.Format(s.Locale, money.From(ctx), s.Totals.DiscountCents), false)
+				@summaryRow(s.Locale, "invoices.summary.base", money.Format(s.Locale, money.From(ctx), s.Totals.BaseCents), false)
+				@summaryRow(s.Locale, "invoices.summary.vat", money.Format(s.Locale, money.From(ctx), s.Totals.VATCents), false)
+				@summaryRow(s.Locale, "invoices.summary.total", money.Format(s.Locale, money.From(ctx), s.Totals.TotalCents), true)
+				@summaryRow(s.Locale, "invoices.summary.withholding", money.Format(s.Locale, money.From(ctx), s.Totals.WithholdingCents), false)
+				@summaryRow(s.Locale, "invoices.summary.payable", money.Format(s.Locale, money.From(ctx), s.Totals.PayableCents), true)
+				if s.ShowPaid {
+					@summaryRow(s.Locale, "invoices.summary.paid", money.Format(s.Locale, money.From(ctx), s.PaidCents), false)
+					if s.DebtCents < 0 {
+						@summaryRow(s.Locale, "invoices.summary.credit", money.Format(s.Locale, money.From(ctx), -s.DebtCents), true)
+					} else {
+						@summaryRow(s.Locale, "invoices.summary.debt", money.Format(s.Locale, money.From(ctx), s.DebtCents), true)
+					}
+				}
+			</dl>
+		}
+	</section>
+}
+
+templ summaryRow(l i18n.Language, key string, value string, strong bool) {
+	<div class="flex justify-between gap-4 border-b border-chrome-100 py-1">
+		<dt class="text-ink-600">{ tr(l, key) }</dt>
+		if strong {
+			<dd class="font-bold text-ink-900">{ value }</dd>
+		} else {
+			<dd class="text-ink-800">{ value }</dd>
+		}
+	</div>
+}
+
+templ paymentsSection(d FormData) {
+	<section class="card card-pad space-y-3" aria-labelledby="sec-payments">
+		<div id="sec-payments">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.payments"), false)
+		</div>
+		if d.Edit && len(d.Payments) > 0 {
+			@paymentsTable(d.Locale, d.Payments)
+		} else {
+			<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "invoices.payments.none") }</p>
+		}
+		<p class="text-xs text-ink-500">{ i18n.T(d.Locale, "invoices.payments.form_hint") }</p>
+	</section>
+}
+
+templ attachmentsSection(d FormData) {
+	<section class="card card-pad space-y-3" aria-labelledby="sec-attachments">
+		<div id="sec-attachments">
+			@sectionHead(d.Locale, i18n.T(d.Locale, "invoices.section.attachments"), false)
+		</div>
+		if d.Edit && len(d.Attachments) > 0 {
+			<ul class="divide-y divide-chrome-100 text-sm">
+				for _, a := range d.Attachments {
+					<li class="flex justify-between gap-4 py-2">
+						<a class="text-steel-700 hover:underline" href={ templ.URL(attachmentHref(d.InvoiceID, a.ID)) }>{ a.OriginalName }</a>
+						<span class="text-ink-500">{ humanSize(a.SizeBytes) }</span>
+					</li>
+				}
+			</ul>
+		} else {
+			<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "invoices.attachments.none") }</p>
+		}
+		<p class="text-xs text-ink-500">{ i18n.T(d.Locale, "invoices.attachments.form_hint") }</p>
+	</section>
+}
+
+templ paymentsTable(l i18n.Language, payments []domain.Payment) {
+	<div class="table-wrap">
+		<table class="table">
+			<thead>
+				<tr>
+					<th>{ i18n.T(l, "invoices.payments.date") }</th>
+					<th>{ i18n.T(l, "invoices.payments.method") }</th>
+					<th>{ i18n.T(l, "invoices.payments.reference") }</th>
+					<th class="text-right">{ i18n.T(l, "invoices.payments.amount") }</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, p := range payments {
+					<tr>
+						<td>{ timeText(l, p.Date) }</td>
+						<td>{ tr(l, p.Method.LabelKey()) }</td>
+						<td>{ orDash(p.Reference) }</td>
+						<td class="text-right">{ money.Format(l, money.From(ctx), p.AmountCents) }</td>
+					</tr>
+					if p.Justification != "" {
+						<tr>
+							<td colspan="4" class="text-xs text-ink-500">{ i18n.T(l, "invoices.payments.justification") }: { p.Justification }</td>
+						</tr>
+					}
+				}
+			</tbody>
+		</table>
+	</div>
+}

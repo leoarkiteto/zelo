@@ -12,7 +12,10 @@ func TestLanguageConstants(t *testing.T) {
 }
 
 func TestLanguageValid(t *testing.T) {
-	valid := []Language{LanguageEN, LanguagePTBR}
+	if LanguagePTPT != "pt-pt" {
+		t.Fatalf("LanguagePTPT = %q, want %q", LanguagePTPT, "pt-pt")
+	}
+	valid := []Language{LanguageEN, LanguagePTBR, LanguagePTPT}
 	for _, l := range valid {
 		if !l.Valid() {
 			t.Errorf("Valid() = false for %q, want true", l)

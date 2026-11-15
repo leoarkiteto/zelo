@@ -3,12 +3,12 @@
 package templates
 
 import (
-	"fmt"
-	"strings"
+	"context"
 
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/money"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
@@ -134,31 +134,10 @@ type ChargesPageData struct {
 	Empty   bool
 }
 
-// Money renders integer cents as a localized BRL amount.
-func Money(locale i18n.Language, cents int64) string {
-	sign := ""
-	if cents < 0 {
-		sign = "-"
-		cents = -cents
-	}
-	whole := cents / 100
-	frac := cents % 100
-	if locale == i18n.LanguagePTBR {
-		return sign + "R$ " + groupThousands(whole, ".") + "," + fmt.Sprintf("%02d", frac)
-	}
-	return sign + "R$ " + groupThousands(whole, ",") + "." + fmt.Sprintf("%02d", frac)
-}
-
-func groupThousands(n int64, sep string) string {
-	s := fmt.Sprintf("%d", n)
-	var b strings.Builder
-	for i, r := range s {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			b.WriteString(sep)
-		}
-		b.WriteRune(r)
-	}
-	return b.String()
+// Money renders integer cents as a localized amount in the currency carried
+// by ctx (BRL when unset).
+func Money(ctx context.Context, locale i18n.Language, cents int64) string {
+	return money.Format(locale, money.From(ctx), cents)
 }
 
 // StatusLabel returns the localized label for a status.

@@ -1,10 +1,12 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 
-	"github.com/leoarkiteto/zelo/internal/shared/security"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/security"
 )
 
 // SessionReader reads and validates the session from a request.
@@ -20,7 +22,20 @@ func CSRF(sr SessionReader) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			switch r.Method {
 			case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
-				if err := r.ParseForm(); err != nil {
+				// r.FormValue silently drops parse errors, so parse explicitly
+				// to tell an exceeded body limit (413) from a bad form (403).
+				var perr error
+				if strings.HasPrefix(strings.ToLower(r.Header.Get("Content-Type")), "multipart/form-data") {
+					perr = r.ParseMultipartForm(32 << 20)
+				} else {
+					perr = r.ParseForm()
+				}
+				if perr != nil {
+					var maxErr *http.MaxBytesError
+					if errors.As(perr, &maxErr) {
+						http.Error(w, "Request body too large", http.StatusRequestEntityTooLarge)
+						return
+					}
 					http.Error(w, "Forbidden", http.StatusForbidden)
 					return
 				}

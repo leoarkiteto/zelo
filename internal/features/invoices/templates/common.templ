@@ -1,0 +1,72 @@
+package templates
+
+import (
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+)
+
+// field wraps a labelled control with the required marker, the inline error
+// and an optional hint.
+templ field(l i18n.Language, id, label string, required bool, err string, hint string) {
+	<div>
+		<label class="label" for={ id }>
+			{ label }
+			if required {
+				<span class="text-red-600" aria-hidden="true">*</span>
+				<span class="sr-only">({ i18n.T(l, "invoices.required") })</span>
+			}
+		</label>
+		{ children... }
+		if err != "" {
+			<p class="mt-1 text-sm text-red-600" id={ id + "-error" } role="alert">{ err }</p>
+		}
+		if hint != "" {
+			<p class="mt-1 text-xs text-ink-500">{ hint }</p>
+		}
+	</div>
+}
+
+templ textInput(id, name, typ, value string, required bool) {
+	<input class="input" type={ typ } id={ id } name={ name } value={ value } required?={ required }/>
+}
+
+templ moneyInput(id, name, value string, required bool) {
+	<input class="input" type="text" inputmode="decimal" autocomplete="off" id={ id } name={ name } value={ value } required?={ required }/>
+}
+
+templ selectInput(id, name string, opts []Option, selected string, required bool) {
+	<select class="select" id={ id } name={ name } required?={ required }>
+		for _, o := range opts {
+			<option value={ o.Value } selected?={ o.Value == selected }>{ o.Label }</option>
+		}
+	</select>
+}
+
+templ textArea(id, name, value string, rows string) {
+	<textarea class="input" id={ id } name={ name } rows={ rows }>{ value }</textarea>
+}
+
+// sectionHead is the heading of a form or view section, with the badge that
+// tells a legal field from an internal one (FR-33).
+templ sectionHead(l i18n.Language, title string, legal bool) {
+	<div class="flex flex-wrap items-center gap-2 border-b border-chrome-200 pb-3">
+		<h2 class="text-lg font-bold text-ink-900">{ title }</h2>
+		if legal {
+			@atoms.Badge(atoms.BadgeProps{Label: i18n.T(l, "invoices.badge.legal"), Variant: atoms.BadgeVariantInfo})
+		} else {
+			@atoms.Badge(atoms.BadgeProps{Label: i18n.T(l, "invoices.badge.internal"), Variant: atoms.BadgeVariantNeutral})
+		}
+	</div>
+}
+
+// legalHelp explains which fields are legally required on the original
+// document and which are internal (FR-33). The module only records received
+// documents and is not certified invoicing software.
+templ legalHelp(l i18n.Language) {
+	<aside class="alert alert-info space-y-1" aria-label={ i18n.T(l, "invoices.help.title") }>
+		<p class="font-medium">{ i18n.T(l, "invoices.help.title") }</p>
+		<p class="text-sm">{ i18n.T(l, "invoices.help.legal") }</p>
+		<p class="text-sm">{ i18n.T(l, "invoices.help.internal") }</p>
+		<p class="text-sm">{ i18n.T(l, "invoices.help.not_certified") }</p>
+	</aside>
+}

@@ -24,6 +24,9 @@ import (
 	financerepositories "github.com/leoarkiteto/zelo/internal/features/finance/repositories"
 	financeservices "github.com/leoarkiteto/zelo/internal/features/finance/services"
 	homehandlers "github.com/leoarkiteto/zelo/internal/features/home/handlers"
+	invoicehandlers "github.com/leoarkiteto/zelo/internal/features/invoices/handlers"
+	invoicerepositories "github.com/leoarkiteto/zelo/internal/features/invoices/repositories"
+	invoiceservices "github.com/leoarkiteto/zelo/internal/features/invoices/services"
 	managementhandlers "github.com/leoarkiteto/zelo/internal/features/management/handlers"
 	mgmtservices "github.com/leoarkiteto/zelo/internal/features/management/services"
 	profilehandlers "github.com/leoarkiteto/zelo/internal/features/profile/handlers"
@@ -35,6 +38,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/security"
 	"github.com/leoarkiteto/zelo/internal/shared/store"
 	"github.com/leoarkiteto/zelo/internal/shared/testutil"
+	"github.com/redis/go-redis/v9"
 )
 
 // newApp builds the full composed router against PostgreSQL. Tests are skipped
@@ -68,7 +72,8 @@ func newAppDB(t *testing.T) (http.Handler, *sql.DB) {
 		t.Fatalf("migrate: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `
-		TRUNCATE audit_events, finance_accounts, invitations, service_provider_listings,
+		TRUNCATE audit_events, invoice_attachments, invoice_payments, invoice_taxes,
+			invoice_items, invoices, suppliers, finance_accounts, invitations, service_provider_listings,
 		service_categories, ticket_replies, tickets, unit_occupancies, user_roles,
 		units, condominiums, users RESTART IDENTITY CASCADE`); err != nil {
 		t.Fatalf("truncate: %v", err)
@@ -84,6 +89,18 @@ func newAppDB(t *testing.T) (http.Handler, *sql.DB) {
 		t.Fatalf("flush redis: %v", err)
 	}
 
+	return composeApp(t, db, redisClient), db
+}
+
+// composeApp wires the same pieces as cmd/web/main.go on db and redisClient: every
+// feature's routes, the finance and invoice upload directory (a per-test temp
+// dir, exported as TEST_UPLOAD_DIR) and the middleware chain in main.go's order,
+// currency loader and body limits included.
+func composeApp(t *testing.T, db *sql.DB, redisClient *redis.Client) http.Handler {
+	t.Helper()
+	uploadDir := t.TempDir()
+	t.Setenv("TEST_UPLOAD_DIR", uploadDir)
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	users := store.NewUserStore(db)
 	roles := store.NewRoleStore(db)
@@ -91,6 +108,7 @@ func newAppDB(t *testing.T) (http.Handler, *sql.DB) {
 	invitations := store.NewInvitationStore(db)
 	sessions := store.NewRedisSessionStore(redisClient)
 	audit := store.NewAuditStore(db)
+	condominiums := store.NewCondominiumStore(db)
 	listings := repositories.NewListingStore(db)
 	categories := repositories.NewCategoryStore(db)
 	ticketStore := ticketrepositories.NewTicketStore(db)
@@ -154,6 +172,9 @@ func newAppDB(t *testing.T) (http.Handler, *sql.DB) {
 		Invitations: invitations,
 		Units:       units,
 		RoleService: &mgmtservices.RoleService{Roles: roles, Audit: audit},
+
+		Condominiums:    condominiums,
+		SettingsService: &mgmtservices.SettingsService{Condominiums: condominiums, Audit: audit},
 	})
 	profilehandlers.RegisterRoutes(mux, profilehandlers.Deps{
 		Logger: logger,
@@ -178,13 +199,31 @@ func newAppDB(t *testing.T) (http.Handler, *sql.DB) {
 		Audit:     audit,
 		Accounts:  financeAccounts,
 		Units:     units,
-		UploadDir: t.TempDir(),
+		UploadDir: uploadDir,
 		Finance: &financeservices.FinanceService{
 			Accounts:  financeAccounts,
 			Summaries: financeAccounts,
 			Overviews: financeAccounts,
 			Units:     units,
 			Audit:     audit,
+			Now:       time.Now,
+		},
+	})
+	supplierStore := invoicerepositories.NewSupplierStore(db)
+	invoiceStore := invoicerepositories.NewInvoiceStore(db)
+	invoicehandlers.RegisterRoutes(mux, invoicehandlers.Deps{
+		Roles: roles,
+		Audit: audit,
+		Suppliers: &invoiceservices.SupplierService{
+			Suppliers: supplierStore,
+			Audit:     audit,
+			Now:       time.Now,
+		},
+		Invoices: &invoiceservices.InvoiceService{
+			Invoices:  invoiceStore,
+			Suppliers: supplierStore,
+			Audit:     audit,
+			UploadDir: uploadDir,
 			Now:       time.Now,
 		},
 	})
@@ -195,9 +234,15 @@ func newAppDB(t *testing.T) (http.Handler, *sql.DB) {
 	root = middleware.Logging(logger)(root)
 	root = middleware.SecurityHeaders(root)
 	root = middleware.WithLocale(root)
+	root = middleware.WithCurrency(condominiums)(root)
 	root = middleware.WithUser(sessMgr, users)(root)
 	root = middleware.CSRF(sessMgr)(root)
-	return root, db
+	root = middleware.BodyLimit(1<<20, []middleware.BodyLimitRule{
+		{Method: http.MethodPost, Segments: []string{"finance"}, Bytes: 6 << 20},
+		{Method: http.MethodPost, Segments: []string{"finance", "*", "edit"}, Bytes: 6 << 20},
+		{Method: http.MethodPost, Segments: []string{"invoices", "*", "attachments"}, Bytes: 52 << 20},
+	})(root)
+	return root
 }
 
 func seedIntegration(t *testing.T, ctx context.Context, db *sql.DB) {
@@ -250,7 +295,32 @@ func seedIntegration(t *testing.T, ctx context.Context, db *sql.DB) {
 	}
 	t.Setenv("TEST_CONDOMINIUM", condoID)
 	t.Setenv("TEST_UNIT", unitID)
+
+	// A second condominium with its own syndic, to prove tenant isolation of
+	// the invoices module.
+	var condoB string
+	if err := db.QueryRowContext(ctx, `INSERT INTO condominiums (name) VALUES ('IT Condo B') RETURNING id`).Scan(&condoB); err != nil {
+		t.Fatalf("seed condo B: %v", err)
+	}
+	hashB, err := hasher.Hash(syndicBPass)
+	if err != nil {
+		t.Fatalf("hash syndic B: %v", err)
+	}
+	var syndicB string
+	if err := db.QueryRowContext(ctx, `INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id`, syndicBEmail, hashB).Scan(&syndicB); err != nil {
+		t.Fatalf("seed syndic B: %v", err)
+	}
+	if _, err := db.ExecContext(ctx, `INSERT INTO user_roles (user_id, condominium_id, role) VALUES ($1, $2, 'syndic')`, syndicB, condoB); err != nil {
+		t.Fatalf("seed syndic B role: %v", err)
+	}
+	t.Setenv("TEST_CONDOMINIUM_B", condoB)
 }
+
+// Credentials of the syndic of the second seeded condominium.
+const (
+	syndicBEmail = "syndic-b@example.com"
+	syndicBPass  = "syndic-b-pass-123"
+)
 
 var csrfRe = regexp.MustCompile(`name="csrf_token" value="([^"]+)"`)
 
