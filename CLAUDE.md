@@ -25,7 +25,7 @@ tickets, roles/invitations, profile, i18n). Module path:
 | Unit tests | `make test` (`go test ./...`) |
 | Full checks | `make check` (tests + feature-boundary + template-boundary scripts) |
 | Scaffold a feature | `scripts/new-feature.sh <feature-name>` |
-| Dev services | `docker compose up -d` (PostgreSQL 16 + Redis 7) |
+| Dev services | `make db-up (docker compose up -d)` (PostgreSQL 16 + Redis 7) |
 
 ## Architecture (read this before touching code)
 
