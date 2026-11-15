@@ -130,6 +130,32 @@ func deny(w http.ResponseWriter, r *http.Request, audit AuditRecorder, resp Role
 	http.Error(w, "Forbidden: you do not have access to this area", http.StatusForbidden)
 }
 
+// RequireRoleHX is an htmx-aware role guard. htmx v4 swaps every response
+// status except 204/304, so for HX requests a 303 redirect or plain-text 403
+// would be injected into the target: an HX request without a session gets an
+// HX-Redirect to /login, and a denied role is answered by hxDenied (which
+// should write the status and an htmx-friendly partial). Plain requests use the
+// standard RequireAuth + RequireRole chain. Responses carry Vary: HX-Request.
+func RequireRoleHX(roles RoleChecker, audit AuditRecorder, hxDenied http.HandlerFunc, allowed ...model.Role) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		standard := RequireAuth(RequireRole(roles, audit, allowed...)(next))
+		hxGuard := RequireRoleWith(roles, audit, RoleGuardResponders{
+			Unauthenticated: func(w http.ResponseWriter, _ *http.Request) {
+				HXRedirect(w, "/login")
+			},
+			Denied: hxDenied,
+		}, allowed...)(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Vary", "HX-Request")
+			if IsHX(r) {
+				hxGuard.ServeHTTP(w, r)
+				return
+			}
+			standard.ServeHTTP(w, r)
+		})
+	}
+}
+
 // RolesFrom returns the active roles stored by the role guard on allow, or nil.
 func RolesFrom(ctx context.Context) []model.Role {
 	r, _ := ctx.Value(rolesKey).([]model.Role)

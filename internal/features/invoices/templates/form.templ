@@ -31,6 +31,11 @@ templ formBody(d FormData) {
 		if d.Error != "" {
 			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: d.Error})
 		}
+		if d.DuplicateID != "" {
+			<p class="alert alert-info" data-duplicate-link>
+				<a class="text-steel-700 underline" href={ templ.URL(duplicateInvoicePath(d.DuplicateID)) }>{ i18n.T(d.Locale, "invoices.flash.duplicate_link") }</a>
+			</p>
+		}
 		@legalHelp(d.Locale)
 		<form id="invoice-form" method="POST" action={ templ.URL(formAction(d)) } class="space-y-6">
 			<input type="hidden" name="csrf_token" value={ d.CSRF }/>
@@ -195,8 +200,7 @@ templ SupplierSearchResults(d SupplierSearchData) {
 					<button
 						type="button"
 						class="flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-steel-50"
-						hx-get="/suppliers/search"
-						hx-vals={ selectVals(s.ID) }
+						hx-get={ supplierSelectedPath(s.ID) }
 						hx-target="#supplier-selected"
 						hx-swap="innerHTML"
 					>

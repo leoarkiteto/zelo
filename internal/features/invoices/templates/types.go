@@ -39,6 +39,14 @@
 // is only meaningful for the "rate" treatment. FieldErrors for a line field
 // use the key "lines[2].rate".
 //
+// # Field-error key contract
+//
+// The keys of domain.FieldErrors equal the form input names, so the templates
+// read an error under the very name of the input it belongs to: "supplier_id",
+// "lines[i].qty", "lines[i].discount" (a product line whose discount makes the
+// base negative), "due_justification" (also flagged when the due date is
+// before the issue date), and so on for every field listed above.
+//
 // HTMX routes (see plan.md):
 //
 //	GET  /invoices/form/section?expense_type=...  -> ExpenseSection fragment
@@ -47,7 +55,7 @@
 //	                             when the expense type or a treatment changes)
 //	POST /invoices/form/preview (whole form) -> SummaryFragment
 //	GET  /suppliers/search?q=... -> SupplierSearchResults fragment
-//	GET  /suppliers/search?select=<id> -> SupplierSelected fragment
+//	GET  /suppliers/{id}/selected -> SupplierSelected fragment
 //	POST /suppliers/inline (supplier_* fields) -> SupplierSelected fragment
 //
 // Supplier fields used by the inline create: supplier_name, supplier_nif,
@@ -204,6 +212,10 @@ type FormData struct {
 	// message (already translated).
 	Errors domain.FieldErrors
 	Error  string
+
+	// DuplicateID is the existing invoice a duplicate submit collided with;
+	// when set, the form renders a link to it under the page message.
+	DuplicateID string
 
 	// Edit only: shown read-only in the Pagamentos and Anexos sections.
 	Payments    []domain.Payment

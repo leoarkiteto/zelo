@@ -134,10 +134,10 @@ func Remove(dir, rel string) error {
 }
 
 // SanitizeFilename makes a client filename safe for a Content-Disposition
-// header. An empty name becomes "receipt" (kept for finance compatibility).
-func SanitizeFilename(name string) string {
+// header. An empty name becomes fallback.
+func SanitizeFilename(name, fallback string) string {
 	if name == "" {
-		return "receipt"
+		return fallback
 	}
 	r := strings.NewReplacer(`"`, "", "\n", "", "\r", "")
 	return r.Replace(name)

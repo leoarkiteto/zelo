@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
 	"github.com/leoarkiteto/zelo/internal/features/invoices/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
+	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 )
 
 // The fragment handlers return only the HTML an htmx swap needs, never a full
@@ -46,26 +48,37 @@ func (h *Handler) previewPOST(w http.ResponseWriter, r *http.Request) {
 	httpx.Render(w, r, templates.SummaryFragment(h.summaryFromForm(r, pf)))
 }
 
-// supplierSearchGET serves the supplier autocomplete (q) and the selection of
-// one result (select=<id>) for the invoice form (FR-7).
+// supplierSelectedGET returns the selected-supplier fragment of one supplier of
+// the session's condominium (FR-7, I11). A supplier of another condominium is
+// a 404.
+func (h *Handler) supplierSelectedGET(w http.ResponseWriter, r *http.Request) {
+	_, condo := actor(r)
+	sup, err := h.deps.Suppliers.Get(r.Context(), condo, r.PathValue("id"))
+	switch {
+	case err == nil:
+		httpx.Render(w, r, templates.SupplierSelected(templates.SupplierSelectedData{
+			Locale: locale(r), Supplier: supplierValues(sup),
+		}))
+	case isNotFound(err) && middleware.IsHX(r):
+		// htmx v4 swaps 4xx bodies, so an HX request gets the fragment itself
+		// with the message instead of a full error page (I2).
+		w.WriteHeader(http.StatusNotFound)
+		httpx.Render(w, r, templates.SupplierSelected(templates.SupplierSelectedData{
+			Locale: locale(r),
+			Errors: domain.FieldErrors{"supplier_id": "suppliers.error.not_found"},
+		}))
+	case isNotFound(err):
+		notFound(w, r)
+	default:
+		serverError(w, r, "select supplier", err, "invoices.error.load_failed")
+	}
+}
+
+// supplierSearchGET serves the supplier autocomplete (q) for the invoice form
+// (FR-7). A failed search is logged and renders empty results.
 func (h *Handler) supplierSearchGET(w http.ResponseWriter, r *http.Request) {
 	_, condo := actor(r)
 	loc := locale(r)
-
-	if id := strings.TrimSpace(r.URL.Query().Get("select")); id != "" {
-		data := templates.SupplierSelectedData{Locale: loc}
-		sup, err := h.deps.Suppliers.Get(r.Context(), condo, id)
-		switch {
-		case err == nil:
-			data.Supplier = supplierValues(sup)
-		case isNotFound(err):
-			data.Errors = domain.FieldErrors{"supplier_id": "suppliers.error.not_found"}
-		default:
-			data.Errors = domain.FieldErrors{"supplier_id": "invoices.error.load_failed"}
-		}
-		httpx.Render(w, r, templates.SupplierSelected(data))
-		return
-	}
 
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
 	if q == "" {
@@ -73,6 +86,7 @@ func (h *Handler) supplierSearchGET(w http.ResponseWriter, r *http.Request) {
 	}
 	results, err := h.deps.Suppliers.Search(r.Context(), condo, q, 10)
 	if err != nil {
+		slog.Error("invoices: supplier search", "error", err)
 		results = nil
 	}
 	httpx.Render(w, r, templates.SupplierSearchResults(templates.SupplierSearchData{

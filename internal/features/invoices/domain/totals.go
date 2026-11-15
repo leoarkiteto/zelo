@@ -86,8 +86,9 @@ func lineField(i int, f string) string { return fmt.Sprintf("lines[%d].%s", i, f
 // A rate line must use a rate from AllowedRates(region); an exempt line needs
 // a code from ExemptionCodes and a non-blank reason; a negative line base is
 // rejected. The withholding must satisfy 0 ≤ withholding ≤ total. Failures
-// are returned as FieldErrors ("lines[i].base", "lines[i].rate",
-// "lines[i].exemption_code", "lines[i].exemption_reason", "lines[i].quantity",
+// are returned as FieldErrors keyed by the form input names ("lines[i].base",
+// "lines[i].discount" for the amount errors of a product line, "lines[i].rate",
+// "lines[i].exemption_code", "lines[i].exemption_reason", "lines[i].qty",
 // "lines[i].treatment", "fiscal_region", "lines", "withholding") and Totals is
 // then the zero value. No lines yields zero totals (valid for drafts).
 func ComputeTotals(region FiscalRegion, lines []Line, withholdingCents int64) (Totals, error) {
@@ -114,9 +115,14 @@ func ComputeTotals(region FiscalRegion, lines []Line, withholdingCents int64) (T
 		}
 		base, err := LineBase(l)
 		if err != nil {
+			// Keys are the names of the form inputs: "qty" for the quantity
+			// and "discount" for any other amount error of a product line.
 			field := "base"
-			if IsProductLine(l) && l.QuantityMilli <= 0 {
-				field = "quantity"
+			if IsProductLine(l) {
+				field = "discount"
+				if l.QuantityMilli <= 0 {
+					field = "qty"
+				}
 			}
 			errs.Add(lineField(i, field), ErrorKey(err))
 			continue

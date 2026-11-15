@@ -113,10 +113,13 @@ func TestOpenRejectsTraversal(t *testing.T) {
 }
 
 func TestSanitizeFilename(t *testing.T) {
-	if got := SanitizeFilename(""); got != "receipt" {
+	if got := SanitizeFilename("", "receipt"); got != "receipt" {
 		t.Errorf("empty: %q", got)
 	}
-	if got := SanitizeFilename("a\"b\r\nc.pdf"); got != "abc.pdf" {
+	if got := SanitizeFilename("", "attachment"); got != "attachment" {
+		t.Errorf("empty fallback: %q", got)
+	}
+	if got := SanitizeFilename("a\"b\r\nc.pdf", "receipt"); got != "abc.pdf" {
 		t.Errorf("got %q", got)
 	}
 }

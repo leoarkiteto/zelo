@@ -27,5 +27,5 @@ func RegisterRoutes(mux *http.ServeMux, deps Deps) {
 	mux.Handle("GET /finance/{id}/receipt", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.financeReceiptGET))))
 	mux.Handle("GET /finance/my-charges", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.myChargesGET))))
 	mux.Handle("GET /finance/health", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.healthRedirect))))
-	mux.Handle("GET /finance/overview", h.hxAwareMemberOnly(http.HandlerFunc(h.overviewGET)))
+	mux.Handle("GET /finance/overview", middleware.RequireRoleHX(deps.Roles, deps.Audit, overviewNoAccess, memberRoles...)(http.HandlerFunc(h.overviewGET)))
 }

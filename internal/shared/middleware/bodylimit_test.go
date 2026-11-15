@@ -20,11 +20,28 @@ func bodyLimitChain() http.Handler {
 	ok := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
 	var h http.Handler = ok
 	h = CSRF(fakeSessions{model.Session{TokenHash: "t", UserID: "u", CSRFToken: "tok-123"}})(h)
-	return BodyLimit(1<<20, []BodyLimitRule{
+	return BodyLimit(DefaultBodyLimitBytes, DefaultBodyLimitRules())(h)
+}
+
+func TestDefaultBodyLimitRules(t *testing.T) {
+	if DefaultBodyLimitBytes != 1<<20 {
+		t.Fatalf("default = %d", DefaultBodyLimitBytes)
+	}
+	want := []BodyLimitRule{
 		{Method: http.MethodPost, Segments: []string{"finance"}, Bytes: 6 << 20},
 		{Method: http.MethodPost, Segments: []string{"finance", "*", "edit"}, Bytes: 6 << 20},
 		{Method: http.MethodPost, Segments: []string{"invoices", "*", "attachments"}, Bytes: 52 << 20},
-	})(h)
+	}
+	got := DefaultBodyLimitRules()
+	if len(got) != len(want) {
+		t.Fatalf("len = %d, want %d", len(got), len(want))
+	}
+	for i := range want {
+		if got[i].Method != want[i].Method || got[i].Bytes != want[i].Bytes ||
+			strings.Join(got[i].Segments, "/") != strings.Join(want[i].Segments, "/") {
+			t.Errorf("rule %d = %+v, want %+v", i, got[i], want[i])
+		}
+	}
 }
 
 func multipartReq(t *testing.T, path string, size int) *http.Request {

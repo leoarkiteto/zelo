@@ -1,18 +1,13 @@
 package handlers
 
 import (
-	"bytes"
-	"context"
 	"errors"
-	"html"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/a-h/templ"
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
 	"github.com/leoarkiteto/zelo/internal/features/invoices/services"
 	"github.com/leoarkiteto/zelo/internal/features/invoices/templates"
@@ -120,38 +115,12 @@ func (h *Handler) renderForm(w http.ResponseWriter, r *http.Request, status int,
 		Error:       st.Message,
 		Payments:    st.Payments,
 		Attachments: st.Attachments,
+		DuplicateID: st.DuplicateID,
 	})
-	if st.DuplicateID != "" {
-		comp = withDuplicateLink(comp, r, st.DuplicateID)
-	}
 	if status != http.StatusOK {
 		w.WriteHeader(status)
 	}
 	httpx.Render(w, r, comp)
-}
-
-// withDuplicateLink inserts a link to the existing invoice right before the
-// form, under the duplicate message. FormData carries only a text message, so
-// the link is added to the rendered page.
-func withDuplicateLink(page templ.Component, r *http.Request, existingID string) templ.Component {
-	link := `<p class="alert alert-info" data-duplicate-link><a class="text-steel-700 underline" href="` +
-		html.EscapeString(invoicePath(existingID)) + `">` +
-		html.EscapeString(tr(r, "invoices.flash.duplicate_link")) + `</a></p>`
-	return templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
-		var buf bytes.Buffer
-		if err := page.Render(ctx, &buf); err != nil {
-			return err
-		}
-		out := buf.String()
-		const anchor = `<form id="invoice-form"`
-		if i := strings.Index(out, anchor); i >= 0 {
-			out = out[:i] + link + out[i:]
-		} else {
-			out += link
-		}
-		_, err := w.Write([]byte(out))
-		return err
-	})
 }
 
 // summaryFromForm computes the financial summary of the posted lines. Parse
@@ -166,14 +135,14 @@ func (h *Handler) summaryFromForm(r *http.Request, pf *parsedForm) templates.Sum
 		}
 	}
 	if len(lineErrs) > 0 {
-		sd.Error = firstMessage(pf.Locale, remapFieldErrors(lineErrs, pf.ExpenseType == domain.ExpenseCompraProdutos))
+		sd.Error = firstMessage(pf.Locale, lineErrs)
 		return sd
 	}
 	totals, err := h.deps.Invoices.Preview(pf.Region, pf.Invoice.Lines, pf.Withholding)
 	if err != nil {
 		var fe domain.FieldErrors
 		if errors.As(err, &fe) {
-			sd.Error = firstMessage(pf.Locale, remapFieldErrors(fe, pf.ExpenseType == domain.ExpenseCompraProdutos))
+			sd.Error = firstMessage(pf.Locale, fe)
 		} else {
 			sd.Error = tr(r, "invoices.error.save_failed")
 		}
@@ -219,8 +188,10 @@ func (h *Handler) saveError(w http.ResponseWriter, r *http.Request, pf *parsedFo
 		st.DuplicateID = dup.ExistingID
 		h.renderForm(w, r, http.StatusUnprocessableEntity, st)
 	case errors.As(err, &fe):
-		st.Errors = remapFieldErrors(fe, pf.ExpenseType == domain.ExpenseCompraProdutos)
+		st.Errors = fe
 		h.renderForm(w, r, http.StatusUnprocessableEntity, st)
+	case errors.Is(err, services.ErrInvalidTransition):
+		h.conflict(w, r, st)
 	case isNotFound(err):
 		notFound(w, r)
 	case ruleKey(err) != "":
@@ -229,6 +200,29 @@ func (h *Handler) saveError(w http.ResponseWriter, r *http.Request, pf *parsedFo
 	default:
 		serverError(w, r, "save", err, "invoices.error.save_failed")
 	}
+}
+
+// conflict answers 409 when a concurrent request changed the invoice state (for
+// example registered the draft being edited): the invoice is reloaded from the
+// database and the form shows it with the conflict message.
+func (h *Handler) conflict(w http.ResponseWriter, r *http.Request, st formState) {
+	_, condo := actor(r)
+	if !st.Edit {
+		fail(w, r, http.StatusConflict, "invoices.error.conflict")
+		return
+	}
+	inv, err := h.deps.Invoices.Get(r.Context(), condo, st.ID)
+	if err != nil {
+		h.loadError(w, r, err)
+		return
+	}
+	if inv.State == domain.StateAnnulled {
+		fail(w, r, http.StatusConflict, "invoices.error.conflict")
+		return
+	}
+	fresh := h.editState(r, inv)
+	fresh.Message = tr(r, "invoices.error.conflict")
+	h.renderForm(w, r, http.StatusConflict, fresh)
 }
 
 // createPOST creates a draft or a registered invoice by the action field. The
@@ -244,7 +238,7 @@ func (h *Handler) createPOST(w http.ResponseWriter, r *http.Request) {
 	st := h.formErrorState(r, pf, nil)
 
 	if len(pf.Errors) > 0 {
-		st.Errors = remapFieldErrors(pf.Errors, pf.ExpenseType == domain.ExpenseCompraProdutos)
+		st.Errors = pf.Errors
 		h.renderForm(w, r, http.StatusUnprocessableEntity, st)
 		return
 	}
@@ -284,19 +278,24 @@ func (h *Handler) editGET(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, invoicePath(inv.ID), http.StatusSeeOther)
 		return
 	}
+	h.renderForm(w, r, http.StatusOK, h.editState(r, inv))
+}
+
+// editState is the edit form of a stored invoice.
+func (h *Handler) editState(r *http.Request, inv domain.Invoice) formState {
 	loc := locale(r)
 	lines := lineFormsFromInvoice(loc, inv)
 	if len(lines) == 0 {
 		lines = []templates.LineForm{blankLine()}
 	}
-	h.renderForm(w, r, http.StatusOK, formState{
+	return formState{
 		Edit: true, ID: inv.ID, State: inv.State,
 		Values:      valuesFromInvoice(loc, inv),
 		Lines:       lines,
 		Summary:     templates.SummaryData{Locale: loc, Totals: inv.Totals},
 		Payments:    inv.Payments,
 		Attachments: inv.Attachments,
-	})
+	}
 }
 
 func (h *Handler) loadError(w http.ResponseWriter, r *http.Request, err error) {
@@ -327,7 +326,7 @@ func (h *Handler) editPOST(w http.ResponseWriter, r *http.Request) {
 	st.Payments, st.Attachments = existing.Payments, existing.Attachments
 
 	if len(pf.Errors) > 0 {
-		st.Errors = remapFieldErrors(pf.Errors, pf.ExpenseType == domain.ExpenseCompraProdutos)
+		st.Errors = pf.Errors
 		h.renderForm(w, r, http.StatusUnprocessableEntity, st)
 		return
 	}
@@ -404,7 +403,7 @@ func (h *Handler) deletePOST(w http.ResponseWriter, r *http.Request) {
 	case isNotFound(err):
 		notFound(w, r)
 	case errors.Is(err, services.ErrNotDraft):
-		fail(w, r, http.StatusConflict, "invoices.error.save_failed")
+		fail(w, r, http.StatusConflict, "invoices.error.not_draft")
 	default:
 		serverError(w, r, "delete draft", err, "invoices.error.save_failed")
 	}

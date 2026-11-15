@@ -204,7 +204,7 @@ func parseLines(r *http.Request, locale i18n.Language, et domain.ExpenseType, re
 				if allowed := domain.AllowedRates(region); len(allowed) > 0 {
 					ln.RateBP = allowed[0]
 				}
-			} else if bp, err := strconv.Atoi(raw); err != nil {
+			} else if bp, err := strconv.Atoi(raw); err != nil || bp < 0 {
 				fail("rate", domain.KeyInvalid)
 			} else {
 				ln.RateBP = bp
@@ -315,30 +315,6 @@ func resetDisallowedRates(pf *parsedForm) {
 		}
 	}
 	fillLineTotals(pf)
-}
-
-// remapFieldErrors renames the domain's field keys to the names of the form
-// inputs: the quantity input is "qty", the discount of a product line is
-// reported by the domain as its base, and the supplier select is supplier_id.
-func remapFieldErrors(errs domain.FieldErrors, product bool) domain.FieldErrors {
-	out := domain.FieldErrors{}
-	for k, v := range errs {
-		switch {
-		case k == "supplier":
-			out["supplier_id"] = v
-		case strings.HasPrefix(k, "lines[") && strings.HasSuffix(k, "].quantity"):
-			out[strings.TrimSuffix(k, "quantity")+"qty"] = v
-		case product && strings.HasPrefix(k, "lines[") && strings.HasSuffix(k, "].base"):
-			out[strings.TrimSuffix(k, "base")+"discount"] = v
-		default:
-			out[k] = v
-		}
-	}
-	if k, ok := out["due_date"]; ok && k == domain.KeyDueBeforeIssue {
-		// The justification field is where the user fixes it.
-		out.Add("due_justification", k)
-	}
-	return out
 }
 
 // firstMessage returns the translated message of the first error, in key order.

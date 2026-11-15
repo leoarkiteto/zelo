@@ -20,8 +20,12 @@ func RegisterRoutes(mux *http.ServeMux, deps Deps) {
 	}
 	// Fragments are swapped into a page by htmx: an expired session must not
 	// swap the login page into the form.
+	// A denied role answers an empty 403, which htmx must not swap in.
+	hxGuard := middleware.RequireRoleHX(deps.Roles, deps.Audit, func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusForbidden)
+	}, syndicRoles...)
 	fragment := func(fn http.HandlerFunc) http.Handler {
-		return h.hxAwareSyndicOnly(fn)
+		return hxGuard(fn)
 	}
 
 	mux.Handle("GET /invoices", page(h.listGET))
@@ -47,31 +51,6 @@ func RegisterRoutes(mux *http.ServeMux, deps Deps) {
 	mux.Handle("GET /suppliers/{id}/edit", page(h.supplierEditGET))
 	mux.Handle("POST /suppliers/{id}/edit", page(h.supplierEditPOST))
 	mux.Handle("GET /suppliers/search", fragment(h.supplierSearchGET))
+	mux.Handle("GET /suppliers/{id}/selected", fragment(h.supplierSelectedGET))
 	mux.Handle("POST /suppliers/inline", fragment(h.supplierInlinePOST))
-}
-
-// hxAwareSyndicOnly guards the HTMX fragment routes. htmx v4 swaps every
-// response status except 204/304, so for HX requests an expired session answers
-// HX-Redirect to /login and a denied role an empty 403, instead of a 303 login
-// page or a plain-text body being swapped into the form. Plain requests keep
-// the standard chain.
-func (h *Handler) hxAwareSyndicOnly(next http.Handler) http.Handler {
-	standard := middleware.RequireAuth(
-		middleware.RequireRole(h.deps.Roles, h.deps.Audit, syndicRoles...)(next))
-	hxGuard := middleware.RequireRoleWith(h.deps.Roles, h.deps.Audit, middleware.RoleGuardResponders{
-		Unauthenticated: func(w http.ResponseWriter, r *http.Request) {
-			middleware.HXRedirect(w, "/login")
-		},
-		Denied: func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusForbidden)
-		},
-	}, syndicRoles...)(next)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Vary", "HX-Request")
-		if middleware.IsHX(r) {
-			hxGuard.ServeHTTP(w, r)
-			return
-		}
-		standard.ServeHTTP(w, r)
-	})
 }

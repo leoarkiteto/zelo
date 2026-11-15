@@ -150,6 +150,8 @@ func validateCommon(inv Invoice, errs FieldErrors) {
 	if inv.IssueDate != nil && inv.DueDate != nil {
 		if err := CheckDueDate(*inv.IssueDate, *inv.DueDate, inv.DueJustification); err != nil {
 			errs.Add("due_date", ErrorKey(err))
+			// The justification input is where the user fixes it.
+			errs.Add("due_justification", ErrorKey(err))
 		}
 	}
 }
@@ -187,7 +189,7 @@ func ValidateRegistration(inv Invoice) FieldErrors {
 		errs.Add("issue_date", KeyRequired)
 	}
 	if strings.TrimSpace(inv.SupplierID) == "" {
-		errs.Add("supplier", KeyRequired)
+		errs.Add("supplier_id", KeyRequired)
 	}
 	if strings.TrimSpace(inv.Description) == "" {
 		errs.Add("description", KeyRequired)

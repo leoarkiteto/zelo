@@ -14,6 +14,20 @@ type BodyLimitRule struct {
 	Bytes    int64
 }
 
+// DefaultBodyLimitBytes is the request body limit applied when no rule matches.
+const DefaultBodyLimitBytes int64 = 1 << 20
+
+// DefaultBodyLimitRules returns the application's per-route body limit
+// overrides (multipart uploads). It is the single definition shared by the
+// composition root and the integration harness.
+func DefaultBodyLimitRules() []BodyLimitRule {
+	return []BodyLimitRule{
+		{Method: http.MethodPost, Segments: []string{"finance"}, Bytes: 6 << 20},
+		{Method: http.MethodPost, Segments: []string{"finance", "*", "edit"}, Bytes: 6 << 20},
+		{Method: http.MethodPost, Segments: []string{"invoices", "*", "attachments"}, Bytes: 52 << 20},
+	}
+}
+
 // BodyLimit wraps r.Body with http.MaxBytesReader using the first matching
 // rule's limit, or defaultBytes. The CSRF middleware turns an exceeded limit
 // into a 413 response.

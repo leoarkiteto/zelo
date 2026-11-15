@@ -375,6 +375,114 @@ func TestSaveDraftRecordsCreated(t *testing.T) {
 	}
 }
 
+// brokenLineDrafts are drafts whose lines or withholding fail ComputeTotals.
+func brokenLineDrafts() map[string]domain.Invoice {
+	base := func() domain.Invoice {
+		return domain.Invoice{DocumentType: domain.DocumentFatura, ExpenseType: domain.ExpenseManutencao}
+	}
+	exempt := base()
+	exempt.Lines = []domain.Line{{BaseCents: 1000, Treatment: domain.TreatmentExempt}}
+	rate := base()
+	rate.Lines = []domain.Line{{BaseCents: 1000, Treatment: domain.TreatmentRate, RateBP: 1500}}
+	neg := base()
+	neg.Lines = []domain.Line{{BaseCents: -5, Treatment: domain.TreatmentRate, RateBP: 2300}}
+	withh := base()
+	withh.Lines = []domain.Line{{BaseCents: 1000, Treatment: domain.TreatmentRate, RateBP: 2300}}
+	withh.Totals.WithholdingCents = 999999
+	return map[string]domain.Invoice{"exempt": exempt, "rate": rate, "negative": neg, "withholding": withh}
+}
+
+func TestDraftWithInvalidLinesIsSavedWithZeroTotals(t *testing.T) {
+	for name, inv := range brokenLineDrafts() {
+		t.Run(name, func(t *testing.T) {
+			e := newEnv(t)
+			wantLines, wantWithh := inv.Lines, inv.Totals.WithholdingCents
+			if _, err := e.svc.SaveDraft(context.Background(), actor, condoA, inv); err != nil {
+				t.Fatalf("draft must save: %v", err)
+			}
+			got := e.repo.lastSaved
+			if got.State != domain.StateDraft {
+				t.Errorf("state = %s", got.State)
+			}
+			if got.Totals.TotalCents != 0 || got.Totals.PayableCents != 0 || got.Totals.VATCents != 0 || got.Totals.BaseCents != 0 {
+				t.Errorf("header totals must be 0: %+v", got.Totals)
+			}
+			if got.Totals.WithholdingCents != wantWithh {
+				t.Errorf("withholding = %d, want %d", got.Totals.WithholdingCents, wantWithh)
+			}
+			if len(got.Lines) != len(wantLines) || got.Lines[0] != wantLines[0] {
+				t.Errorf("lines must be stored as entered: %+v", got.Lines)
+			}
+
+			// The same content cannot be registered.
+			reg := inv
+			reg.Number, reg.IssueDate, reg.SupplierID = "FT 1", day(2026, 11, 1), "sup-a"
+			reg.Description, reg.Category = "x", domain.CategoryManutencao
+			_, err := e.svc.Register(context.Background(), actor, condoA, reg)
+			var fe domain.FieldErrors
+			if !errors.As(err, &fe) || len(fe) == 0 {
+				t.Fatalf("register must be rejected with field errors, got %v", err)
+			}
+		})
+	}
+}
+
+// I1 (follow-up): values the schema rejects are field errors even for drafts,
+// so they never reach the database as a 500.
+func TestDraftRejectsSchemaViolatingLines(t *testing.T) {
+	base := func() domain.Invoice {
+		return domain.Invoice{DocumentType: domain.DocumentFatura, ExpenseType: domain.ExpenseManutencao}
+	}
+	unknown := base()
+	unknown.Lines = []domain.Line{{BaseCents: 1000, Treatment: domain.VATTreatment("foo")}}
+	negRate := base()
+	negRate.Lines = []domain.Line{{BaseCents: 1000, Treatment: domain.TreatmentRate, RateBP: -100}}
+	cases := map[string]struct {
+		inv   domain.Invoice
+		field string
+	}{
+		"unknown treatment": {unknown, "lines[0].treatment"},
+		"negative rate":     {negRate, "lines[0].rate"},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			e := newEnv(t)
+			_, err := e.svc.SaveDraft(context.Background(), actor, condoA, tc.inv)
+			var fe domain.FieldErrors
+			if !errors.As(err, &fe) {
+				t.Fatalf("draft must be rejected with field errors, got %v", err)
+			}
+			if fe[tc.field] == "" {
+				t.Fatalf("missing error on %s: %v", tc.field, fe)
+			}
+			if e.repo.lastSaved.ID != "" || len(e.repo.lastSaved.Lines) != 0 {
+				t.Fatalf("nothing must be saved: %+v", e.repo.lastSaved)
+			}
+		})
+	}
+}
+
+func TestEditDraftWithInvalidLinesStaysDraft(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	res, _ := e.svc.SaveDraft(ctx, actor, condoA, domain.Invoice{DocumentType: domain.DocumentFatura, IdempotencyKey: "k"})
+	inv := brokenLineDrafts()["negative"]
+	if err := e.svc.Edit(ctx, actor, condoA, res.ID, inv, false); err != nil {
+		t.Fatalf("draft edit must save: %v", err)
+	}
+	if got := e.repo.invoices[res.ID]; got.State != domain.StateDraft || got.Totals.TotalCents != 0 || len(got.Lines) != 1 {
+		t.Errorf("stored = %+v", got)
+	}
+	// Editing a registered invoice keeps the full validation.
+	rid := e.registered(t)
+	bad := validInvoice()
+	bad.Lines = inv.Lines
+	var fe domain.FieldErrors
+	if err := e.svc.Edit(ctx, actor, condoA, rid, bad, false); !errors.As(err, &fe) {
+		t.Fatalf("registered edit must be validated, got %v", err)
+	}
+}
+
 func TestRegisterValidationErrors(t *testing.T) {
 	e := newEnv(t)
 	inv := validInvoice()
@@ -455,7 +563,7 @@ func TestForeignSupplierRejected(t *testing.T) {
 	inv.SupplierID = "sup-b" // belongs to condo B
 	_, err := e.svc.Register(context.Background(), actor, condoA, inv)
 	var fe domain.FieldErrors
-	if !errors.As(err, &fe) || fe["supplier"] != KeyUnknownSupplier {
+	if !errors.As(err, &fe) || fe["supplier_id"] != KeyUnknownSupplier {
 		t.Fatalf("want supplier field error, got %v", err)
 	}
 	if e.repo.saveCalls != 0 {
@@ -473,7 +581,7 @@ func TestInvalidReferenceFromRepositoryIsFieldError(t *testing.T) {
 	e.repo.saveErr = fmt.Errorf("save invoice: %w", repositories.ErrInvalidReference)
 	_, err := e.svc.Register(context.Background(), actor, condoA, validInvoice())
 	var fe domain.FieldErrors
-	if !errors.As(err, &fe) || fe["supplier"] == "" {
+	if !errors.As(err, &fe) || fe["supplier_id"] == "" {
 		t.Fatalf("got %v", err)
 	}
 }

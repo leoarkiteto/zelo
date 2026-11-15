@@ -770,6 +770,74 @@ func TestAttachmentsLimitAndLifecycle(t *testing.T) {
 	}
 }
 
+// A draft whose lines or withholding do not compute is stored as entered with
+// zero header totals (migration 0016); registered invoices keep the checks.
+func TestDraftWithUncomputableTotalsIsStored(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+
+	reg := f.newInvoice(t, 10000, 0)
+	f.save(t, reg)
+
+	draft := domain.Invoice{
+		CondominiumID: f.condo, State: domain.StateDraft, CreatedBy: f.user, UpdatedBy: f.user,
+		DocumentType: domain.DocumentFatura, FiscalRegion: domain.RegionContinental,
+		Lines: []domain.Line{
+			{Description: "isento sem codigo", BaseCents: 1000, Treatment: domain.TreatmentExempt},
+			{Description: "negativa", BaseCents: -5, Treatment: domain.TreatmentRate, RateBP: 2300},
+		},
+		Totals: domain.Totals{WithholdingCents: 99999},
+	}
+	id := f.save(t, draft)
+
+	got, err := f.invoices.GetInvoice(ctx, f.condo, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.State != domain.StateDraft || got.Totals.TotalCents != 0 || got.Totals.PayableCents != 0 ||
+		got.Totals.WithholdingCents != 99999 || len(got.Lines) != 2 {
+		t.Fatalf("stored draft = state %s totals %+v lines %d", got.State, got.Totals, len(got.Lines))
+	}
+	if got.Lines[1].BaseCents != -5 || got.Lines[0].ExemptionCode != "" {
+		t.Fatalf("lines not stored as entered: %+v", got.Lines)
+	}
+
+	// Updating the draft keeps working with an uncomputable withholding.
+	if err := f.invoices.UpdateInvoice(ctx, withID(draft, id)); err != nil {
+		t.Fatalf("update draft: %v", err)
+	}
+
+	// Totals of the list ignore drafts.
+	res, err := f.invoices.List(ctx, f.condo, domain.ListFilter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Totals.Count != 1 || res.Totals.TotalCents != reg.Totals.TotalCents || res.Totals.PayableCents != reg.Totals.PayableCents {
+		t.Fatalf("list totals must ignore the draft: %+v", res.Totals)
+	}
+
+	// A registered invoice still cannot break the checks.
+	bad := f.newInvoice(t, 10000, 0)
+	bad.Totals.WithholdingCents = bad.Totals.TotalCents + 1
+	bad.Totals.PayableCents = -1
+	if _, err := f.invoices.SaveInvoice(ctx, bad); err == nil {
+		t.Fatal("registered invoice with withholding above total accepted")
+	}
+	// Nor can a draft be registered with inconsistent totals.
+	promoted := withID(draft, id)
+	promoted.State = domain.StateRegistered
+	promoted.Number, promoted.IssueDate, promoted.SupplierID = "FT 9", date("2026-03-10"), f.supplier.ID
+	promoted.Description, promoted.Category = "d", domain.CategoryLimpeza
+	if err := f.invoices.UpdateInvoice(ctx, promoted); err == nil {
+		t.Fatal("registering with inconsistent totals accepted")
+	}
+}
+
+func withID(inv domain.Invoice, id string) domain.Invoice {
+	inv.ID = id
+	return inv
+}
+
 func TestSchemaConstraints(t *testing.T) {
 	f := newFixture(t)
 	ctx := context.Background()

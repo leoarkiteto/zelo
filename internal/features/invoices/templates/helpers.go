@@ -259,7 +259,14 @@ func supplierFormAction(d SupplierPageData) string {
 
 func removeVals(i int) string { return fmt.Sprintf(`{"op":"remove","index":"%d"}`, i) }
 
-func selectVals(id string) string { return fmt.Sprintf(`{"select":%q}`, id) }
+// supplierSelectedPath is the dedicated route returning the selected-supplier
+// fragment.
+func supplierSelectedPath(id string) string {
+	return "/suppliers/" + url.PathEscape(id) + "/selected"
+}
+
+// duplicateInvoicePath links to the existing invoice of a duplicate.
+func duplicateInvoicePath(id string) string { return "/invoices/" + url.PathEscape(id) }
 
 func humanSize(n int64) string {
 	switch {

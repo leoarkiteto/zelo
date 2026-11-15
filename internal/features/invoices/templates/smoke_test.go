@@ -292,6 +292,20 @@ func TestFieldErrorsRenderInline(t *testing.T) {
 	}
 }
 
+func TestFormRendersDuplicateLink(t *testing.T) {
+	d := formFixture(domain.ExpenseCompraProdutos)
+	if out := testutil.RenderToString(t, FormPage(d)); strings.Contains(out, "data-duplicate-link") {
+		t.Error("duplicate alert rendered without DuplicateID")
+	}
+	d.DuplicateID = `inv"<1>`
+	out := testutil.RenderToString(t, FormPage(d))
+	for _, want := range []string{`data-duplicate-link`, `href="/invoices/inv%22%3C1%3E"`, i18n.T(ptBR, "invoices.flash.duplicate_link")} {
+		if !strings.Contains(out, want) {
+			t.Errorf("duplicate alert missing %q", want)
+		}
+	}
+}
+
 func TestSummaryShowsVATBreakdownAndTotals(t *testing.T) {
 	out := testutil.RenderToString(t, SummaryFragment(formFixture(domain.ExpenseCompraProdutos).Summary))
 	for _, want := range []string{"Discriminação do IVA", "23 %", "R$ 20,00", "R$ 4,60", "R$ 24,60", "Valor a pagar", "Retenção na fonte"} {
@@ -392,10 +406,13 @@ func TestViewPageConditionalDetails(t *testing.T) {
 
 func TestSupplierFragments(t *testing.T) {
 	results := testutil.RenderToString(t, SupplierSearchResults(SupplierSearchData{Locale: ptBR, Query: "ele", Results: []domain.Supplier{{ID: "s1", Name: "Eletro Lda", NIF: "501964843"}}}))
-	for _, want := range []string{"Eletro Lda", "501964843", `hx-get="/suppliers/search"`, `hx-target="#supplier-selected"`, "s1"} {
+	for _, want := range []string{"Eletro Lda", "501964843", `hx-get="/suppliers/s1/selected"`, `hx-target="#supplier-selected"`, "s1"} {
 		if !strings.Contains(results, want) {
 			t.Errorf("search results missing %q", want)
 		}
+	}
+	if strings.Contains(results, "select=") || strings.Contains(results, "hx-vals") {
+		t.Error("search results must not use the select= mode")
 	}
 	if none := testutil.RenderToString(t, SupplierSearchResults(SupplierSearchData{Locale: ptBR})); !strings.Contains(none, "Nenhum fornecedor encontrado") {
 		t.Error("no-results text missing")

@@ -125,7 +125,7 @@ func TestNegativeBaseRejected(t *testing.T) {
 	// Discount larger than qty x price.
 	l := Line{QuantityMilli: 1000, UnitPriceCents: 100, DiscountCents: 101, Treatment: TreatmentRate, RateBP: 2300}
 	_, err = ComputeTotals(RegionContinental, []Line{l}, 0)
-	if !errors.As(err, &fe) || fe["lines[0].base"] != KeyNegativeBase {
+	if !errors.As(err, &fe) || fe["lines[0].discount"] != KeyNegativeBase {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -330,7 +330,7 @@ func TestProductQuantityMustBePositive(t *testing.T) {
 	l := Line{UnitPriceCents: 100, Treatment: TreatmentRate, RateBP: 2300}
 	_, err := ComputeTotals(RegionContinental, []Line{l}, 0)
 	var fe FieldErrors
-	if !errors.As(err, &fe) || fe["lines[0].quantity"] != KeyInvalidQuantity {
+	if !errors.As(err, &fe) || fe["lines[0].qty"] != KeyInvalidQuantity {
 		t.Fatalf("err = %v", err)
 	}
 }
@@ -384,7 +384,7 @@ func TestValidateDraftAndRegistration(t *testing.T) {
 	}
 
 	errs := ValidateRegistration(Invoice{DocumentType: DocumentFatura})
-	for _, f := range []string{"number", "issue_date", "supplier", "description", "category", "lines"} {
+	for _, f := range []string{"number", "issue_date", "supplier_id", "description", "category", "lines"} {
 		if errs[f] == "" {
 			t.Errorf("missing error for %s: %v", f, errs)
 		}
@@ -406,7 +406,7 @@ func TestValidateDraftAndRegistration(t *testing.T) {
 	inv.Lines = []Line{rateLine(1000, 2300)}
 	due := d(2026, 3, 1)
 	inv.DueDate = &due
-	if errs := ValidateRegistration(inv); errs["due_date"] != KeyDueBeforeIssue {
+	if errs := ValidateRegistration(inv); errs["due_date"] != KeyDueBeforeIssue || errs["due_justification"] != KeyDueBeforeIssue {
 		t.Errorf("due before issue: %v", errs)
 	}
 	inv.DueJustification = "acordo"
@@ -488,7 +488,7 @@ func TestLimits(t *testing.T) {
 	l := Line{QuantityMilli: 1 << 40, UnitPriceCents: 1 << 40, Treatment: TreatmentRate, RateBP: 2300}
 	_, err := ComputeTotals(RegionContinental, []Line{l}, 0)
 	var fe FieldErrors
-	if !errors.As(err, &fe) || fe["lines[0].base"] != KeyAmountTooLarge {
+	if !errors.As(err, &fe) || fe["lines[0].discount"] != KeyAmountTooLarge {
 		t.Fatalf("err = %v", err)
 	}
 	if _, err := ComputeTotals(RegionContinental, make([]Line, MaxLines+1), 0); err == nil {

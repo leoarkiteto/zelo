@@ -60,6 +60,6 @@ func (h *Handler) financeReceiptGET(w http.ResponseWriter, r *http.Request) {
 	}
 	defer f.Close()
 	w.Header().Set("Content-Disposition",
-		"attachment; filename=\""+uploads.SanitizeFilename(account.ReceiptName)+"\"")
+		"attachment; filename=\""+uploads.SanitizeFilename(account.ReceiptName, "receipt")+"\"")
 	http.ServeContent(w, r, account.ReceiptName, account.UpdatedAt, f)
 }

@@ -69,6 +69,9 @@ var (
 	ErrDuplicateInvoice = repositories.ErrDuplicateInvoice
 	// ErrNotDraft: the operation only applies to a draft.
 	ErrNotDraft = repositories.ErrNotDraft
+	// ErrInvalidTransition: the invoice changed state concurrently (for
+	// example a draft was registered by another request); maps to 409.
+	ErrInvalidTransition = repositories.ErrInvalidTransition
 	// ErrInvalidFile: an uploaded file is not a PDF, JPEG or PNG, or is too large.
 	ErrInvalidFile = errors.New("invalid attachment file")
 	// ErrNoFiles: an attachment upload carried no file.

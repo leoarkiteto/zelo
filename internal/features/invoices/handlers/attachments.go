@@ -70,7 +70,7 @@ func (h *Handler) attachmentGET(w http.ResponseWriter, r *http.Request) {
 	if ct == "" {
 		ct = "application/octet-stream"
 	}
-	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": uploads.SanitizeFilename(att.OriginalName)})
+	disposition := mime.FormatMediaType("attachment", map[string]string{"filename": uploads.SanitizeFilename(att.OriginalName, "attachment")})
 	if disposition == "" {
 		disposition = "attachment"
 	}

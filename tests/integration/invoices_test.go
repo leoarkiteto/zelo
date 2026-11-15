@@ -280,6 +280,69 @@ func TestInvoiceDraftLifecycle(t *testing.T) {
 	}
 }
 
+// AC-1: a draft whose lines or withholding are invalid still saves as a
+// rascunho (with zero totals); registering it is rejected with the errors
+// shown under the form input names.
+func TestInvoiceDraftWithInvalidLinesSavesAndRegisterRejected(t *testing.T) {
+	e := newInvEnv(t)
+	sup := e.newSupplier(t, e.syndic, e.condoA, "Invalid Draft Lda", validNIF("50000010"))
+
+	cases := []struct {
+		name   string
+		mod    func(*invOpts)
+		wantKy string
+	}{
+		{"exempt line without code", func(o *invOpts) { o.treatment = "exempt" }, domain.KeyExemptionCodeRequired},
+		{"withholding above total", func(o *invOpts) { o.withholding = "999999.00" }, domain.KeyWithholdingRange},
+	}
+	for i, c := range cases {
+		number := "INV DRAFT " + string(rune('A'+i))
+		draft := invoiceForm(sup, number, c.mod)
+		draft.Set("action", "draft")
+		r := e.post(t, e.syndic, "/invoices", draft)
+		if r.code != http.StatusSeeOther {
+			t.Fatalf("%s: draft = %d, want 303\n%s", c.name, r.code, r.body)
+		}
+		id := idFromLocation(t, r)
+		var state string
+		var total int64
+		if err := e.db.QueryRow(`SELECT state, total_cents FROM invoices WHERE id=$1`, id).Scan(&state, &total); err != nil {
+			t.Fatalf("%s: load draft: %v", c.name, err)
+		}
+		if state != "draft" || total != 0 {
+			t.Errorf("%s: state=%q total=%d, want draft with zero total", c.name, state, total)
+		}
+
+		reg := invoiceForm(sup, number, c.mod)
+		r = e.post(t, e.syndic, "/invoices/"+id+"/edit", reg)
+		if r.code != http.StatusUnprocessableEntity {
+			t.Fatalf("%s: register = %d, want 422\n%s", c.name, r.code, r.body)
+		}
+		mustContain(t, c.name, r.body, en(c.wantKy))
+		if err := e.db.QueryRow(`SELECT state FROM invoices WHERE id=$1`, id).Scan(&state); err != nil || state != "draft" {
+			t.Errorf("%s: state after rejected registration = %q (%v), want draft", c.name, state, err)
+		}
+	}
+
+	// Errors sit under the form input names: a missing supplier shows under
+	// supplier_id (not "supplier") and a product line's quantity under lines[i].qty.
+	r := e.post(t, e.syndic, "/invoices", url.Values{"action": {"register"}, "idempotency_key": {randomKey()}})
+	if r.code != http.StatusUnprocessableEntity {
+		t.Fatalf("empty registration = %d, want 422", r.code)
+	}
+	mustContain(t, "supplier_id error", r.body, en(domain.KeyRequired))
+	v := invoiceForm(sup, "INV QTY")
+	v.Set("expense_type", "compra_produtos")
+	v.Set("lines[0].qty", "0")
+	v.Set("lines[0].unit_price", "10.00")
+	v.Del("lines[0].base")
+	r = e.post(t, e.syndic, "/invoices", v)
+	if r.code != http.StatusUnprocessableEntity {
+		t.Fatalf("zero quantity = %d, want 422\n%s", r.code, r.body)
+	}
+	mustContain(t, "qty error", r.body, en(domain.KeyInvalidQuantity))
+}
+
 // AC-19: a duplicate (supplier, document type, number) is rejected with a link
 // to the existing invoice; another supplier or document type is accepted.
 func TestInvoiceDuplicateDetection(t *testing.T) {
@@ -293,7 +356,10 @@ func TestInvoiceDuplicateDetection(t *testing.T) {
 		if r.code != http.StatusUnprocessableEntity {
 			t.Fatalf("duplicate %q = %d, want 422", number, r.code)
 		}
-		mustContain(t, "duplicate response", r.body, "data-duplicate-link", `href="/invoices/`+first+`"`, en("invoices.flash.duplicate"))
+		// AC-6: the link to the existing invoice is rendered by the form template.
+		mustContain(t, "duplicate response", r.body, "data-duplicate-link", `href="/invoices/`+first+`"`, en("invoices.flash.duplicate"), en("invoices.flash.duplicate_link"))
+		alert := section(t, r.body, `data-duplicate-link`, `</p>`)
+		mustContain(t, "duplicate alert", alert, `href="/invoices/`+first+`"`)
 	}
 	if n := e.invoiceCount(t, e.condoA); n != 1 {
 		t.Fatalf("invoices after duplicates = %d, want 1", n)
@@ -449,17 +515,27 @@ func TestSupplierSearchSelectAndInlineCreate(t *testing.T) {
 	none := e.get(t, e.syndic, "/suppliers/search?q=zzzz", hx)
 	mustContain(t, "empty search", none.body, en("invoices.supplier.no_results"))
 
-	sel := e.get(t, e.syndic, "/suppliers/search?select="+alpha, hx)
+	// AC-11: selection goes through the dedicated route.
+	sel := e.get(t, e.syndic, "/suppliers/"+alpha+"/selected", hx)
+	if sel.code != http.StatusOK {
+		t.Fatalf("select own supplier = %d, want 200", sel.code)
+	}
 	mustContain(t, "selection", sel.body, `name="supplier_id" value="`+alpha+`"`, "Alpha Servicos Lda", alphaNIF)
 
-	// The other condominium's supplier id is not selectable.
+	// The other condominium's supplier id is not selectable: 404, nothing leaked.
 	var foreign string
 	if err := e.db.QueryRow(`SELECT id FROM suppliers WHERE condominium_id=$1`, e.condoB).Scan(&foreign); err != nil {
 		t.Fatalf("foreign supplier: %v", err)
 	}
-	fsel := e.get(t, e.syndic, "/suppliers/search?select="+foreign, hx)
-	mustNotContain(t, "foreign selection", fsel.body, foreign, "Alpha Concorrente", otherNIF)
-	mustContain(t, "foreign selection", fsel.body, `name="supplier_id" value=""`)
+	fsel := e.get(t, e.syndic, "/suppliers/"+foreign+"/selected", hx)
+	if fsel.code != http.StatusNotFound {
+		t.Fatalf("select foreign supplier = %d, want 404", fsel.code)
+	}
+	mustNotContain(t, "foreign selection", fsel.body, "Alpha Concorrente", otherNIF)
+
+	// The removed select= mode of the search no longer selects anything.
+	old := e.get(t, e.syndic, "/suppliers/search?select="+alpha, hx)
+	mustNotContain(t, "removed select mode", old.body, `name="supplier_id"`)
 
 	// Inline create: the supplier is stored and returned selected.
 	inlineNIF := validNIF("50000010")

@@ -60,19 +60,24 @@ func Format(lang i18n.Language, c Currency, cents int64) string {
 		num = group(whole, ",") + "." + fracS
 	}
 
-	switch c {
-	case EUR:
+	prefix, suffix := Affix(lang, c)
+	return sign + prefix + num + suffix
+}
+
+// Affix returns the currency symbol placement for lang: the text that goes
+// before and after the number. pt-PT EUR uses a trailing U+00A0 + "€".
+func Affix(lang i18n.Language, c Currency) (prefix, suffix string) {
+	if c == EUR {
 		switch lang {
 		case i18n.LanguagePTPT:
-			return sign + num + nbsp + "€"
+			return "", nbsp + "€"
 		case i18n.LanguagePTBR:
-			return sign + "€ " + num
+			return "€ ", ""
 		default:
-			return sign + "€" + num
+			return "€", ""
 		}
-	default:
-		return sign + "R$ " + num
 	}
+	return "R$ ", ""
 }
 
 func group(n uint64, sep string) string {

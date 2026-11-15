@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"mime/multipart"
 	"os"
@@ -87,15 +88,40 @@ func (s *InvoiceService) prepare(ctx context.Context, condoID string, inv domain
 		errs = domain.ValidateDraft(inv)
 	}
 	totals, terr := domain.ComputeTotals(inv.FiscalRegion, inv.Lines, inv.Totals.WithholdingCents)
-	if terr != nil && !addFieldErrors(errs, terr) {
-		return inv, terr
+	if terr != nil {
+		var fe domain.FieldErrors
+		switch {
+		case !errors.As(terr, &fe):
+			return inv, terr
+		case register:
+			addFieldErrors(errs, terr)
+		default:
+			// A draft is saved even when its lines or withholding do not
+			// compute: the lines stay as entered, the header totals are 0 and
+			// the withholding is kept as entered. Values the schema itself
+			// rejects (an unknown VAT treatment, a negative rate) are still
+			// field errors, so they never reach the database as a 500.
+			for k, v := range fe {
+				if v == domain.KeyUnknownTreatment {
+					errs.Add(k, v)
+				}
+			}
+			totals = domain.Totals{WithholdingCents: inv.Totals.WithholdingCents}
+		}
+	}
+	if !register {
+		for i, ln := range inv.Lines {
+			if ln.RateBP < 0 {
+				errs.Add(fmt.Sprintf("lines[%d].rate", i), domain.KeyRateNotAllowed)
+			}
+		}
 	}
 
 	if strings.TrimSpace(inv.SupplierID) != "" {
 		sup, err := s.Suppliers.GetSupplier(ctx, condoID, inv.SupplierID)
 		switch {
 		case errors.Is(err, repositories.ErrNotFound):
-			errs.Add("supplier", KeyUnknownSupplier)
+			errs.Add("supplier_id", KeyUnknownSupplier)
 		case err != nil:
 			return inv, err
 		default:
@@ -132,7 +158,7 @@ func mapSaveErr(err error) error {
 		return &DuplicateInvoiceError{ExistingID: dup.ExistingID}
 	}
 	if errors.Is(err, repositories.ErrInvalidReference) {
-		return domain.FieldErrors{"supplier": KeyUnknownSupplier}
+		return domain.FieldErrors{"supplier_id": KeyUnknownSupplier}
 	}
 	return err
 }

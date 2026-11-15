@@ -250,17 +250,8 @@ func compactMoney(ctx context.Context, locale i18n.Language, cents int64) string
 			}
 		}
 	}
-	if money.From(ctx) == money.EUR {
-		switch locale {
-		case i18n.LanguagePTPT:
-			return sign + num + suffix + " €"
-		case i18n.LanguagePTBR:
-			return sign + "€ " + num + suffix
-		default:
-			return sign + "€" + num + suffix
-		}
-	}
-	return sign + "R$ " + num + suffix
+	pre, post := money.Affix(locale, money.From(ctx))
+	return sign + pre + num + suffix + post
 }
 
 // trimDecimals keeps at most one decimal digit.

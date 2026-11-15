@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -40,11 +41,13 @@ func (f fakeUserLoader) GetUserByID(context.Context, string) (model.User, error)
 type fakeInvoices struct {
 	invoices map[string]domain.Invoice
 	saveErr  error
-	saveRes  services.SaveResult
-	saved    []domain.Invoice
-	register bool
-	attPath  string
-	att      domain.Attachment
+	// deleteErr is returned by DeleteDraft.
+	deleteErr error
+	saveRes   services.SaveResult
+	saved     []domain.Invoice
+	register  bool
+	attPath   string
+	att       domain.Attachment
 }
 
 func (f *fakeInvoices) SaveDraft(_ context.Context, _, _ string, inv domain.Invoice) (services.SaveResult, error) {
@@ -60,7 +63,7 @@ func (f *fakeInvoices) Register(_ context.Context, _, _ string, inv domain.Invoi
 func (f *fakeInvoices) Edit(context.Context, string, string, string, domain.Invoice, bool) error {
 	return f.saveErr
 }
-func (f *fakeInvoices) DeleteDraft(context.Context, string, string, string) error { return nil }
+func (f *fakeInvoices) DeleteDraft(context.Context, string, string, string) error { return f.deleteErr }
 func (f *fakeInvoices) Annul(context.Context, string, string, string, string) error {
 	return nil
 }
@@ -98,7 +101,10 @@ func (f *fakeInvoices) Preview(region domain.FiscalRegion, lines []domain.Line, 
 	return domain.ComputeTotals(region, lines, w)
 }
 
-type fakeSuppliers struct{ list map[string]domain.Supplier }
+type fakeSuppliers struct {
+	list      map[string]domain.Supplier
+	searchErr error
+}
 
 func (f *fakeSuppliers) Create(_ context.Context, _, _ string, in domain.Supplier) (domain.Supplier, error) {
 	if strings.TrimSpace(in.Name) == "" {
@@ -118,6 +124,9 @@ func (f *fakeSuppliers) Get(_ context.Context, condo, id string) (domain.Supplie
 	return s, nil
 }
 func (f *fakeSuppliers) Search(context.Context, string, string, int) ([]domain.Supplier, error) {
+	if f.searchErr != nil {
+		return nil, f.searchErr
+	}
 	var out []domain.Supplier
 	for _, s := range f.list {
 		out = append(out, s)
@@ -360,7 +369,7 @@ func TestCreateDuplicateShowsMessageAndLink(t *testing.T) {
 
 func TestCreateValidationErrorsAreInlineWith422(t *testing.T) {
 	h := newHarness()
-	h.inv.saveErr = domain.FieldErrors{"number": domain.KeyRequired, "lines[0].quantity": domain.KeyInvalidQuantity}
+	h.inv.saveErr = domain.FieldErrors{"number": domain.KeyRequired, "lines[0].qty": domain.KeyInvalidQuantity}
 	rec := do(h.syndic(), "POST", "/invoices", validForm(), false)
 	body := rec.Body.String()
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -370,7 +379,7 @@ func TestCreateValidationErrorsAreInlineWith422(t *testing.T) {
 	if !strings.Contains(body, msg) {
 		t.Fatal("missing the inline number error")
 	}
-	// The domain key "quantity" is shown at the "qty" input.
+	// The domain key is the name of the form input, "qty".
 	if !strings.Contains(body, i18n.T(i18n.LanguageEN, "invoices.error.invalid_quantity")) {
 		t.Fatal("missing the inline quantity error")
 	}
@@ -412,7 +421,7 @@ func TestFragmentsReturnNoFullPage(t *testing.T) {
 		{"POST", "/invoices/form/lines", url.Values{"op": {"add"}}},
 		{"POST", "/invoices/form/preview", url.Values{}},
 		{"GET", "/suppliers/search?q=acme", nil},
-		{"GET", "/suppliers/search?select=s1", nil},
+		{"GET", "/suppliers/s1/selected", nil},
 	}
 	for _, c := range cases {
 		rec := do(router, c.method, c.path, c.form, true)
@@ -496,12 +505,33 @@ func TestPreviewComputesOnServerAndToleratesBadInput(t *testing.T) {
 
 func TestSupplierSelectAndInline(t *testing.T) {
 	router := newHarness().syndic()
-	body := do(router, "GET", "/suppliers/search?select=s1", nil, true).Body.String()
+	body := do(router, "GET", "/suppliers/s1/selected", nil, true).Body.String()
 	if !strings.Contains(body, `name="supplier_id" value="s1"`) || !strings.Contains(body, "ACME Lda") {
 		t.Fatalf("selected fragment = %s", body)
 	}
-	if body := do(router, "GET", "/suppliers/search?select=s-other", nil, true).Body.String(); !strings.Contains(body, `name="supplier_id" value=""`) {
-		t.Fatal("an unknown supplier must not be selected")
+	rec404 := do(router, "GET", "/suppliers/s-other/selected", nil, true)
+	if rec404.Code != http.StatusNotFound {
+		t.Fatalf("a supplier of another condominium = %d, want 404", rec404.Code)
+	}
+	// HX gets the fragment with the supplier message, not a full error page.
+	if b := rec404.Body.String(); !strings.Contains(b, i18n.T(i18n.LanguageEN, "suppliers.error.not_found")) ||
+		!strings.Contains(b, `name="supplier_id" value=""`) || strings.Contains(b, "<html") {
+		t.Fatalf("HX 404 body = %s", b)
+	}
+	if rec := do(router, "GET", "/suppliers/s-other/selected", nil, false); rec.Code != http.StatusNotFound ||
+		!strings.Contains(rec.Body.String(), "<html") {
+		t.Fatalf("plain 404 = %d, want the full error page", rec.Code)
+	}
+	if rec := do(router, "GET", "/suppliers/s1/selected?x=1", nil, false); rec.Code != http.StatusOK {
+		t.Fatalf("plain request = %d, want 200", rec.Code)
+	}
+	member := newHarness().router([]model.Role{model.RoleOwner})
+	if rec := do(member, "GET", "/suppliers/s1/selected", nil, true); rec.Code != http.StatusForbidden || rec.Body.Len() != 0 {
+		t.Fatalf("member HX = %d (%q), want an empty 403", rec.Code, rec.Body.String())
+	}
+	// The select= mode of the search is gone: it renders nothing without q.
+	if body := do(router, "GET", "/suppliers/search?select=s1", nil, true).Body.String(); strings.Contains(body, "ACME") {
+		t.Fatalf("select= must not select a supplier: %s", body)
 	}
 
 	rec := do(router, "POST", "/suppliers/inline", url.Values{"supplier_name": {"Novo"}, "supplier_nif": {"501964843"}}, true)
@@ -541,6 +571,78 @@ func TestAttachmentDownloadHeaders(t *testing.T) {
 	}
 }
 
+func TestUnnamedAttachmentDownloadsAsAttachment(t *testing.T) {
+	h := newHarness()
+	path := filepath.Join(t.TempDir(), "stored")
+	if err := os.WriteFile(path, []byte("data"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	h.inv.attPath = path
+	h.inv.att = domain.Attachment{ID: "a1", OriginalName: "", ContentType: "application/pdf"}
+	rec := do(h.syndic(), "GET", "/invoices/i1/attachments/a1", nil, false)
+	if cd := rec.Header().Get("Content-Disposition"); rec.Code != http.StatusOK || cd != `attachment; filename=attachment` {
+		t.Fatalf("status %d, Content-Disposition = %q, want the neutral name", rec.Code, cd)
+	}
+}
+
+func TestDeleteNonDraftIs409WithNotDraftMessage(t *testing.T) {
+	h := newHarness()
+	h.inv.deleteErr = services.ErrNotDraft
+	rec := do(h.syndic(), "POST", "/invoices/i1/delete", url.Values{}, false)
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), i18n.T(i18n.LanguageEN, "invoices.error.not_draft")) {
+		t.Fatalf("delete non-draft = %d, want 409 with the not_draft message", rec.Code)
+	}
+}
+
+func TestEditConcurrentTransitionIs409WithConflictMessage(t *testing.T) {
+	h := newHarness()
+	h.inv.saveErr = services.ErrInvalidTransition
+	rec := do(h.syndic(), "POST", "/invoices/i1/edit", validForm(), false)
+	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), i18n.T(i18n.LanguageEN, "invoices.error.conflict")) {
+		t.Fatalf("conflict = %d, want 409 with the conflict message", rec.Code)
+	}
+	// The invoice is reloaded: the form shows the stored number, not the posted one.
+	if !strings.Contains(rec.Body.String(), `value="FT 1"`) {
+		t.Fatal("the stored invoice should be reloaded into the form")
+	}
+}
+
+type captureHandler struct{ records *[]slog.Record }
+
+func (captureHandler) Enabled(context.Context, slog.Level) bool { return true }
+func (c captureHandler) Handle(_ context.Context, r slog.Record) error {
+	*c.records = append(*c.records, r)
+	return nil
+}
+func (c captureHandler) WithAttrs([]slog.Attr) slog.Handler { return c }
+func (c captureHandler) WithGroup(string) slog.Handler      { return c }
+
+func TestSupplierSearchErrorIsLoggedAndRendersEmpty(t *testing.T) {
+	var records []slog.Record
+	prev := slog.Default()
+	slog.SetDefault(slog.New(captureHandler{records: &records}))
+	defer slog.SetDefault(prev)
+
+	h := newHarness()
+	h.sup.searchErr = errors.New("db down")
+	rec := do(h.syndic(), "GET", "/suppliers/search?q=acme", nil, true)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("search = %d, want 200", rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), "ACME") {
+		t.Fatal("no results expected")
+	}
+	logged := false
+	for _, r := range records {
+		if r.Level == slog.LevelError && strings.Contains(r.Message, "supplier search") {
+			logged = true
+		}
+	}
+	if !logged {
+		t.Fatalf("the search error was not logged: %v", records)
+	}
+}
+
 func TestUploadWithoutFilesMapsToNoFilesMessage(t *testing.T) {
 	h := newHarness()
 	var body strings.Builder
@@ -574,18 +676,7 @@ func (u *uploadErrInvoices) AddAttachments(context.Context, string, string, stri
 
 // --- helpers ---
 
-func TestRemapAndFormatting(t *testing.T) {
-	got := remapFieldErrors(domain.FieldErrors{
-		"supplier": "k1", "lines[1].quantity": "k2", "lines[0].base": "k3", "due_date": domain.KeyDueBeforeIssue,
-	}, true)
-	for k, want := range map[string]string{
-		"supplier_id": "k1", "lines[1].qty": "k2", "lines[0].discount": "k3",
-		"due_date": domain.KeyDueBeforeIssue, "due_justification": domain.KeyDueBeforeIssue,
-	} {
-		if got[k] != want {
-			t.Errorf("remap[%q] = %q, want %q", k, got[k], want)
-		}
-	}
+func TestFormatting(t *testing.T) {
 	if s := centsText(i18n.LanguagePTBR, 123456, false); s != "1234,56" {
 		t.Errorf("centsText pt = %q", s)
 	}

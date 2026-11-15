@@ -237,11 +237,7 @@ func composeApp(t *testing.T, db *sql.DB, redisClient *redis.Client) http.Handle
 	root = middleware.WithCurrency(condominiums)(root)
 	root = middleware.WithUser(sessMgr, users)(root)
 	root = middleware.CSRF(sessMgr)(root)
-	root = middleware.BodyLimit(1<<20, []middleware.BodyLimitRule{
-		{Method: http.MethodPost, Segments: []string{"finance"}, Bytes: 6 << 20},
-		{Method: http.MethodPost, Segments: []string{"finance", "*", "edit"}, Bytes: 6 << 20},
-		{Method: http.MethodPost, Segments: []string{"invoices", "*", "attachments"}, Bytes: 52 << 20},
-	})(root)
+	root = middleware.BodyLimit(middleware.DefaultBodyLimitBytes, middleware.DefaultBodyLimitRules())(root)
 	return root
 }
 
