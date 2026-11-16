@@ -30,7 +30,10 @@ Status colors use the Tailwind defaults: `green` (approved/used/success),
 - **App shell** — `web/templates/layout.templ`: dark slate topbar (brand, user
   identity, sign out) + light gray sidebar with a "MAIN NAVIGATIONS" group.
   The sidebar is a CSS-only drawer on mobile (`#nav-toggle` checkbox +
-  `peer-checked:` — no JavaScript).
+  `peer-checked:` — no JavaScript). Related entries are grouped into
+  collapsible submenus (native `<details>/<summary>`, no JavaScript); the
+  group holding the current page renders open. A group with a single visible
+  entry is shown as a plain link.
 - **Auth pages** — `AuthShell` in `web/templates/auth.templ`: centered card
   with brand mark; used by login, register, forgot/reset password.
 - **Content area** — centered `max-w-6xl` container; pages compose header +
@@ -48,6 +51,7 @@ Status colors use the Tailwind defaults: `green` (approved/used/success),
 | `.alert`, `.alert-success`, `.alert-error`, `.alert-info` | Flash / error banners |
 | `.table-wrap`, `.table` | Data tables: header on `chrome-50`, row hover, dividers |
 | `.topbar`, `.sidebar`, `.nav-group`, `.nav-link`, `.nav-link-active` | App shell chrome |
+| `.nav-details`, `.nav-summary`, `.nav-summary-active`, `.nav-sublist` | Collapsible sidebar submenu (group toggle + indented child links) |
 | `.breadcrumb` | Secondary navigation (area pages) |
 | `.quick-card`, `.quick-card-icon` | Dashboard quick-action cards |
 | `.empty-state`, `.empty-state-title`, `.empty-state-copy` | Empty collections |

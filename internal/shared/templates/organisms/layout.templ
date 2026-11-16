@@ -8,11 +8,14 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 )
 
-// NavItem is a single sidebar navigation entry.
+// NavItem is a sidebar navigation entry. An item with Children is a
+// collapsible group: it has no Path of its own, and Active reports whether
+// any child is the current page (the group then renders open).
 type NavItem struct {
-	Label  string
-	Path   string
-	Active bool
+	Label    string
+	Path     string
+	Active   bool
+	Children []NavItem
 }
 
 // UserView is the signed-in user's identity shown in the topbar.
@@ -94,7 +97,11 @@ templ Shell(shell *ShellData, body templ.Component) {
 					<ul class="mx-2 space-y-1">
 						for _, item := range shell.Nav {
 							<li>
-								<a class={ "nav-link", templ.KV("nav-link-active", item.Active) } href={ item.Path }>{ item.Label }</a>
+								if len(item.Children) > 0 {
+									@navGroup(item)
+								} else {
+									@navLink(item)
+								}
 							</li>
 						}
 					</ul>
@@ -108,4 +115,32 @@ templ Shell(shell *ShellData, body templ.Component) {
 			</main>
 		</div>
 	</div>
+}
+
+templ navLink(item NavItem) {
+	<a
+		class={ "nav-link", templ.KV("nav-link-active", item.Active) }
+		href={ item.Path }
+		if item.Active {
+			aria-current="page"
+		}
+	>{ item.Label }</a>
+}
+
+// navGroup renders a collapsible submenu with native <details>, so it needs no
+// JavaScript; the group holding the current page starts open.
+templ navGroup(item NavItem) {
+	<details class="nav-details group" open?={ item.Active }>
+		<summary class={ "nav-link", "nav-summary", templ.KV("nav-summary-active", item.Active) }>
+			<span class="flex-1">{ item.Label }</span>
+			@atoms.Icon(atoms.IconProps{Kind: atoms.IconKindChevronLeft, Class: "text-lg -rotate-90 transition-transform group-open:rotate-90"})
+		</summary>
+		<ul class="nav-sublist">
+			for _, child := range item.Children {
+				<li>
+					@navLink(child)
+				</li>
+			}
+		</ul>
+	</details>
 }

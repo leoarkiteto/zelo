@@ -182,6 +182,19 @@
   .nav-link-active {
     @apply bg-white font-semibold text-steel-600 shadow-sm;
   }
+  /* Collapsible nav group (<details>/<summary>, no JS) */
+  .nav-summary {
+    @apply cursor-pointer list-none select-none;
+  }
+  .nav-summary::-webkit-details-marker {
+    display: none;
+  }
+  .nav-summary-active {
+    @apply text-steel-600;
+  }
+  .nav-sublist {
+    @apply mt-1 ml-3 space-y-1 border-l border-chrome-200 pl-2;
+  }
 
   /* ---------- Breadcrumb ---------- */
   .breadcrumb {
