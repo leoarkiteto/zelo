@@ -72,6 +72,7 @@ func NavFor(roles []model.Role, active string, locale i18n.Language) []organisms
 			organisms.NavItem{Label: i18n.T(locale, "nav.tickets.inbox"), Path: "/tickets/inbox"},
 			organisms.NavItem{Label: i18n.T(locale, "nav.management"), Path: "/condominium"},
 			organisms.NavItem{Label: i18n.T(locale, "nav.condominium_settings"), Path: "/condominium/settings"},
+			organisms.NavItem{Label: i18n.T(locale, "nav.units"), Path: "/condominium/units"},
 			organisms.NavItem{Label: i18n.T(locale, "nav.invitations"), Path: "/invitations"},
 			organisms.NavItem{Label: i18n.T(locale, "nav.roles"), Path: "/roles"},
 		)

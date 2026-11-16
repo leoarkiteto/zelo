@@ -195,6 +195,7 @@ func main() {
 		Quotas: &financeservices.QuotaService{
 			Store:       quotaStore,
 			Occupancies: units,
+			Units:       units,
 			Audit:       audit,
 			Currency:    condominiums.GetCurrency,
 			Now:         time.Now,

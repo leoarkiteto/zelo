@@ -201,11 +201,9 @@ type Viewer struct {
 // StatementRow is a receivable of a unit.
 type StatementRow struct {
 	Account domain.FinancialAccount
-	// IsQuota is true for a quota; PeriodLabel is then the machine period label
-	// and Period the metadata the views localise.
-	IsQuota     bool
-	PeriodLabel string
-	Period      domain.QuotaPeriod
+	// IsQuota is true for a quota; Period is then the metadata the views localise.
+	IsQuota bool
+	Period  domain.QuotaPeriod
 }
 
 // Statement is the Conta corrente of one unit (FR-18..20).
@@ -234,7 +232,6 @@ type ReceiptRow struct {
 	Status          domain.AccountStatus
 	SettlementDate  *time.Time
 	IsQuota         bool
-	PeriodLabel     string
 	Period          domain.QuotaPeriod
 	BaseCents       int64
 	ReserveCents    int64
@@ -277,7 +274,6 @@ type SyndicCard struct {
 	HasBudget   bool
 	BudgetID    string
 	PeriodIndex int
-	PeriodLabel string
 	// Period is the current period (year, periodicity, index) to localise.
 	Period domain.QuotaPeriod
 	// Issued is true when the current period has an active issuance.
@@ -297,10 +293,25 @@ type CardData struct {
 type QuotaService struct {
 	Store       QuotaStore
 	Occupancies OccupancyLister
-	Audit       AuditRecorder
+	// Units reads the unit shares outside a lock (previews, unit selectors).
+	Units UnitStore
+	Audit AuditRecorder
 	// Currency resolves the condominium currency (EUR/BRL reserve default).
 	Currency func(ctx context.Context, condoID string) (money.Currency, error)
 	Now      func() time.Time
+}
+
+// unitShares lists the condominium's units with their current shares, by code.
+func (s *QuotaService) unitShares(ctx context.Context, condoID string) ([]domain.ShareInput, error) {
+	units, err := s.Units.ListUnitsForCondominium(ctx, condoID)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]domain.ShareInput, 0, len(units))
+	for _, u := range units {
+		out = append(out, domain.ShareInput{UnitID: u.ID, Code: u.Code, SharePPM: u.SharePPM})
+	}
+	return out, nil
 }
 
 func (s *QuotaService) now() time.Time {
@@ -511,7 +522,7 @@ func (s *QuotaService) GetBudget(ctx context.Context, condoID, id string) (Budge
 		return BudgetDetail{}, err
 	}
 	d.TotalCents = sumLines(d.Lines)
-	shares, err := s.Store.UnitShares(ctx, condoID)
+	shares, err := s.unitShares(ctx, condoID)
 	if err != nil {
 		return BudgetDetail{}, err
 	}
@@ -597,7 +608,7 @@ func (s *QuotaService) PreviewIssuance(ctx context.Context, condoID, budgetID st
 	if err != nil {
 		return IssuancePreview{}, err
 	}
-	shares, err := s.Store.UnitShares(ctx, condoID)
+	shares, err := s.unitShares(ctx, condoID)
 	if err != nil {
 		return IssuancePreview{}, err
 	}
@@ -716,7 +727,7 @@ func (s *QuotaService) Statement(ctx context.Context, viewer Viewer, condoID, un
 	var st Statement
 	var startedAt time.Time
 	if viewer.IsSyndic {
-		shares, err := s.Store.UnitShares(ctx, condoID)
+		shares, err := s.unitShares(ctx, condoID)
 		if err != nil {
 			return st, err
 		}
@@ -876,7 +887,6 @@ func (s *QuotaService) Card(ctx context.Context, viewer Viewer, condoID string, 
 			b := rows.Budget
 			sc.HasBudget, sc.BudgetID = true, b.ID
 			sc.PeriodIndex = periodIndexOf(b.Periodicity, today)
-			sc.PeriodLabel = domain.PeriodLabel(b.Year, b.Periodicity, sc.PeriodIndex)
 			sc.Period = domain.QuotaPeriod{Year: b.Year, Periodicity: b.Periodicity, Index: sc.PeriodIndex}
 			iss, ok, err := s.Store.ActiveIssuanceFor(ctx, condoID, b.ID, sc.PeriodIndex)
 			if err != nil {

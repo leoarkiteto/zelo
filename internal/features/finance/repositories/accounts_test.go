@@ -156,7 +156,7 @@ func TestAccountStoreListFiltersOverdue(t *testing.T) {
 	}
 }
 
-func TestAccountStorePendingForUnitAndSummary(t *testing.T) {
+func TestAccountStoreSummary(t *testing.T) {
 	db := openFinanceTestDB(t)
 	ctx := context.Background()
 	condoID, unitID, userID := seedFinanceFixture(t, db)
@@ -173,15 +173,6 @@ func TestAccountStorePendingForUnitAndSummary(t *testing.T) {
 	}
 	if _, err := store.Create(ctx, baseAccount(condoID, userID)); err != nil {
 		t.Fatalf("create payable: %v", err)
-	}
-
-	// Resident pendências: only the unit's pending receivable (FR-016).
-	charges, err := store.ListPendingForUnit(ctx, condoID, unitID)
-	if err != nil {
-		t.Fatalf("ListPendingForUnit() = %v", err)
-	}
-	if len(charges) != 1 || charges[0].Title != "Cota setembro" {
-		t.Fatalf("unit charges = %+v", charges)
 	}
 
 	// Summary for the due month (R5): 50000 receivable vs 35000 payable.

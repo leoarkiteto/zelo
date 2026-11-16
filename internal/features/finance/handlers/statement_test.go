@@ -66,7 +66,7 @@ func sampleStatement() services.Statement {
 		Unit:  model.Unit{ID: "un1", Code: "101"},
 		Units: []model.Unit{{ID: "un1", Code: "101"}, {ID: "un2", Code: "102"}},
 		Pending: []services.StatementRow{
-			{Account: domain.FinancialAccount{ID: "p1", Title: "Overdue fee", AmountCents: 35000, DueDate: time.Now().Add(-30 * day), Status: domain.StatusPending}, IsQuota: true, PeriodLabel: "2026-08",
+			{Account: domain.FinancialAccount{ID: "p1", Title: "Overdue fee", AmountCents: 35000, DueDate: time.Now().Add(-30 * day), Status: domain.StatusPending}, IsQuota: true,
 				Period: domain.QuotaPeriod{Year: 2026, Periodicity: domain.PeriodicityMonthly, Index: 8, UnitCode: "101"}},
 			{Account: domain.FinancialAccount{ID: "p2", Title: "Future fee", AmountCents: 35000, DueDate: time.Now().Add(30 * day), Status: domain.StatusPending}},
 		},
@@ -158,7 +158,7 @@ func TestReciboContentForQuota(t *testing.T) {
 		ReceiptRow: services.ReceiptRow{
 			AccountID: "s1", CondominiumName: "Sunrise Court", Currency: money.EUR, UnitID: "un1", UnitCode: "101",
 			Title: "Quota 2026-08 101", AmountCents: 35000, Status: domain.StatusSettled, SettlementDate: &settled,
-			IsQuota: true, PeriodLabel: "2026-08", BaseCents: 31000, ReserveCents: 4000,
+			IsQuota: true, BaseCents: 31000, ReserveCents: 4000,
 			Period: domain.QuotaPeriod{Year: 2026, Periodicity: domain.PeriodicityMonthly, Index: 8, UnitCode: "101"},
 		},
 		Number: "AB12CD34",
@@ -271,8 +271,8 @@ func TestQuotasCardSyndicVariants(t *testing.T) {
 		card *services.SyndicCard
 		want []string
 	}{
-		{"not issued", &services.SyndicCard{HasBudget: true, BudgetID: "b1", PeriodIndex: 11, PeriodLabel: "2026-11", Period: nov2026}, []string{"November 2026 — Not issued", "/finance/budgets/b1/issuances/11/preview"}},
-		{"issued", &services.SyndicCard{HasBudget: true, BudgetID: "b1", PeriodIndex: 11, PeriodLabel: "2026-11", Period: nov2026, Issued: true, ChargeCount: 10, SettledCount: 4}, []string{"November 2026 — Issued: 4 of 10 settled"}},
+		{"not issued", &services.SyndicCard{HasBudget: true, BudgetID: "b1", PeriodIndex: 11, Period: nov2026}, []string{"November 2026 — Not issued", "/finance/budgets/b1/issuances/11/preview"}},
+		{"issued", &services.SyndicCard{HasBudget: true, BudgetID: "b1", PeriodIndex: 11, Period: nov2026, Issued: true, ChargeCount: 10, SettledCount: 4}, []string{"November 2026 — Issued: 4 of 10 settled"}},
 		{"no budget", &services.SyndicCard{}, []string{"No approved budget", "/finance/budgets"}},
 	} {
 		router, _ := residentRouter(&fakeResidentQuotas{card: services.CardData{Syndic: tt.card}}, model.RoleSyndic)
@@ -384,13 +384,13 @@ func TestQuotaTitleAndPeriodPerLocale(t *testing.T) {
 		fq := &fakeResidentQuotas{
 			statement: services.Statement{
 				Unit: model.Unit{ID: "un1", Code: "A"}, Units: []model.Unit{{ID: "un1", Code: "A"}},
-				Settled: []services.StatementRow{{Account: domain.FinancialAccount{ID: "s1", Title: "Quota 2026-T2 A", AmountCents: 100, DueDate: settled, SettlementDate: &settled, Status: domain.StatusSettled}, IsQuota: true, PeriodLabel: "2026-T2", Period: q2}},
+				Settled: []services.StatementRow{{Account: domain.FinancialAccount{ID: "s1", Title: "Quota 2026-T2 A", AmountCents: 100, DueDate: settled, SettlementDate: &settled, Status: domain.StatusSettled}, IsQuota: true, Period: q2}},
 			},
 			receipt: services.ReceiptData{ReceiptRow: services.ReceiptRow{
 				AccountID: "s1", Currency: money.EUR, UnitCode: "A", Title: "Quota 2026-T2 A", AmountCents: 100, Status: domain.StatusSettled,
-				SettlementDate: &settled, IsQuota: true, PeriodLabel: "2026-T2", Period: q2,
+				SettlementDate: &settled, IsQuota: true, Period: q2,
 			}},
-			card: services.CardData{Syndic: &services.SyndicCard{HasBudget: true, BudgetID: "b1", PeriodIndex: 12, PeriodLabel: "2026-12", Period: dec}},
+			card: services.CardData{Syndic: &services.SyndicCard{HasBudget: true, BudgetID: "b1", PeriodIndex: 12, Period: dec}},
 		}
 		deps := baseDeps(&fakeFinance{
 			list:     []domain.FinancialAccount{{ID: "q1", Type: domain.AccountTypeReceivable, Title: "Quota 2026-T2 A", Category: domain.CategoryCondoFee, AmountCents: 100, DueDate: settled, Status: domain.StatusPending}},
@@ -417,6 +417,63 @@ func TestQuotaTitleAndPeriodPerLocale(t *testing.T) {
 					t.Errorf("%s/%s: shows %q", tt.lang, name, absent)
 				}
 			}
+		}
+	}
+}
+
+// TestSettlePageShowsLocalisedQuotaTitle covers I9: the generic settle page
+// shows the localised quota title; other receivables keep the stored title.
+func TestSettlePageShowsLocalisedQuotaTitle(t *testing.T) {
+	due := time.Date(2026, 6, 10, 0, 0, 0, 0, time.UTC)
+	for _, tt := range []struct{ lang, want string }{
+		{"pt-br", "Taxa condominial 2º trimestre de 2026 — Unidade A"},
+		{"en", "Condo fee Q2 2026 — Unit A"},
+	} {
+		user, sess := syndicSession()
+		user.LanguagePreference = tt.lang
+		acc := func(id, title string) domain.FinancialAccount {
+			return domain.FinancialAccount{ID: id, CondominiumID: "c1", Type: domain.AccountTypeReceivable, Title: title, AmountCents: 100, DueDate: due, Status: domain.StatusPending}
+		}
+		fin := &fakeFinance{
+			list:     []domain.FinancialAccount{acc("q1", "Quota 2026-T2 A"), acc("o1", "Rent hall")},
+			quotaIDs: map[string]bool{"q1": true},
+		}
+		for id, c := range map[string]struct {
+			title string
+			want  bool
+		}{
+			"q1": {"Quota 2026-T2 A", true},
+			"o1": {"Rent hall", false},
+		} {
+			deps := baseDeps(fin)
+			deps.Quotas = &fakeResidentQuotas{}
+			deps.Accounts = &fakeAccountReader{account: acc(id, c.title)}
+			rec := get(financeRouter(user, sess, deps), "/finance/"+id+"/settle", false)
+			body := rec.Body.String()
+			if rec.Code != http.StatusOK {
+				t.Fatalf("%s/%s: code=%d", tt.lang, id, rec.Code)
+			}
+			if c.want {
+				if !strings.Contains(body, tt.want) || strings.Contains(body, "Quota 2026-T2 A") {
+					t.Errorf("%s/%s: want localised title %q only", tt.lang, id, tt.want)
+				}
+			} else if !strings.Contains(body, "Rent hall") {
+				t.Errorf("%s/%s: stored title missing", tt.lang, id)
+			}
+		}
+	}
+}
+
+// TestQuotaRoutesAbsentWithoutQuotas covers I6: with nil Quotas none of the
+// quota-dependent routes is registered.
+func TestQuotaRoutesAbsentWithoutQuotas(t *testing.T) {
+	user, sess := syndicSession()
+	router := financeRouter(user, sess, baseDeps(&fakeFinance{}))
+	for _, target := range []string{
+		"/finance/budgets", "/finance/my-charges", "/finance/a1/recibo", "/finance/quotas/card",
+	} {
+		if rec := get(router, target, true); rec.Code != http.StatusNotFound {
+			t.Errorf("GET %s with nil Quotas = %d, want 404", target, rec.Code)
 		}
 	}
 }

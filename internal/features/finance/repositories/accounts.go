@@ -182,23 +182,6 @@ func (s *AccountStore) List(ctx context.Context, condominiumID string, f service
 	return scanAccounts(rows)
 }
 
-// ListPendingForUnit returns the resident's pending receivables (FR-016).
-func (s *AccountStore) ListPendingForUnit(ctx context.Context, condominiumID, unitID string) ([]domain.FinancialAccount, error) {
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, condominium_id, account_type, title, category, amount_cents,
-			due_date, status, settlement_date, supplier_payee, receipt_path,
-			receipt_name, unit_id, payment_code, created_by, created_at, updated_at
-		FROM finance_accounts
-		WHERE condominium_id = $1 AND unit_id = $2 AND account_type = 'receivable'
-			AND status = 'pending'
-		ORDER BY due_date, title`, condominiumID, unitID)
-	if err != nil {
-		return nil, fmt.Errorf("list pending for unit: %w", err)
-	}
-	defer rows.Close()
-	return scanAccounts(rows)
-}
-
 // SummaryForMonth computes the monthly dashboard projection (research.md R5).
 func (s *AccountStore) SummaryForMonth(ctx context.Context, condominiumID string, month time.Time) (services.MonthSummary, error) {
 	start := month

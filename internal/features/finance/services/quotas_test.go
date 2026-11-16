@@ -306,8 +306,13 @@ func (f *fakeQuotaStore) CardData(context.Context, string, []string, time.Time) 
 	return f.card, nil
 }
 
-func (f *fakeQuotaStore) UnitShares(context.Context, string) ([]domain.ShareInput, error) {
-	return f.units, nil
+// ListUnitsForCondominium makes the fake store double as the shared UnitStore.
+func (f *fakeQuotaStore) ListUnitsForCondominium(_ context.Context, condoID string) ([]model.Unit, error) {
+	var out []model.Unit
+	for _, u := range f.units {
+		out = append(out, model.Unit{ID: u.UnitID, CondominiumID: condoID, Code: u.Code, SharePPM: u.SharePPM})
+	}
+	return out, nil
 }
 
 type fakeOcc struct{ units []model.ActiveUnit }
@@ -334,7 +339,7 @@ func newQuotaSvc(cur money.Currency) (*QuotaService, *fakeQuotaStore, *recAudit)
 	st := newFakeQuotaStore()
 	au := &recAudit{}
 	return &QuotaService{
-		Store: st, Occupancies: fakeOcc{}, Audit: au,
+		Store: st, Units: st, Occupancies: fakeOcc{}, Audit: au,
 		Currency: func(context.Context, string) (money.Currency, error) { return cur, nil },
 		Now:      func() time.Time { return time.Date(2026, 3, 15, 10, 0, 0, 0, time.UTC) },
 	}, st, au
@@ -861,7 +866,7 @@ func TestCardResidentAndSyndic(t *testing.T) {
 	if err != nil || c.Resident != nil || c.Syndic == nil {
 		t.Fatalf("syndic card = %+v, %v", c, err)
 	}
-	if !c.Syndic.HasBudget || c.Syndic.PeriodIndex != 2 || c.Syndic.PeriodLabel != "2026-T2" || c.Syndic.Issued {
+	if !c.Syndic.HasBudget || c.Syndic.PeriodIndex != 2 || c.Syndic.Issued {
 		t.Fatalf("not issued state = %+v", c.Syndic)
 	}
 	st.issuances = []fIssuance{{IssuanceSummary{ID: "i1", BudgetID: "b9", PeriodIndex: 2, Status: domain.IssuanceIssued, ChargeCount: 10, SettledCount: 4}}}

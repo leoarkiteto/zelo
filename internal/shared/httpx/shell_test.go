@@ -12,6 +12,7 @@ func TestNavForInvoiceEntriesAreSyndicOnly(t *testing.T) {
 		"/invoices":             "nav.invoices",
 		"/suppliers":            "nav.suppliers",
 		"/condominium/settings": "nav.condominium_settings",
+		"/condominium/units":    "nav.units",
 	}
 	paths := func(roles []model.Role) map[string]string {
 		got := map[string]string{}
@@ -37,6 +38,27 @@ func TestNavForInvoiceEntriesAreSyndicOnly(t *testing.T) {
 			if _, ok := got[path]; ok {
 				t.Fatalf("nav for %v must not contain %s", roles, path)
 			}
+		}
+	}
+}
+
+func TestNavForAccountStatementLabel(t *testing.T) {
+	for lang, want := range map[i18n.Language]string{
+		i18n.LanguageEN:   "Account statement",
+		i18n.LanguagePTBR: "Conta corrente",
+		i18n.LanguagePTPT: "Conta corrente",
+	} {
+		found := false
+		for _, it := range NavFor([]model.Role{model.RoleOwner}, "/", lang) {
+			if it.Path == "/finance/my-charges" {
+				found = true
+				if it.Label != want {
+					t.Errorf("%s label = %q, want %q", lang, it.Label, want)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s nav is missing /finance/my-charges", lang)
 		}
 	}
 }

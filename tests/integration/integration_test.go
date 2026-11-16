@@ -215,6 +215,7 @@ func composeApp(t *testing.T, db *sql.DB, redisClient *redis.Client) http.Handle
 		Quotas: &financeservices.QuotaService{
 			Store:       quotaStore,
 			Occupancies: units,
+			Units:       units,
 			Audit:       audit,
 			Currency:    condominiums.GetCurrency,
 			Now:         time.Now,

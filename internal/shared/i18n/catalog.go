@@ -280,7 +280,7 @@ var enMessages = map[MessageKey]string{
 
 	// Finance (accounts payable & receivable)
 	"nav.finance":                                    "Finance",
-	"nav.finance.my_charges":                         "My charges",
+	"nav.finance.my_charges":                         "Account statement",
 	"finance.title":                                  "Accounts payable & receivable",
 	"finance.subtitle":                               "Track condominium expenses and revenue.",
 	"finance.new_payable":                            "New expense",
@@ -325,10 +325,6 @@ var enMessages = map[MessageKey]string{
 	"finance.dashboard.total_payable":                "Total to pay (month)",
 	"finance.dashboard.projected_balance":            "Projected balance",
 	"finance.dashboard.realized_balance":             "Realized balance",
-	"finance.my_charges_title":                       "My charges",
-	"finance.my_charges_subtitle":                    "Taxes and fees pending for your unit.",
-	"finance.my_charges_empty":                       "You have no pending charges.",
-	"finance.no_unit":                                "You need an active unit to see your charges.",
 	"finance.settle_confirm":                         "Settle this account",
 	"finance.cancel_confirm_title":                   "Cancel account",
 	"finance.cancel_confirm_copy":                    "This marks the account as canceled.",
@@ -690,7 +686,7 @@ var ptbrMessages = map[MessageKey]string{
 
 	// Finance (contas a pagar e receber)
 	"nav.finance":                                    "Financeiro",
-	"nav.finance.my_charges":                         "Minhas cobranças",
+	"nav.finance.my_charges":                         "Conta corrente",
 	"finance.title":                                  "Contas a pagar e receber",
 	"finance.subtitle":                               "Acompanhe as despesas e receitas do condomínio.",
 	"finance.new_payable":                            "Nova despesa",
@@ -735,10 +731,6 @@ var ptbrMessages = map[MessageKey]string{
 	"finance.dashboard.total_payable":                "Total a pagar (mês)",
 	"finance.dashboard.projected_balance":            "Saldo previsto",
 	"finance.dashboard.realized_balance":             "Saldo realizado",
-	"finance.my_charges_title":                       "Minhas cobranças",
-	"finance.my_charges_subtitle":                    "Taxas e cotas pendentes da sua unidade.",
-	"finance.my_charges_empty":                       "Você não tem cobranças pendentes.",
-	"finance.no_unit":                                "Você precisa de uma unidade ativa para ver suas cobranças.",
 	"finance.settle_confirm":                         "Liquidar esta conta",
 	"finance.cancel_confirm_title":                   "Cancelar conta",
 	"finance.cancel_confirm_copy":                    "Isso marca a conta como cancelada.",

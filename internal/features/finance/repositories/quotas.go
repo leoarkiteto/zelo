@@ -211,11 +211,6 @@ func (s *QuotaStore) ActiveIssuanceFor(ctx context.Context, condoID, budgetID st
 	return i, true, nil
 }
 
-// UnitShares lists the condominium's units with their shares, by code.
-func (s *QuotaStore) UnitShares(ctx context.Context, condoID string) ([]domain.ShareInput, error) {
-	return unitShares(ctx, s.db, condoID)
-}
-
 func unitShares(ctx context.Context, q interface {
 	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 }, condoID string) ([]domain.ShareInput, error) {
@@ -270,7 +265,6 @@ func (s *QuotaStore) UnitReceivables(ctx context.Context, condoID, unitID string
 			a.SettlementDate = &t
 		}
 		if r.IsQuota {
-			r.PeriodLabel = domain.PeriodLabel(int(year.Int64), domain.Periodicity(per.String), int(idx.Int64))
 			r.Period = domain.QuotaPeriod{Year: int(year.Int64), Periodicity: domain.Periodicity(per.String), Index: int(idx.Int64), UnitCode: code.String}
 		}
 		out = append(out, r)
@@ -310,7 +304,6 @@ func (s *QuotaStore) ReceiptData(ctx context.Context, condoID, accountID string)
 	}
 	if isQuota {
 		r.IsQuota = true
-		r.PeriodLabel = domain.PeriodLabel(int(year.Int64), domain.Periodicity(per.String), int(idx.Int64))
 		r.Period = domain.QuotaPeriod{Year: int(year.Int64), Periodicity: domain.Periodicity(per.String), Index: int(idx.Int64), UnitCode: unitCode.String}
 		r.BaseCents, r.ReserveCents = base.Int64, reserve.Int64
 	}

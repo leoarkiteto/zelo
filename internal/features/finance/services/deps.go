@@ -24,9 +24,6 @@ type AccountStore interface {
 	SetStatus(ctx context.Context, id, condominiumID string, status domain.AccountStatus, settlementDate *time.Time) error
 	// List returns accounts of a condominium matching the filter.
 	List(ctx context.Context, condominiumID string, f AccountFilter) ([]domain.FinancialAccount, error)
-	// ListPendingForUnit returns non-settled, non-canceled receivables of a
-	// unit (resident pendências, FR-016).
-	ListPendingForUnit(ctx context.Context, condominiumID, unitID string) ([]domain.FinancialAccount, error)
 }
 
 // AccountFilter carries the list filters (contracts/http-routes.md).
@@ -71,11 +68,10 @@ type OverviewStore interface {
 	SettlementYears(ctx context.Context, condominiumID string) ([]int, error)
 }
 
-// UnitStore finds a user's active unit and lists a condominium's units.
+// UnitStore lists a condominium's units.
 // The concrete *store.UnitStore satisfies this interface.
 type UnitStore interface {
 	ListUnitsForCondominium(ctx context.Context, condominiumID string) ([]model.Unit, error)
-	GetActiveUnitForUser(ctx context.Context, userID, condominiumID string) (model.Unit, error)
 }
 
 // QuotaStore is the persistence seam of the quota use cases. In finance,
@@ -113,9 +109,6 @@ type QuotaStore interface {
 	// CardData returns the dashboard rows: the unit-scoped quota figures (when
 	// unitIDs is not empty) and the approved budget of today's year.
 	CardData(ctx context.Context, condoID string, unitIDs []string, today time.Time) (CardRows, error)
-	// UnitShares lists the condominium's units with their current shares,
-	// ordered by code (read outside a lock: previews and unit selectors).
-	UnitShares(ctx context.Context, condoID string) ([]domain.ShareInput, error)
 }
 
 // LockedBudget is the budget row locked FOR UPDATE inside WithLockedBudget.

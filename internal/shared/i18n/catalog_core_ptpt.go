@@ -228,7 +228,7 @@ var ptptMessages = map[MessageKey]string{
 
 	// Finance (contas a pagar e a receber)
 	"nav.finance":                         "Financeiro",
-	"nav.finance.my_charges":              "As minhas cobranças",
+	"nav.finance.my_charges":              "Conta corrente",
 	"finance.title":                       "Contas a pagar e a receber",
 	"finance.subtitle":                    "Acompanhe as despesas e as receitas do condomínio.",
 	"finance.new_payable":                 "Nova despesa",
@@ -273,10 +273,6 @@ var ptptMessages = map[MessageKey]string{
 	"finance.dashboard.total_payable":     "Total a pagar (mês)",
 	"finance.dashboard.projected_balance": "Saldo previsto",
 	"finance.dashboard.realized_balance":  "Saldo realizado",
-	"finance.my_charges_title":            "As minhas cobranças",
-	"finance.my_charges_subtitle":         "Taxas e quotas pendentes da sua fração.",
-	"finance.my_charges_empty":            "Não tem cobranças pendentes.",
-	"finance.no_unit":                     "É necessária uma fração ativa para ver as suas cobranças.",
 	"finance.settle_confirm":              "Liquidar esta conta",
 	"finance.cancel_confirm_title":        "Cancelar conta",
 	"finance.cancel_confirm_copy":         "Isto marca a conta como cancelada.",

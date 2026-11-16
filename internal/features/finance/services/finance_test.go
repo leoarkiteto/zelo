@@ -66,16 +66,6 @@ func (f *fakeAccountStore) List(_ context.Context, _ string, _ AccountFilter) ([
 	return out, nil
 }
 
-func (f *fakeAccountStore) ListPendingForUnit(_ context.Context, condominiumID, unitID string) ([]domain.FinancialAccount, error) {
-	var out []domain.FinancialAccount
-	for _, a := range f.accounts {
-		if a.CondominiumID == condominiumID && a.UnitID == unitID && a.Status == domain.StatusPending {
-			out = append(out, a)
-		}
-	}
-	return out, nil
-}
-
 type fakeSummaryStore struct {
 	sum MonthSummary
 }
@@ -92,10 +82,6 @@ type fakeUnitStore struct {
 
 func (f *fakeUnitStore) ListUnitsForCondominium(context.Context, string) ([]model.Unit, error) {
 	return f.units, nil
-}
-
-func (f *fakeUnitStore) GetActiveUnitForUser(context.Context, string, string) (model.Unit, error) {
-	return f.unit, f.err
 }
 
 type fakeAudit struct {

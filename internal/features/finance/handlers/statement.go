@@ -80,10 +80,6 @@ func (h *Handler) statementRows(ctx context.Context, locale i18n.Language, rows 
 func (h *Handler) myChargesGET(w http.ResponseWriter, r *http.Request) {
 	sess := httpx.CurrentSession(r)
 	locale := i18n.LanguageFrom(r.Context())
-	if h.deps.Quotas == nil {
-		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load"))
-		return
-	}
 	shell, err := httpx.ShellDataWithRoles(r, "/finance/my-charges", middleware.RolesFrom(r.Context()))
 	if err != nil {
 		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load_session"))
@@ -115,10 +111,6 @@ func (h *Handler) myChargesGET(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) reciboGET(w http.ResponseWriter, r *http.Request) {
 	sess := httpx.CurrentSession(r)
 	locale := i18n.LanguageFrom(r.Context())
-	if h.deps.Quotas == nil {
-		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load"))
-		return
-	}
 	rec, err := h.deps.Quotas.Receipt(r.Context(), viewer(r), sess.CondominiumID, r.PathValue("id"))
 	if err != nil {
 		renderQuotaError(w, r, err)
@@ -178,10 +170,6 @@ func (h *Handler) quotasCardGET(w http.ResponseWriter, r *http.Request) {
 		log.Printf("finance quotas card: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		httpx.Render(w, r, financetemplates.QuotasCardError(locale))
-	}
-	if h.deps.Quotas == nil {
-		fail(errors.New("quotas not configured"))
-		return
 	}
 	sess := httpx.CurrentSession(r)
 	card, err := h.deps.Quotas.Card(r.Context(), viewer(r), sess.CondominiumID, time.Now())
