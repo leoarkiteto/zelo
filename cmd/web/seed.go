@@ -162,6 +162,9 @@ func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, password
 // seedDemoDataAt is seedDemoData with an injectable clock. The same now drives
 // the base step and the quota layer so their months agree.
 func seedDemoDataAt(ctx context.Context, logger *slog.Logger, db *sql.DB, passwordPepper string, now time.Time) error {
+	// All month arithmetic (monthDay) and day truncation (clampDay) work in
+	// UTC, so normalise once to keep periods and settlement dates aligned.
+	now = now.UTC()
 	if err := seedBase(ctx, logger, db, passwordPepper, now); err != nil {
 		return err
 	}
@@ -679,6 +682,14 @@ func seedQuotaPeriods(now time.Time) (prev, cur seedQuotaPeriod) {
 		seedQuotaPeriod{Year: c.Year(), Month: int(c.Month())}
 }
 
+// seedNextQuotaPeriod is the period after the current one (January of the next
+// year in December). It is issued with every quota left pending, so the demo
+// always shows upcoming charges.
+func seedNextQuotaPeriod(now time.Time) seedQuotaPeriod {
+	n := monthDay(now, 1, 1)
+	return seedQuotaPeriod{Year: n.Year(), Month: int(n.Month())}
+}
+
 // seedPrevSettleDate is the settlement date of the previous period: the 20th
 // of that month (always in the past).
 func seedPrevSettleDate(now time.Time) time.Time { return monthDay(now, -1, 20) }
@@ -709,7 +720,7 @@ func seedPeriodIndex(p financedomain.Periodicity, month int) int {
 // when the base step was skipped) and is idempotent: shares only when all are
 // zero, one budget per year, Issue is idempotent, settlements only touch
 // pending quotas, and the legacy manual condo fees of months -1..+1 are
-// removed before issuing.
+// removed before issuing the previous, current and next periods.
 func seedQuotas(ctx context.Context, logger *slog.Logger, db *sql.DB, now time.Time) error {
 	var condoID, syndicID string
 	err := db.QueryRowContext(ctx, `
@@ -813,6 +824,8 @@ func seedQuotas(ctx context.Context, logger *slog.Logger, db *sql.DB, now time.T
 	}{
 		{prev, nil, seedPrevSettleDate(now)},
 		{cur, seedCurrentSettledUnits, seedCurrentSettleDate(now)},
+		// Next period: issued, nothing settled (an empty, non-nil list).
+		{seedNextQuotaPeriod(now), []string{}, time.Time{}},
 	} {
 		budget, err := seedEnsureBudget(ctx, logger, quotas, syndicID, condoID, step.period.Year)
 		if err != nil {

@@ -299,7 +299,7 @@ func assertSeedQuotaState(t *testing.T, db *sql.DB) {
 	if got := seedScalar(t, db, `SELECT count(*)::text || '/' || sum(amount_cents) FROM quota_budget_lines`); got != "6/15600000" {
 		t.Errorf("budget lines = %s, want 6/15600000", got)
 	}
-	if got := seedScalar(t, db, `SELECT string_agg(period_index || '/' || status, ',' ORDER BY period_index) FROM quota_issuances`); got != "10/issued,11/issued" {
+	if got := seedScalar(t, db, `SELECT string_agg(period_index || '/' || status, ',' ORDER BY period_index) FROM quota_issuances`); got != "10/issued,11/issued,12/issued" {
 		t.Errorf("issuances = %s", got)
 	}
 	// Receivables of each issuance sum to its total.
@@ -326,6 +326,10 @@ func assertSeedQuotaState(t *testing.T, db *sql.DB) {
 	}
 	if got := seedScalar(t, db, `SELECT count(*)::text `+charges+` AND fa.status = 'pending'`, 11); got != "9" {
 		t.Errorf("current period pending = %s, want 9", got)
+	}
+	// Next period (I2): issued, every quota pending, so month +1 has charges.
+	if got := seedScalar(t, db, `SELECT count(*)::text || '/' || count(*) FILTER (WHERE fa.status = 'pending') `+charges, 12); got != "12/12" {
+		t.Errorf("next period charges/pending = %s, want 12/12", got)
 	}
 	// No manual condo fee in months -1..+1; older history is kept.
 	if got := seedScalar(t, db, `SELECT count(*)::text FROM finance_accounts
@@ -415,6 +419,64 @@ func TestSeedQuotaLayerOverOldSeed(t *testing.T) {
 	}
 	if after := seedQuotaSnapshot(t, db); after != before {
 		t.Fatalf("repeat run changed the state:\n--- before\n%s\n--- after\n%s", before, after)
+	}
+}
+
+// TestSeedQuotaLayerJanuary (I3): in January the previous period belongs to the
+// previous year, so the seed needs two budgets; the next period is February.
+func TestSeedQuotaLayerJanuary(t *testing.T) {
+	db, ctx := seedTestDB(t)
+	logger := seedTestLogger()
+	now := time.Date(2027, 1, 14, 10, 0, 0, 0, time.UTC)
+	if err := seedDemoDataAt(ctx, logger, db, "pepper", now); err != nil {
+		t.Fatalf("January seed: %v", err)
+	}
+	if got := seedScalar(t, db, `SELECT string_agg(year || '/' || status, ',' ORDER BY year) FROM quota_budgets`); got != "2026/approved,2027/approved" {
+		t.Errorf("budgets = %s, want 2026 and 2027 approved", got)
+	}
+	if got := seedScalar(t, db, `SELECT string_agg(b.year || '-' || i.period_index || '/' || i.status, ',' ORDER BY b.year, i.period_index)
+		FROM quota_issuances i JOIN quota_budgets b ON b.id = i.budget_id`); got != "2026-12/issued,2027-1/issued,2027-2/issued" {
+		t.Errorf("issuances = %s", got)
+	}
+	const charges = `FROM quota_charges qc JOIN quota_issuances i ON i.id = qc.issuance_id
+		JOIN quota_budgets b ON b.id = i.budget_id
+		JOIN finance_accounts fa ON fa.id = qc.finance_account_id JOIN units u ON u.id = fa.unit_id
+		WHERE b.year = $1 AND i.period_index = $2`
+	if got := seedScalar(t, db, `SELECT string_agg(u.code, ',' ORDER BY u.code) `+charges+` AND fa.status = 'pending'`, 2026, 12); got != "A-301" {
+		t.Errorf("December pending = %q, want A-301", got)
+	}
+	if got := seedScalar(t, db, `SELECT count(*)::text `+charges+` AND fa.status = 'settled' AND fa.settlement_date = '2026-12-20'`, 2026, 12); got != "11" {
+		t.Errorf("December settled on 2026-12-20 = %s, want 11", got)
+	}
+	if got := seedScalar(t, db, `SELECT string_agg(u.code, ',' ORDER BY u.code) `+charges+` AND fa.status = 'settled' AND fa.settlement_date = '2027-01-05'`, 2027, 1); got != "A-101,A-102,B-101" {
+		t.Errorf("January settled = %q", got)
+	}
+	if got := seedScalar(t, db, `SELECT count(*)::text || '/' || count(*) FILTER (WHERE fa.status = 'pending') `+charges, 2027, 2); got != "12/12" {
+		t.Errorf("February charges/pending = %s, want 12/12", got)
+	}
+
+	first := seedQuotaSnapshot(t, db)
+	if err := seedDemoDataAt(ctx, logger, db, "pepper", now); err != nil {
+		t.Fatalf("repeat January seed: %v", err)
+	}
+	if second := seedQuotaSnapshot(t, db); second != first {
+		t.Fatalf("repeat run changed the state:\n--- first\n%s\n--- second\n%s", first, second)
+	}
+}
+
+// TestSeedNextQuotaPeriod: the next period rolls over the year in December.
+func TestSeedNextQuotaPeriod(t *testing.T) {
+	for _, c := range []struct {
+		now  time.Time
+		want seedQuotaPeriod
+	}{
+		{time.Date(2026, 11, 14, 0, 0, 0, 0, time.UTC), seedQuotaPeriod{Year: 2026, Month: 12}},
+		{time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC), seedQuotaPeriod{Year: 2027, Month: 1}},
+		{time.Date(2027, 1, 14, 0, 0, 0, 0, time.UTC), seedQuotaPeriod{Year: 2027, Month: 2}},
+	} {
+		if got := seedNextQuotaPeriod(c.now); got != c.want {
+			t.Errorf("seedNextQuotaPeriod(%s) = %+v, want %+v", c.now.Format("2006-01-02"), got, c.want)
+		}
 	}
 }
 
