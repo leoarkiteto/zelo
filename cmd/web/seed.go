@@ -10,7 +10,12 @@ import (
 	"log/slog"
 	"time"
 
+	financedomain "github.com/leoarkiteto/zelo/internal/features/finance/domain"
+	financerepositories "github.com/leoarkiteto/zelo/internal/features/finance/repositories"
+	financeservices "github.com/leoarkiteto/zelo/internal/features/finance/services"
+	"github.com/leoarkiteto/zelo/internal/shared/permille"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
+	"github.com/leoarkiteto/zelo/internal/shared/store"
 )
 
 // Development seed constants. Every seeded user shares the same password so
@@ -147,8 +152,24 @@ var seedInvitations = []seedInvitation{
 // seedDemoData populates the database with realistic development data covering
 // every feature: a condominium with units, residents (owners, tenants, syndic),
 // the service directory, finance accounts, invitations, and audit events.
-// It is idempotent: it exits cleanly if the seed syndic already exists.
+// It is idempotent: the base step exits cleanly if the seed syndic already
+// exists, and the quota layer (seedQuotas) then runs on every call, so a
+// database seeded by an older version also gets the quota demo data.
 func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, passwordPepper string) error {
+	return seedDemoDataAt(ctx, logger, db, passwordPepper, time.Now())
+}
+
+// seedDemoDataAt is seedDemoData with an injectable clock. The same now drives
+// the base step and the quota layer so their months agree.
+func seedDemoDataAt(ctx context.Context, logger *slog.Logger, db *sql.DB, passwordPepper string, now time.Time) error {
+	if err := seedBase(ctx, logger, db, passwordPepper, now); err != nil {
+		return err
+	}
+	return seedQuotas(ctx, logger, db, now)
+}
+
+// seedBase is the original seed step: it skips when the seed syndic exists.
+func seedBase(ctx context.Context, logger *slog.Logger, db *sql.DB, passwordPepper string, now time.Time) error {
 	var existing string
 	err := db.QueryRowContext(ctx,
 		`SELECT id FROM users WHERE lower(email) = lower($1)`, seedSyndicEmail).Scan(&existing)
@@ -247,7 +268,6 @@ func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, password
 	}
 
 	// 5. Finance accounts: payables and per-unit condo fee receivables.
-	now := time.Now()
 	for _, p := range seedPayables {
 		dueDate := now.AddDate(0, 0, p.dueInDays).UTC().Truncate(24 * time.Hour)
 		var settlementDate any
@@ -265,7 +285,10 @@ func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, password
 		}
 	}
 
-	for _, f := range seedFees {
+	// Condo fees of months -1..+1 are real quotas now (seedQuotas), so the
+	// manual ones are only created outside that window.
+	baseFees := seedFeesToInsert()
+	for _, f := range baseFees {
 		dueDate := seedFeeDueDate(f, now)
 		status := f.status
 		if status == "overdue" {
@@ -399,7 +422,7 @@ func seedDemoData(ctx context.Context, logger *slog.Logger, db *sql.DB, password
 		"units", len(seedUnits),
 		"categories", len(seedCategories),
 		"listings", len(seedListings),
-		"finance_accounts", len(seedPayables)+len(seedFees)+len(extraReceivables)+historyCount,
+		"finance_accounts", len(seedPayables)+len(baseFees)+len(extraReceivables)+historyCount,
 		"password", seedPassword)
 	return nil
 }
@@ -552,18 +575,29 @@ func phoneDigits(phone string) string {
 	return string(digits)
 }
 
-// seedHistoryToInsert is seedHistory minus the condo fees the base seedFees
-// already create for a month (settled or overdue base fees both sit in last
-// month), so no unit gets two fees, or the same payment code, for one month.
-func seedHistoryToInsert(now time.Time) []seedHistoryAccount {
-	skip := make(map[string]bool)
+// seedIsQuotaMonth reports whether a month offset (relative to now) belongs to
+// the quota window -1..+1, where condo fees are real quotas, not manual rows.
+func seedIsQuotaMonth(offset int) bool { return offset >= -1 && offset <= 1 }
+
+// seedFeesToInsert is seedFees minus the manual fees of the quota window.
+// Every base fee sits in month -1 or +1, so the base seed creates none.
+func seedFeesToInsert() []seedFee {
+	var out []seedFee
 	for _, f := range seedFees {
-		skip[fmt.Sprintf("%d|%s", seedFeeMonthOffset(f), f.unit)] = true
+		if !seedIsQuotaMonth(seedFeeMonthOffset(f)) {
+			out = append(out, f)
+		}
 	}
+	return out
+}
+
+// seedHistoryToInsert is seedHistory minus the condo fees of the quota window
+// (months -1..+1, which the quota layer issues), so no unit gets a manual fee
+// and a quota for one month. Older months and non-fee entries are unchanged.
+func seedHistoryToInsert(now time.Time) []seedHistoryAccount {
 	var out []seedHistoryAccount
 	for _, h := range seedHistory(now) {
-		if h.accountType == "receivable" && h.category == "condo_fee" &&
-			skip[fmt.Sprintf("%d|%s", h.monthOffset, h.unit)] {
+		if h.accountType == "receivable" && h.category == "condo_fee" && seedIsQuotaMonth(h.monthOffset) {
 			continue
 		}
 		out = append(out, h)
@@ -593,6 +627,289 @@ func seedFeeDueDate(f seedFee, now time.Time) time.Time {
 // monthDay returns the `day` of a month shifted by `months` from now.
 func monthDay(now time.Time, months int, day int) time.Time {
 	return time.Date(now.Year(), now.Month()+time.Month(months), day, 0, 0, 0, 0, time.UTC)
+}
+
+// seedSharePPM is the fixed share table of the seed units (ppm, 1,000,000 =
+// 100%): larger on upper floors and in block B. It sums to exactly 1,000,000.
+var seedSharePPM = map[string]int{
+	"A-101": 70000, "A-102": 70000, "A-201": 75000, "A-202": 75000, "A-301": 80000, "A-302": 80000,
+	"B-101": 85000, "B-102": 85000, "B-201": 90000, "B-202": 90000, "B-301": 100000, "B-302": 100000,
+}
+
+// seedBudgetLine is one line of the seed budget (payable categories only).
+type seedBudgetLine struct {
+	description string
+	category    financedomain.Category
+	amountCents int64
+}
+
+// seedBudgetLines total R$ 156.000,00 per year.
+var seedBudgetLines = []seedBudgetLine{
+	{"Salários e encargos", financedomain.Category("payroll"), 6000000},
+	{"Energia e água", financedomain.Category("utilities"), 3000000},
+	{"Manutenção predial e elevadores", financedomain.Category("maintenance"), 2400000},
+	{"Limpeza das áreas comuns", financedomain.Category("cleaning"), 1800000},
+	{"Jardinagem, piscina e dedetização", financedomain.Category("third_party_services"), 1200000},
+	{"Seguro e despesas gerais", financedomain.Category("other"), 1200000},
+}
+
+// Seed budget parameters.
+const (
+	seedBudgetDueDay    = 25
+	seedBudgetReserveBP = 1000 // 10%
+)
+
+// seedPrevUnsettledUnit stays pending (so overdue) in the previous period.
+const seedPrevUnsettledUnit = "A-301"
+
+// seedCurrentSettledUnits are the units whose current-period quota is settled.
+var seedCurrentSettledUnits = []string{"A-101", "A-102", "B-101"}
+
+// seedQuotaPeriod is a calendar month the quota layer issues.
+type seedQuotaPeriod struct {
+	Year  int
+	Month int
+}
+
+// seedQuotaPeriods returns the previous and the current period for now. In
+// January the previous period is December of the previous year.
+func seedQuotaPeriods(now time.Time) (prev, cur seedQuotaPeriod) {
+	p, c := monthDay(now, -1, 1), monthDay(now, 0, 1)
+	return seedQuotaPeriod{Year: p.Year(), Month: int(p.Month())},
+		seedQuotaPeriod{Year: c.Year(), Month: int(c.Month())}
+}
+
+// seedPrevSettleDate is the settlement date of the previous period: the 20th
+// of that month (always in the past).
+func seedPrevSettleDate(now time.Time) time.Time { return monthDay(now, -1, 20) }
+
+// seedCurrentSettleDate is the settlement date of the current period: the 5th
+// of the month, clamped to today.
+func seedCurrentSettleDate(now time.Time) time.Time { return clampDay(now, 0, 5) }
+
+// seedLegacyFeeCodePatterns are the LIKE patterns of the payment codes
+// (BOLETO-YYYY-MM-<unit>) of the manual condo fees of months -1, 0 and +1.
+func seedLegacyFeeCodePatterns(now time.Time) [3]string {
+	var out [3]string
+	for i, off := range []int{-1, 0, 1} {
+		out[i] = seedFeePaymentCode(monthDay(now, off, 1).Format("2006-01"), "%")
+	}
+	return out
+}
+
+// seedPeriodIndex is the budget period (1-based) holding the calendar month.
+func seedPeriodIndex(p financedomain.Periodicity, month int) int {
+	if p == financedomain.PeriodicityQuarterly {
+		return (month-1)/3 + 1
+	}
+	return month
+}
+
+// seedQuotas is the quota layer of the seed. It runs on every -seed call (also
+// when the base step was skipped) and is idempotent: shares only when all are
+// zero, one budget per year, Issue is idempotent, settlements only touch
+// pending quotas, and the legacy manual condo fees of months -1..+1 are
+// removed before issuing.
+func seedQuotas(ctx context.Context, logger *slog.Logger, db *sql.DB, now time.Time) error {
+	var condoID, syndicID string
+	err := db.QueryRowContext(ctx, `
+		SELECT c.id, u.id
+		FROM users u
+		JOIN user_roles ur ON ur.user_id = u.id AND ur.role = 'syndic'
+		JOIN condominiums c ON c.id = ur.condominium_id
+		WHERE lower(u.email) = lower($1) AND c.name = $2
+		LIMIT 1`, seedSyndicEmail, seedCondominiumName).Scan(&condoID, &syndicID)
+	if err == sql.ErrNoRows {
+		logger.Warn("quota seed skipped: seed condominium or syndic not found")
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("find seed condominium: %w", err)
+	}
+
+	units := store.NewUnitStore(db)
+	condominiums := store.NewCondominiumStore(db)
+	audit := store.NewAuditStore(db)
+	quotaStore := financerepositories.NewQuotaStore(db)
+	accounts := financerepositories.NewAccountStore(db)
+	nowFn := func() time.Time { return now }
+	quotas := &financeservices.QuotaService{
+		Store: quotaStore, Occupancies: units, Units: units, Audit: audit,
+		Currency: condominiums.GetCurrency, Now: nowFn,
+	}
+	fin := &financeservices.FinanceService{
+		Accounts: accounts, Summaries: accounts, Overviews: accounts, Units: units,
+		Audit: audit, QuotaLinks: quotaStore, Now: nowFn,
+	}
+
+	// 1. Unit shares.
+	unitList, err := units.ListUnitsForCondominium(ctx, condoID)
+	if err != nil {
+		return fmt.Errorf("list seed units: %w", err)
+	}
+	allZero, covered := len(unitList) > 0, true
+	for _, u := range unitList {
+		if u.SharePPM != 0 {
+			allZero = false
+		}
+		if _, ok := seedSharePPM[u.Code]; !ok {
+			covered = false
+		}
+	}
+	switch {
+	case !allZero:
+		logger.Info("quota seed: unit shares already set, left untouched")
+	case !covered:
+		logger.Warn("quota seed: units outside the seed share table, shares not assigned")
+	default:
+		for _, u := range unitList {
+			if err := units.UpdateUnit(ctx, condoID, u.ID, u.Code, seedSharePPM[u.Code]); err != nil {
+				return fmt.Errorf("assign share to %s: %w", u.Code, err)
+			}
+		}
+		logger.Info("quota seed: unit shares assigned", "units", len(unitList), "total_ppm", 1000000)
+	}
+
+	// Issuing needs the shares to sum to exactly 100%. Check before touching
+	// anything, so a skipped or partial share setup never leaves the quota
+	// months with neither the legacy fees nor quotas.
+	if unitList, err = units.ListUnitsForCondominium(ctx, condoID); err != nil {
+		return fmt.Errorf("list seed units: %w", err)
+	}
+	sum := 0
+	for _, u := range unitList {
+		sum += u.SharePPM
+	}
+	if sum != permille.Total {
+		logger.Warn("quota seed skipped: unit shares do not sum to 100%; fix them in /condominium/units and re-run -seed",
+			"total_ppm", sum, "want_ppm", permille.Total)
+		return nil
+	}
+
+	// 2. Legacy manual condo fees of months -1..+1 (never rows linked to a quota).
+	pats := seedLegacyFeeCodePatterns(now)
+	res, err := db.ExecContext(ctx, `
+		DELETE FROM finance_accounts
+		WHERE condominium_id = $1 AND account_type = 'receivable' AND category = 'condo_fee'
+		  AND (payment_code LIKE $2 OR payment_code LIKE $3 OR payment_code LIKE $4)
+		  AND id NOT IN (SELECT finance_account_id FROM quota_charges)`,
+		condoID, pats[0], pats[1], pats[2])
+	if err != nil {
+		return fmt.Errorf("remove legacy condo fees: %w", err)
+	}
+	removed, _ := res.RowsAffected()
+	logger.Info("quota seed: legacy manual condo fees removed", "deleted", removed)
+
+	// 3. Budgets, issuances and settlements.
+	prev, cur := seedQuotaPeriods(now)
+	unitIDs := make(map[string]string, len(unitList))
+	for _, u := range unitList {
+		unitIDs[u.Code] = u.ID
+	}
+	for _, step := range []struct {
+		period   seedQuotaPeriod
+		settle   []string
+		settleOn time.Time
+	}{
+		{prev, nil, seedPrevSettleDate(now)},
+		{cur, seedCurrentSettledUnits, seedCurrentSettleDate(now)},
+	} {
+		budget, err := seedEnsureBudget(ctx, logger, quotas, syndicID, condoID, step.period.Year)
+		if err != nil {
+			return err
+		}
+		index := seedPeriodIndex(budget.Periodicity, step.period.Month)
+		_, created, err := quotas.Issue(ctx, syndicID, condoID, budget.ID, index)
+		if err != nil {
+			return fmt.Errorf("issue %04d-%02d: %w", step.period.Year, step.period.Month, err)
+		}
+		if created {
+			logger.Info("quota seed: period issued", "year", step.period.Year, "month", step.period.Month)
+		} else {
+			logger.Info("quota seed: period already issued, skipped", "year", step.period.Year, "month", step.period.Month)
+		}
+
+		codes := step.settle
+		if codes == nil { // previous period: everyone but the unit that stays overdue
+			for _, u := range unitList {
+				if u.Code != seedPrevUnsettledUnit {
+					codes = append(codes, u.Code)
+				}
+			}
+		}
+		settled := 0
+		for _, code := range codes {
+			unitID, ok := unitIDs[code]
+			if !ok {
+				continue
+			}
+			rows, err := quotaStore.UnitReceivables(ctx, condoID, unitID)
+			if err != nil {
+				return fmt.Errorf("list receivables of %s: %w", code, err)
+			}
+			for _, r := range rows {
+				if !r.IsQuota || r.Period.Year != budget.Year || r.Period.Index != index ||
+					r.Account.Status != financedomain.StatusPending {
+					continue
+				}
+				if err := fin.SettleAccount(ctx, syndicID, r.Account.ID, condoID,
+					step.settleOn.Format("2006-01-02")); err != nil {
+					return fmt.Errorf("settle quota of %s: %w", code, err)
+				}
+				settled++
+			}
+		}
+		logger.Info("quota seed: quotas settled", "year", step.period.Year, "month", step.period.Month, "settled_now", settled)
+	}
+	return nil
+}
+
+// seedEnsureBudget returns the approved budget of year: it creates and
+// approves one when missing, approves an existing draft (adding the seed lines
+// when it has none) and reuses an approved one.
+func seedEnsureBudget(ctx context.Context, logger *slog.Logger, quotas *financeservices.QuotaService,
+	actorID, condoID string, year int) (financeservices.Budget, error) {
+	list, err := quotas.ListBudgets(ctx, condoID)
+	if err != nil {
+		return financeservices.Budget{}, fmt.Errorf("list budgets: %w", err)
+	}
+	var b financeservices.Budget
+	lines, found := 0, false
+	for _, s := range list {
+		if s.Year == year {
+			b, lines, found = s.Budget, s.LineCount, true
+			break
+		}
+	}
+	if !found {
+		rate := seedBudgetReserveBP
+		b, err = quotas.CreateBudget(ctx, actorID, condoID, financeservices.BudgetInput{
+			Year: year, Periodicity: financedomain.PeriodicityMonthly, DueDay: seedBudgetDueDay, ReserveRateBP: &rate,
+		})
+		if err != nil {
+			return b, fmt.Errorf("create budget %d: %w", year, err)
+		}
+		logger.Info("quota seed: budget created", "year", year)
+	} else {
+		logger.Info("quota seed: budget reused", "year", year, "status", string(b.Status))
+	}
+	if b.Status == financedomain.BudgetDraft {
+		if lines == 0 {
+			for _, l := range seedBudgetLines {
+				if _, err := quotas.AddLine(ctx, actorID, condoID, b.ID, financeservices.LineInput{
+					Description: l.description, Category: l.category, AmountCents: l.amountCents,
+				}); err != nil {
+					return b, fmt.Errorf("add budget line %q: %w", l.description, err)
+				}
+			}
+		}
+		if err := quotas.ApproveBudget(ctx, actorID, condoID, b.ID); err != nil {
+			return b, fmt.Errorf("approve budget %d: %w", year, err)
+		}
+		b.Status = financedomain.BudgetApproved
+		logger.Info("quota seed: budget approved", "year", year)
+	}
+	return b, nil
 }
 
 // invitationTokenHash derives a deterministic, unique token hash for a seed
