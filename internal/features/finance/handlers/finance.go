@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -443,7 +444,7 @@ func (h *Handler) settleData(r *http.Request, account domain.FinancialAccount, e
 	locale := i18n.LanguageFrom(r.Context())
 	shell, _ := httpx.ShellData(r, h.deps.Roles, "/finance")
 	view := h.accountView(r.Context(), locale, account)
-	if period, ok := h.quotaPeriod(r.Context(), sess.CondominiumID, account); ok {
+	if period, ok := h.quotaPeriod(r.Context(), account); ok {
 		view.Title = financetemplates.QuotaTitle(locale, period)
 	}
 	return financetemplates.SettleData{
@@ -456,24 +457,19 @@ func (h *Handler) settleData(r *http.Request, account domain.FinancialAccount, e
 }
 
 // quotaPeriod returns the quota metadata of a receivable so the generic pages
-// can show the localised quota title. It reads the same flagged list the
-// account list uses, narrowed to the due month; any failure or a non-quota
-// account reports false and the stored title is kept.
-func (h *Handler) quotaPeriod(ctx context.Context, condoID string, a domain.FinancialAccount) (domain.QuotaPeriod, bool) {
+// can show the localised quota title. The account was already loaded for the
+// session's condominium, so a single-account lookup is enough. Any failure or a
+// non-quota account reports false and the stored title is kept.
+func (h *Handler) quotaPeriod(ctx context.Context, a domain.FinancialAccount) (domain.QuotaPeriod, bool) {
 	if a.Type != domain.AccountTypeReceivable {
 		return domain.QuotaPeriod{}, false
 	}
-	month := time.Date(a.DueDate.Year(), a.DueDate.Month(), 1, 0, 0, 0, 0, time.UTC)
-	rows, err := h.deps.Finance.ListAccountsWithFlags(ctx, condoID, services.AccountFilter{Type: a.Type, Month: month})
+	p, ok, err := h.deps.Finance.QuotaPeriod(ctx, a.ID)
 	if err != nil {
+		log.Printf("finance settle: quota period of %s: %v", a.ID, err)
 		return domain.QuotaPeriod{}, false
 	}
-	for _, row := range rows {
-		if row.Account.ID == a.ID && row.IsQuota {
-			return row.Period, true
-		}
-	}
-	return domain.QuotaPeriod{}, false
+	return p, ok
 }
 
 func (h *Handler) cancelData(r *http.Request, account domain.FinancialAccount, errorMsg string) financetemplates.CancelData {

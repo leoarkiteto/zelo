@@ -113,6 +113,13 @@ func (f *fakeFinance) IsQuotaAccount(_ context.Context, id string) (bool, error)
 	return f.quotaIDs[id], nil
 }
 
+func (f *fakeFinance) QuotaPeriod(_ context.Context, id string) (domain.QuotaPeriod, bool, error) {
+	if !f.quotaIDs[id] {
+		return domain.QuotaPeriod{}, false, nil
+	}
+	return domain.QuotaPeriod{Year: 2026, Periodicity: domain.PeriodicityQuarterly, Index: 2, UnitCode: "A"}, true, nil
+}
+
 func (f *fakeFinance) Summary(context.Context, string, time.Time) (services.MonthSummary, error) {
 	return f.sum, nil
 }

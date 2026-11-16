@@ -77,17 +77,25 @@ type FinanceService struct {
 	Now        func() time.Time
 }
 
-// isQuota reports whether the account is linked to a quota (nil-safe).
-func (s *FinanceService) isQuota(ctx context.Context, accountID string) (bool, error) {
+// QuotaPeriod returns the quota metadata of one account. ok is false when the
+// account is not linked to a quota or when QuotaLinks is not wired (nil-safe).
+// Callers pass an account they already loaded for their condominium.
+func (s *FinanceService) QuotaPeriod(ctx context.Context, accountID string) (domain.QuotaPeriod, bool, error) {
 	if s.QuotaLinks == nil {
-		return false, nil
+		return domain.QuotaPeriod{}, false, nil
 	}
 	m, err := s.QuotaLinks.QuotaPeriods(ctx, []string{accountID})
 	if err != nil {
-		return false, err
+		return domain.QuotaPeriod{}, false, err
 	}
-	_, ok := m[accountID]
-	return ok, nil
+	p, ok := m[accountID]
+	return p, ok, nil
+}
+
+// isQuota reports whether the account is linked to a quota (nil-safe).
+func (s *FinanceService) isQuota(ctx context.Context, accountID string) (bool, error) {
+	_, ok, err := s.QuotaPeriod(ctx, accountID)
+	return ok, err
 }
 
 // IsQuotaAccount reports whether the account is a quota receivable, so the

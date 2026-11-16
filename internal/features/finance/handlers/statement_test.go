@@ -434,10 +434,9 @@ func TestSettlePageShowsLocalisedQuotaTitle(t *testing.T) {
 		acc := func(id, title string) domain.FinancialAccount {
 			return domain.FinancialAccount{ID: id, CondominiumID: "c1", Type: domain.AccountTypeReceivable, Title: title, AmountCents: 100, DueDate: due, Status: domain.StatusPending}
 		}
-		fin := &fakeFinance{
-			list:     []domain.FinancialAccount{acc("q1", "Quota 2026-T2 A"), acc("o1", "Rent hall")},
-			quotaIDs: map[string]bool{"q1": true},
-		}
+		// No list: the settle page must resolve the quota period for the one
+		// account directly, not by listing the month's receivables.
+		fin := &fakeFinance{quotaIDs: map[string]bool{"q1": true}}
 		for id, c := range map[string]struct {
 			title string
 			want  bool

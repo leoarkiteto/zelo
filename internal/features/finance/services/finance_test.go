@@ -256,6 +256,32 @@ func (f *fakeQuotaLinks) QuotaPeriods(_ context.Context, ids []string) (map[stri
 	return out, f.err
 }
 
+func TestQuotaPeriodSingleAccount(t *testing.T) {
+	ctx := context.Background()
+	svc := newService(newFakeAccountStore(), &fakeUnitStore{}, &fakeAudit{})
+	if _, ok, err := svc.QuotaPeriod(ctx, "q1"); ok || err != nil {
+		t.Fatalf("QuotaPeriod without QuotaLinks = ok %v, err %v; want false, nil", ok, err)
+	}
+
+	links := &fakeQuotaLinks{ids: map[string]bool{"q1": true}}
+	svc.QuotaLinks = links
+	p, ok, err := svc.QuotaPeriod(ctx, "q1")
+	if err != nil || !ok || p.Index != 8 || p.UnitCode != "A" {
+		t.Fatalf("QuotaPeriod(quota) = %+v, %v, %v", p, ok, err)
+	}
+	if _, ok, err := svc.QuotaPeriod(ctx, "free"); ok || err != nil {
+		t.Fatalf("QuotaPeriod(non-quota) = ok %v, err %v; want false, nil", ok, err)
+	}
+	if links.calls != 2 {
+		t.Fatalf("QuotaPeriods calls = %d, want one per lookup", links.calls)
+	}
+
+	links.err = errors.New("boom")
+	if _, _, err := svc.QuotaPeriod(ctx, "q1"); err == nil {
+		t.Fatal("QuotaPeriod did not return the lookup error")
+	}
+}
+
 func seedReceivable(acc *fakeAccountStore, id string) {
 	acc.accounts[id] = domain.FinancialAccount{
 		ID: id, CondominiumID: "c1", Type: domain.AccountTypeReceivable, Title: "Quota",

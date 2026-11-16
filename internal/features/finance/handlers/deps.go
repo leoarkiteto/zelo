@@ -18,6 +18,7 @@ type Finance interface {
 	SettleAccount(ctx context.Context, actorID, accountID, condominiumID, settlementDate string) error
 	CancelAccount(ctx context.Context, actorID, accountID, condominiumID string) error
 	IsQuotaAccount(ctx context.Context, accountID string) (bool, error)
+	QuotaPeriod(ctx context.Context, accountID string) (domain.QuotaPeriod, bool, error)
 	Summary(ctx context.Context, condominiumID string, month time.Time) (services.MonthSummary, error)
 	ListAccountsWithFlags(ctx context.Context, condominiumID string, f services.AccountFilter) ([]services.AccountRow, error)
 	Overview(ctx context.Context, condominiumID string, p domain.Period) (services.Overview, error)
