@@ -12,10 +12,11 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/store"
 )
 
-// CurrencyReader reads the condominium currency. *store.CondominiumStore
-// satisfies it.
+// CurrencyReader reads the condominium currency and late-fee settings.
+// *store.CondominiumStore satisfies it.
 type CurrencyReader interface {
 	GetCurrency(ctx context.Context, condoID string) (money.Currency, error)
+	GetLateFeeSettings(ctx context.Context, condoID string) (model.LateFeeSettings, error)
 }
 
 // RoleStore is the role lookup the handlers need. *store.RoleStore satisfies it.

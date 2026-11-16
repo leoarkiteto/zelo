@@ -47,6 +47,12 @@ const (
 	AuditBudgetReopened        AuditEventType = "budget_reopened"
 	AuditQuotaIssued           AuditEventType = "quota_issued"
 	AuditQuotaIssuanceCanceled AuditEventType = "quota_issuance_canceled"
+
+	AuditLateFeeSettingsChanged     AuditEventType = "late_fee_settings_changed"
+	AuditLateFeeApplied             AuditEventType = "late_fee_applied"
+	AuditLateFeeWaived              AuditEventType = "late_fee_waived"
+	AuditExtraordinaryQuotaCreated  AuditEventType = "extraordinary_quota_created"
+	AuditExtraordinaryQuotaCanceled AuditEventType = "extraordinary_quota_canceled"
 )
 
 // Valid reports whether t is a supported audit event type.
@@ -63,7 +69,9 @@ func (t AuditEventType) Valid() bool {
 		AuditInvoiceDraftDeleted, AuditInvoiceAnnulled, AuditInvoicePaymentAdded,
 		AuditInvoiceAttachmentAdded, AuditInvoiceAttachmentRemoved,
 		AuditUnitCreated, AuditUnitUpdated, AuditBudgetCreated, AuditBudgetUpdated,
-		AuditBudgetApproved, AuditBudgetReopened, AuditQuotaIssued, AuditQuotaIssuanceCanceled:
+		AuditBudgetApproved, AuditBudgetReopened, AuditQuotaIssued, AuditQuotaIssuanceCanceled,
+		AuditLateFeeSettingsChanged, AuditLateFeeApplied, AuditLateFeeWaived,
+		AuditExtraordinaryQuotaCreated, AuditExtraordinaryQuotaCanceled:
 		return true
 	default:
 		return false

@@ -27,6 +27,26 @@ type fakeQuotas struct {
 	cancelErr    error
 	createErr    error
 
+	extras         []services.ExtraordinarySummary
+	extraDetail    services.ExtraordinaryDetail
+	extraPreview   services.ExtraordinaryPreview
+	extraErr       error
+	extraGetErr    error
+	extraCancelErr error
+	extraCanceled  string
+	lastExtra      services.ExtraordinaryInput
+
+	lateFee    services.LateFeeQuote
+	lateFeeErr error
+	previewOn  time.Time
+	debtors    []services.Debtor
+	debtorsErr error
+	reserve    services.ReserveBalance
+	reserveErr error
+
+	debtorsToday time.Time // the today argument of the last Debtors call
+	reserveToday time.Time // the today argument of the last ReserveBalance call
+
 	lastCreate services.BudgetInput
 	lastLine   services.LineInput
 	approved   bool
@@ -86,6 +106,40 @@ func (f *fakeQuotas) Receipt(context.Context, services.Viewer, string, string) (
 }
 func (f *fakeQuotas) Card(context.Context, services.Viewer, string, time.Time) (services.CardData, error) {
 	return services.CardData{}, nil
+}
+func (f *fakeQuotas) SettleQuota(context.Context, string, string, string, time.Time, string) error {
+	return nil
+}
+func (f *fakeQuotas) LateFeePreview(_ context.Context, _, _ string, on time.Time) (services.LateFeeQuote, error) {
+	f.previewOn = on
+	return f.lateFee, f.lateFeeErr
+}
+func (f *fakeQuotas) Debtors(_ context.Context, _ string, today time.Time) ([]services.Debtor, error) {
+	f.debtorsToday = today
+	return f.debtors, f.debtorsErr
+}
+func (f *fakeQuotas) ReserveBalance(_ context.Context, _ string, today time.Time) (services.ReserveBalance, error) {
+	f.reserveToday = today
+	return f.reserve, f.reserveErr
+}
+
+func (f *fakeQuotas) PreviewExtraordinary(_ context.Context, _ string, in services.ExtraordinaryInput) (services.ExtraordinaryPreview, error) {
+	f.lastExtra = in
+	return f.extraPreview, f.extraErr
+}
+func (f *fakeQuotas) CreateExtraordinary(_ context.Context, _, _ string, in services.ExtraordinaryInput) (string, error) {
+	f.lastExtra = in
+	return "x1", f.extraErr
+}
+func (f *fakeQuotas) ListExtraordinaries(context.Context, string) ([]services.ExtraordinarySummary, error) {
+	return f.extras, nil
+}
+func (f *fakeQuotas) GetExtraordinary(context.Context, string, string) (services.ExtraordinaryDetail, error) {
+	return f.extraDetail, f.extraGetErr
+}
+func (f *fakeQuotas) CancelExtraordinary(_ context.Context, _, _, id string) error {
+	f.extraCanceled = id
+	return f.extraCancelErr
 }
 
 func quotaDeps(q *fakeQuotas, role model.Role) Deps {
@@ -299,18 +353,5 @@ func TestIssuanceCancelFlow(t *testing.T) {
 	rec = do(router, "POST", "/finance/issuances/i1/cancel", url.Values{"budget_id": {"b1"}})
 	if rec.Code != http.StatusConflict || !strings.Contains(rec.Body.String(), "already settled") {
 		t.Fatalf("settled = %d", rec.Code)
-	}
-}
-
-func TestParseRateBP(t *testing.T) {
-	for in, want := range map[string]int{"10": 1000, "7,5": 750, "0": 0, "12.25": 1225, "100": 10000} {
-		if got, err := parseRateBP(in); err != nil || got != want {
-			t.Errorf("parseRateBP(%q) = %d, %v; want %d", in, got, err, want)
-		}
-	}
-	for _, in := range []string{"", "abc", "101", "1.234", "-1", "+5", ".5"} {
-		if _, err := parseRateBP(in); err == nil {
-			t.Errorf("parseRateBP(%q) should fail", in)
-		}
 	}
 }

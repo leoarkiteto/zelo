@@ -19,6 +19,9 @@ type Finance interface {
 	CancelAccount(ctx context.Context, actorID, accountID, condominiumID string) error
 	IsQuotaAccount(ctx context.Context, accountID string) (bool, error)
 	QuotaPeriod(ctx context.Context, accountID string) (domain.QuotaPeriod, bool, error)
+	// IsLateFeeAccount and LateFeeOrigin identify a late fee receivable (R2).
+	IsLateFeeAccount(ctx context.Context, accountID string) (bool, error)
+	LateFeeOrigin(ctx context.Context, accountID string) (domain.LateFeeOrigin, bool, error)
 	Summary(ctx context.Context, condominiumID string, month time.Time) (services.MonthSummary, error)
 	ListAccountsWithFlags(ctx context.Context, condominiumID string, f services.AccountFilter) ([]services.AccountRow, error)
 	Overview(ctx context.Context, condominiumID string, p domain.Period) (services.Overview, error)
@@ -43,6 +46,19 @@ type QuotaAdmin interface {
 	Statement(ctx context.Context, viewer services.Viewer, condoID, unitID string) (services.Statement, error)
 	Receipt(ctx context.Context, viewer services.Viewer, condoID, accountID string) (services.ReceiptData, error)
 	Card(ctx context.Context, viewer services.Viewer, condoID string, today time.Time) (services.CardData, error)
+	// SettleQuota is the settle path of quota charges (late fee decision "", "apply" or "waive").
+	SettleQuota(ctx context.Context, actorID, condoID, accountID string, settledOn time.Time, decision string) error
+	// LateFeePreview is the late fee a quota charge owes if settled on the date (zero when none).
+	LateFeePreview(ctx context.Context, condoID, accountID string, settledOn time.Time) (services.LateFeeQuote, error)
+	// Debtors and ReserveBalance feed the debtors page and the reserve fund card (syndic only).
+	Debtors(ctx context.Context, condoID string, today time.Time) ([]services.Debtor, error)
+	ReserveBalance(ctx context.Context, condoID string, today time.Time) (services.ReserveBalance, error)
+	// Extraordinary quotas (syndic only).
+	PreviewExtraordinary(ctx context.Context, condoID string, in services.ExtraordinaryInput) (services.ExtraordinaryPreview, error)
+	CreateExtraordinary(ctx context.Context, actorID, condoID string, in services.ExtraordinaryInput) (string, error)
+	ListExtraordinaries(ctx context.Context, condoID string) ([]services.ExtraordinarySummary, error)
+	GetExtraordinary(ctx context.Context, condoID, id string) (services.ExtraordinaryDetail, error)
+	CancelExtraordinary(ctx context.Context, actorID, condoID, id string) error
 }
 
 // AccountReader loads a single account by id.
@@ -64,9 +80,25 @@ type Deps struct {
 	Finance   Finance
 	Quotas    QuotaAdmin
 	UploadDir string
+	// Now is the clock; nil means time.Now.
+	Now func() time.Time
 }
 
 // Handler bundles dependencies for finance handler methods.
 type Handler struct {
 	deps Deps
+}
+
+// now is the current time from the injected clock (time.Now when unset).
+func (h *Handler) now() time.Time {
+	if h.deps.Now == nil {
+		return time.Now()
+	}
+	return h.deps.Now()
+}
+
+// today is the current calendar day as a UTC date, the shape the services use.
+func (h *Handler) today() time.Time {
+	n := h.now()
+	return time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.UTC)
 }

@@ -72,7 +72,7 @@ func newAppDB(t *testing.T) (http.Handler, *sql.DB) {
 		t.Fatalf("migrate: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `
-		TRUNCATE audit_events, quota_charges, quota_issuances, quota_budget_lines, quota_budgets,
+		TRUNCATE audit_events, quota_late_fees, quota_extraordinaries, quota_charges, quota_issuances, quota_budget_lines, quota_budgets,
 			invoice_attachments, invoice_payments, invoice_taxes,
 			invoice_items, invoices, suppliers, finance_accounts, invitations, service_provider_listings,
 		service_categories, ticket_replies, tickets, unit_occupancies, user_roles,
@@ -198,6 +198,7 @@ func composeApp(t *testing.T, db *sql.DB, redisClient *redis.Client) http.Handle
 		},
 	})
 	financehandlers.RegisterRoutes(mux, financehandlers.Deps{
+		Now:       time.Now,
 		Roles:     roles,
 		Audit:     audit,
 		Accounts:  financeAccounts,
@@ -210,7 +211,9 @@ func composeApp(t *testing.T, db *sql.DB, redisClient *redis.Client) http.Handle
 			Units:      units,
 			Audit:      audit,
 			QuotaLinks: quotaStore,
-			Now:        time.Now,
+			// Late fee receivables are linked to their origin quota (R2).
+			LateFeeLinks: quotaStore,
+			Now:          time.Now,
 		},
 		Quotas: &financeservices.QuotaService{
 			Store:       quotaStore,
@@ -218,6 +221,7 @@ func composeApp(t *testing.T, db *sql.DB, redisClient *redis.Client) http.Handle
 			Units:       units,
 			Audit:       audit,
 			Currency:    condominiums.GetCurrency,
+			LateFees:    condominiums.GetLateFeeSettings,
 			Now:         time.Now,
 		},
 	})

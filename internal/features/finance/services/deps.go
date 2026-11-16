@@ -107,8 +107,98 @@ type QuotaStore interface {
 	// quota data; ErrNotFound when it is missing or not a receivable of the condominium.
 	ReceiptData(ctx context.Context, condoID, accountID string) (ReceiptRow, error)
 	// CardData returns the dashboard rows: the unit-scoped quota figures (when
-	// unitIDs is not empty) and the approved budget of today's year.
-	CardData(ctx context.Context, condoID string, unitIDs []string, today time.Time) (CardRows, error)
+	// unitIDs is not empty) and the approved budget of today's year. The
+	// condominium-wide debtors aggregate is computed only when includeDebtors is
+	// true (syndic viewer); otherwise the debtor fields are zero.
+	CardData(ctx context.Context, condoID string, unitIDs []string, today time.Time, includeDebtors bool) (CardRows, error)
+	// CreateExtraordinary inserts the extraordinary quota, its installment
+	// issuances and every charge (receivable plus quota_charges row) in ONE
+	// transaction and returns the quota id.
+	CreateExtraordinary(ctx context.Context, e NewExtraordinary, installments []NewInstallment) (string, error)
+	// WithLockedExtraordinary opens a transaction, locks the extraordinary
+	// quota row FOR UPDATE (scoped by condominium), runs fn and commits when fn
+	// returns nil. ErrNotFound when it is missing. It locks nothing else.
+	WithLockedExtraordinary(ctx context.Context, condoID, id string, fn func(ctx context.Context, e LockedExtraordinary) error) error
+	// ListExtraordinaries lists the condominium's extraordinary quotas, newest first.
+	ListExtraordinaries(ctx context.Context, condoID string) ([]ExtraordinarySummary, error)
+	// GetExtraordinary returns one extraordinary quota with its installments;
+	// ErrNotFound when it is missing.
+	GetExtraordinary(ctx context.Context, condoID, id string) (ExtraordinaryDetail, error)
+	// QuotaAccount reads (without locking) the receivable and whether it is a
+	// quota charge; ErrNotFound when it is not a receivable of the condominium.
+	QuotaAccount(ctx context.Context, condoID, accountID string) (QuotaAccount, error)
+	// WithLockedQuotaAccount opens a transaction, locks the receivable row FOR
+	// UPDATE (scoped by condominium), runs fn and commits when fn returns nil.
+	// It locks nothing else, so it cannot invert the order used by the issuance
+	// and extraordinary cancels (which only lock their own row and then update
+	// account rows). ErrNotFound when the receivable is missing.
+	WithLockedQuotaAccount(ctx context.Context, condoID, accountID string, fn func(ctx context.Context, a LockedQuotaAccount) error) error
+	// DebtorRows returns, in one set-based query, one row per unit with at least
+	// one pending receivable due before today, with its active occupants, sorted
+	// by total descending.
+	DebtorRows(ctx context.Context, condoID string, today time.Time) ([]DebtorRow, error)
+	// OverdueQuotaRows lists the pending quota charges due before today (the
+	// input of the late fee estimate), in one query.
+	OverdueQuotaRows(ctx context.Context, condoID string, today time.Time) ([]OverdueQuota, error)
+	// ReserveTotals sums quota_charges.reserve_cents by account status; the
+	// settled-in-year part covers settlements in the calendar year.
+	ReserveTotals(ctx context.Context, condoID string, year int) (ReserveTotals, error)
+}
+
+// QuotaAccount is a receivable seen by the settle path.
+type QuotaAccount struct {
+	ID            string
+	CondominiumID string
+	UnitID        string
+	Title         string
+	AmountCents   int64
+	DueDate       time.Time
+	Status        domain.AccountStatus
+	// IsQuota is true when the receivable is a quota charge (ordinary or
+	// installment); a late fee receivable is never a quota charge.
+	IsQuota bool
+}
+
+// NewLateFee is the late fee receivable inserted when the late fee is applied.
+type NewLateFee struct {
+	// Title is the neutral stored title; views render the localised one.
+	Title     string
+	DueDate   time.Time
+	CreatedBy string
+	// Detail carries multa, juros, days late and the effective rates; the
+	// receivable amount is FineCents + InterestCents.
+	Detail domain.LateFeeDetail
+}
+
+// LockedQuotaAccount is the receivable row locked inside WithLockedQuotaAccount.
+type LockedQuotaAccount interface {
+	// Account is read after the lock was acquired, so it reflects what the
+	// previous holder committed.
+	Account() QuotaAccount
+	// Settle marks the pending receivable settled on the given date.
+	Settle(on time.Time) error
+	// InsertLateFee creates the pending late fee receivable (category fine and
+	// interest, same unit) and its quota_late_fees row, returning the new
+	// account id. A second late fee for the same quota yields domain.ErrNotEditable.
+	InsertLateFee(in NewLateFee) (accountID string, err error)
+}
+
+// LateFeeLinks tells which accounts are late fees and where they come from
+// (R2): one batch query, an entry per late fee account id.
+type LateFeeLinks interface {
+	LateFeeOrigins(ctx context.Context, ids []string) (map[string]domain.LateFeeOrigin, error)
+}
+
+// LockedExtraordinary is the extraordinary quota row locked inside
+// WithLockedExtraordinary.
+type LockedExtraordinary interface {
+	Extraordinary() ExtraordinarySummary
+	// CancelPendingCharges cancels the receivables of every installment
+	// WHERE status='pending' and returns how many were updated and how many
+	// charges the quota has.
+	CancelPendingCharges() (affected int, total int, err error)
+	// MarkCanceled marks the quota and all its installment issuances canceled (R9).
+	MarkCanceled(at time.Time) error
 }
 
 // LockedBudget is the budget row locked FOR UPDATE inside WithLockedBudget.
@@ -144,6 +234,10 @@ type LockedIssuance interface {
 	CancelPendingCharges() (affected int, total int, err error)
 	MarkCanceled(at time.Time) error
 }
+
+// QuotaStore (extraordinary part): installments are issuances too, but they are
+// reachable only through the methods above; the ordinary issuance paths
+// (WithLockedIssuance, ListIssuances, ActiveIssuanceFor) never see them.
 
 // QuotaLinks tells which accounts are managed by a quota (FR-16): the result
 // has an entry, with the period and unit code for display, per quota account

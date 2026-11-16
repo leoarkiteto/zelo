@@ -21,6 +21,8 @@ templ financeBody(data FinancePageData) {
 			</div>
 			<div class="flex flex-wrap gap-2">
 				<a class="btn btn-secondary" href="/finance/budgets">{ i18n.T(data.Locale, "quotas.budgets_title") }</a>
+				<a class="btn btn-secondary" href="/finance/extraordinaries">{ i18n.T(data.Locale, "quotas.extra.title") }</a>
+				<a class="btn btn-secondary" href="/finance/debtors">{ i18n.T(data.Locale, "quotas.debtors.title") }</a>
 				<a class="btn btn-secondary" href="/finance/new?type=receivable">{ i18n.T(data.Locale, "finance.new_receivable") }</a>
 				<a class="btn btn-primary" href="/finance/new?type=payable">{ i18n.T(data.Locale, "finance.new_payable") }</a>
 			</div>
@@ -123,7 +125,9 @@ templ financeBody(data FinancePageData) {
 											if a.EffectiveStatus == domain.StatusPending || a.EffectiveStatus == domain.StatusOverdue {
 												<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/settle") }>{ i18n.T(data.Locale, "finance.settle") }</a>
 												if !a.IsQuota {
-													<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/edit") }>{ i18n.T(data.Locale, "common.edit") }</a>
+													if !a.IsLateFee {
+														<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/edit") }>{ i18n.T(data.Locale, "common.edit") }</a>
+													}
 													<a class="btn btn-danger btn-sm" href={ templ.URL("/finance/" + a.ID + "/cancel") }>{ i18n.T(data.Locale, "common.delete") }</a>
 												}
 											}
@@ -260,15 +264,71 @@ templ settleBody(data SettleData) {
 		}
 		<form method="POST" action={ templ.URL("/finance/" + data.Account.ID + "/settle") } class="card card-pad grid gap-4">
 			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			if data.IsQuota {
+				<button class="sr-only" type="submit" tabindex="-1">{ i18n.T(data.Locale, "finance.settle_confirm") }</button>
+			}
 			<div>
 				<label class="label" for="settlement_date">{ i18n.T(data.Locale, "finance.settlement_date") }</label>
-				<input class="input" type="date" id="settlement_date" name="settlement_date" required/>
+					if data.IsQuota {
+						<input class="input" type="date" id="settlement_date" name="settlement_date" value={ data.Date } required hx-get={ "/finance/" + data.Account.ID + "/settle/late-fee" } hx-trigger="change" hx-include="#settlement_date" hx-target="#settle-actions" hx-swap="outerHTML"/>
+					} else {
+						<input class="input" type="date" id="settlement_date" name="settlement_date" value={ data.Date } required/>
+					}
+				</div>
+				if data.IsQuota {
+					@SettleLateFee(data.LateFee)
+				} else {
+					<div class="flex gap-2">
+						<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "finance.settle_confirm") }</button>
+						<a class="btn btn-secondary" href="/finance">{ i18n.T(data.Locale, "common.cancel") }</a>
+					</div>
+				}
+			</form>
+		</div>
+}
+
+// SettleLateFee is the part of the settle form that depends on the date: the
+// late fee breakdown (when the quota is late) with the apply/waive buttons, or
+// the usual single settle button. It is the target of the date change request.
+templ SettleLateFee(d SettleLateFeeData) {
+	<div id="settle-actions" class="grid gap-4" aria-live="polite">
+		if d.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: d.Error})
+		}
+		if d.HasLateFee {
+			<div class="rounded-lg border border-chrome-200 bg-amber-50 p-4" data-late-fee="breakdown">
+				<h2 class="text-sm font-semibold text-ink-900">{ i18n.T(d.Locale, "quotas.late_fee.heading") }</h2>
+				<p class="mt-1 text-sm text-ink-600">{ i18n.T(d.Locale, "quotas.late_fee.hint") }</p>
+				<dl class="mt-3 grid gap-2 sm:grid-cols-2">
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(d.Locale, "quotas.late_fee.fine") }</dt>
+						<dd class="font-medium text-ink-900">{ d.Fine }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(d.Locale, "quotas.late_fee.interest") }</dt>
+						<dd class="font-medium text-ink-900">{ d.Interest }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(d.Locale, "quotas.late_fee.days_late") }</dt>
+						<dd class="font-medium text-ink-900">{ itoa(d.DaysLate) }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(d.Locale, "quotas.late_fee.total") }</dt>
+						<dd class="text-lg font-bold text-ink-900">{ d.Total }</dd>
+					</div>
+				</dl>
 			</div>
+			<div class="flex flex-wrap gap-2">
+				<button class="btn btn-primary" type="submit" name="late_fee_decision" value="apply">{ i18n.T(d.Locale, "quotas.late_fee.apply") }</button>
+				<button class="btn btn-secondary" type="submit" name="late_fee_decision" value="waive">{ i18n.T(d.Locale, "quotas.late_fee.waive") }</button>
+				<a class="btn btn-secondary" href="/finance">{ i18n.T(d.Locale, "common.cancel") }</a>
+			</div>
+		} else {
 			<div class="flex gap-2">
-				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "finance.settle_confirm") }</button>
-				<a class="btn btn-secondary" href="/finance">{ i18n.T(data.Locale, "common.cancel") }</a>
+				<button class="btn btn-primary" type="submit">{ i18n.T(d.Locale, "finance.settle_confirm") }</button>
+				<a class="btn btn-secondary" href="/finance">{ i18n.T(d.Locale, "common.cancel") }</a>
 			</div>
-		</form>
+		}
 	</div>
 }
 
@@ -288,6 +348,9 @@ templ cancelBody(data CancelData) {
 			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
 		}
 		<p class="text-ink-700">{ i18n.T(data.Locale, "finance.cancel_confirm_copy") }</p>
+		if data.Account.IsLateFee {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "quotas.late_fee.cancel_copy")})
+		}
 		<form method="POST" action={ templ.URL("/finance/" + data.Account.ID + "/cancel") } class="card card-pad flex gap-2">
 			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
 			<button class="btn btn-danger" type="submit">{ i18n.T(data.Locale, "finance.cancel") }</button>

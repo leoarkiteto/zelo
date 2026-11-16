@@ -742,15 +742,10 @@ func seedQuotas(ctx context.Context, logger *slog.Logger, db *sql.DB, now time.T
 	condominiums := store.NewCondominiumStore(db)
 	audit := store.NewAuditStore(db)
 	quotaStore := financerepositories.NewQuotaStore(db)
-	accounts := financerepositories.NewAccountStore(db)
 	nowFn := func() time.Time { return now }
 	quotas := &financeservices.QuotaService{
 		Store: quotaStore, Occupancies: units, Units: units, Audit: audit,
-		Currency: condominiums.GetCurrency, Now: nowFn,
-	}
-	fin := &financeservices.FinanceService{
-		Accounts: accounts, Summaries: accounts, Overviews: accounts, Units: units,
-		Audit: audit, QuotaLinks: quotaStore, Now: nowFn,
+		Currency: condominiums.GetCurrency, LateFees: condominiums.GetLateFeeSettings, Now: nowFn,
 	}
 
 	// 1. Unit shares.
@@ -865,8 +860,10 @@ func seedQuotas(ctx context.Context, logger *slog.Logger, db *sql.DB, now time.T
 					r.Account.Status != financedomain.StatusPending {
 					continue
 				}
-				if err := fin.SettleAccount(ctx, syndicID, r.Account.ID, condoID,
-					step.settleOn.Format("2006-01-02")); err != nil {
+				// Quota charges settle through SettleQuota; a late demo quota
+				// gets its late fee waived (R11), so the data stays as designed.
+				if err := quotas.SettleQuota(ctx, syndicID, condoID, r.Account.ID,
+					step.settleOn, financeservices.LateFeeWaive); err != nil {
 					return fmt.Errorf("settle quota of %s: %w", code, err)
 				}
 				settled++

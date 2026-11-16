@@ -70,6 +70,38 @@ _Avoid_: Competência, mês de referência, ciclo
 O lançamento das quotas de um período para todas as unidades de uma só vez.
 _Avoid_: Lançamento, geração, faturação, boleto
 
+**Quota extraordinária**:
+Uma cobrança pontual aprovada em assembleia, fora do orçamento anual, repartida pelas unidades e paga em parcelas.
+_Avoid_: Cota extra, rateio, taxa extra (sozinha)
+
+**Parcela**:
+Cada uma das prestações mensais de uma quota extraordinária.
+_Avoid_: Prestação (sozinha), mensalidade
+
+**Saldo do fundo de reserva**:
+O total da reserva já recebido, isto é, a parte de reserva das quotas liquidadas.
+_Avoid_: Caixa de reserva, poupança, saldo (sozinho)
+
+**Devedor**:
+Uma unidade com contas a receber vencidas. É a unidade, não a pessoa, porque a dívida acompanha a fração. Em pt-br aparece como "inadimplente".
+_Avoid_: Caloteiro, mau pagador, devedor (para a pessoa)
+
+**Mora**:
+A multa e os juros devidos por pagar uma quota depois do vencimento.
+_Avoid_: Encargos (sozinho), penalidade, juros (para o conjunto)
+
+**Multa**:
+A parte fixa da mora: uma percentagem da quota, cobrada uma só vez.
+_Avoid_: Coima, sanção
+
+**Juros de mora**:
+A parte da mora que cresce com os dias de atraso.
+_Avoid_: Juros (sozinho), correção
+
+**Perdão de mora**:
+A decisão do síndico de não cobrar a mora calculada de uma quota paga em atraso.
+_Avoid_: Anistia, isenção, desconto
+
 **Recibo**:
 O comprovativo, emitido pelo condomínio, de que uma conta a receber foi liquidada. Não é um documento fiscal, nem o comprovativo anexado a uma conta a pagar.
 _Avoid_: Comprovante (para o recibo), quitação, nota, fatura-recibo

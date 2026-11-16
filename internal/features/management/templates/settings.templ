@@ -15,6 +15,12 @@ type SettingsPageData struct {
 	Currency money.Currency
 	Flash    string
 	Error    string
+
+	// Late-fee form values, already formatted for the locale (or the user's
+	// rejected input).
+	FeeText      string
+	InterestText string
+	GraceText    string
 }
 
 templ SettingsPage(data SettingsPageData) {
@@ -52,6 +58,37 @@ templ settingsBody(data SettingsPageData) {
 			<div class="flex gap-2">
 				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "common.save_changes") }</button>
 				<a class="btn btn-secondary" href="/condominium">{ i18n.T(data.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+		<form method="POST" action="/condominium/settings" class="card card-pad space-y-4">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			<input type="hidden" name="form" value="late_fee"/>
+			<div>
+				<h2 class="text-base font-semibold">{ i18n.T(data.Locale, "settings.late_fee.title") }</h2>
+				<p class="mt-1 text-xs text-ink-500">{ i18n.T(data.Locale, "settings.late_fee.hint") }</p>
+			</div>
+			<div>
+				<label class="label" for="late_fee">{ i18n.T(data.Locale, "settings.late_fee.fee") }</label>
+				<input class="input" type="text" inputmode="decimal" id="late_fee" name="late_fee" value={ data.FeeText } required aria-describedby="late-fee-hint"/>
+				<p class="mt-1 text-xs text-ink-500" id="late-fee-hint">
+					{ i18n.T(data.Locale, "settings.late_fee.fee_hint") }
+					if data.Currency == money.BRL {
+						{ " " + i18n.T(data.Locale, "settings.late_fee.cap_hint") }
+					}
+				</p>
+			</div>
+			<div>
+				<label class="label" for="late_interest">{ i18n.T(data.Locale, "settings.late_fee.interest") }</label>
+				<input class="input" type="text" inputmode="decimal" id="late_interest" name="late_interest" value={ data.InterestText } required/>
+				<p class="mt-1 text-xs text-ink-500">{ i18n.T(data.Locale, "settings.late_fee.interest_hint") }</p>
+			</div>
+			<div>
+				<label class="label" for="late_grace_days">{ i18n.T(data.Locale, "settings.late_fee.grace") }</label>
+				<input class="input" type="number" min="0" max="60" step="1" id="late_grace_days" name="late_grace_days" value={ data.GraceText } required/>
+				<p class="mt-1 text-xs text-ink-500">{ i18n.T(data.Locale, "settings.late_fee.grace_hint") }</p>
+			</div>
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "common.save_changes") }</button>
 			</div>
 		</form>
 	</div>

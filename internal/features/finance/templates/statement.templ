@@ -176,6 +176,28 @@ templ receiptBody(data ReceiptPageData) {
 						<dd class="font-medium text-ink-900">{ data.Base } / { data.Reserve }</dd>
 					</div>
 				}
+				if data.LateFee != nil {
+					<div class="sm:col-span-2">
+						<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.late_fee.origin") }</dt>
+						<dd class="font-medium text-ink-900">{ data.LateFee.Origin }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.late_fee.fine") }</dt>
+						<dd class="font-medium text-ink-900">{ data.LateFee.Fine } ({ data.LateFee.FeeRate })</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.late_fee.interest") }</dt>
+						<dd class="font-medium text-ink-900">{ data.LateFee.Interest } ({ data.LateFee.InterestRate })</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.late_fee.days_late") }</dt>
+						<dd class="font-medium text-ink-900">{ itoa(data.LateFee.DaysLate) }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.late_fee.grace") }</dt>
+						<dd class="font-medium text-ink-900">{ itoa(data.LateFee.GraceDays) }</dd>
+					</div>
+				}
 				<div>
 					<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.receipt.amount") }</dt>
 					<dd class="text-2xl font-bold text-ink-900">{ data.Amount }</dd>
@@ -221,6 +243,11 @@ templ QuotasCard(d QuotasCardData) {
 				} else {
 					<p class="text-lg font-semibold text-ink-900">{ PeriodState(d.Locale, d.Syndic.PeriodLabel, i18n.T(d.Locale, "quotas.card.not_issued")) }</p>
 					<a href={ templ.URL(d.Syndic.PreviewHref) } class="btn btn-primary btn-sm mt-2">{ i18n.T(d.Locale, "quotas.preview_issue") }</a>
+				}
+				if d.Syndic.DebtorsLine != "" {
+					<p class="mt-2 text-sm font-medium text-red-700">
+						<a href="/finance/debtors" class="underline hover:text-red-900" data-quotas-card-debtors="line">{ d.Syndic.DebtorsLine }</a>
+					</p>
 				}
 			</div>
 		}

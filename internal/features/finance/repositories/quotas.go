@@ -147,20 +147,88 @@ func (s *QuotaStore) GetBudget(ctx context.Context, condoID, budgetID string) (s
 	return services.BudgetDetail{Budget: b, Lines: lines}, nil
 }
 
+// issuanceSelect reads issuances of both kinds (budget_id is NULL for an
+// extraordinary installment). The ordinary paths add `i.extraordinary_id IS NULL`
+// (R1); the extraordinary ones filter by their own id.
 const issuanceSelect = `
-	SELECT i.id, i.budget_id, b.year, b.periodicity, i.period_index, i.status,
+	SELECT i.id, COALESCE(i.budget_id::text, ''), COALESCE(i.extraordinary_id::text, ''),
+		COALESCE(b.year, 0), COALESCE(b.periodicity, ''), i.period_index, i.status,
 		i.total_cents, i.base_cents, i.reserve_cents,
 		(SELECT count(*) FROM quota_charges c WHERE c.issuance_id = i.id),
 		(SELECT count(*) FROM quota_charges c JOIN finance_accounts fa ON fa.id = c.finance_account_id
 			WHERE c.issuance_id = i.id AND fa.status = 'settled'),
 		i.created_at, i.canceled_at
-	FROM quota_issuances i JOIN quota_budgets b ON b.id = i.budget_id`
+	FROM quota_issuances i LEFT JOIN quota_budgets b ON b.id = i.budget_id`
+
+// periodCols and periodJoins make a query kind-aware: they fill a
+// domain.QuotaPeriod for ordinary quotas and extraordinary installments. They
+// expect the aliases i (quota_issuances), b and x.
+const (
+	periodCols = `COALESCE(b.year, EXTRACT(YEAR FROM x.first_due_date)::int, 0), COALESCE(b.periodicity, ''),
+		COALESCE(i.period_index, 0), COALESCE(x.description, ''), COALESCE(x.installments, 0), x.id IS NOT NULL`
+	periodJoins = `
+		LEFT JOIN quota_budgets b ON b.id = i.budget_id
+		LEFT JOIN quota_extraordinaries x ON x.id = i.extraordinary_id`
+)
+
+// lateFeeCols and originCols/originJoins add the late fee link of a receivable
+// (R3): the stored breakdown and the period of the origin quota. They expect the
+// alias fa (finance_accounts) and use lf, oqc, oi, ob and ox.
+const (
+	lateFeeCols = `lf.id IS NOT NULL, lf.multa_cents, lf.juros_cents, lf.days_late, lf.multa_bp, lf.juros_bp, lf.grace_days`
+	originCols  = `COALESCE(ob.year, EXTRACT(YEAR FROM ox.first_due_date)::int, 0), COALESCE(ob.periodicity, ''),
+		COALESCE(oi.period_index, 0), COALESCE(ox.description, ''), COALESCE(ox.installments, 0), ox.id IS NOT NULL`
+	originJoins = `
+		LEFT JOIN quota_late_fees lf ON lf.late_fee_account_id = fa.id
+		LEFT JOIN quota_charges oqc ON oqc.finance_account_id = lf.quota_account_id
+		LEFT JOIN quota_issuances oi ON oi.id = oqc.issuance_id
+		LEFT JOIN quota_budgets ob ON ob.id = oi.budget_id
+		LEFT JOIN quota_extraordinaries ox ON ox.id = oi.extraordinary_id`
+)
+
+// lateFeeScan receives the lateFeeCols columns.
+type lateFeeScan struct {
+	is                      bool
+	fine, interest          sql.NullInt64
+	days, feeBP, interestBP sql.NullInt64
+	grace                   sql.NullInt64
+}
+
+func (l *lateFeeScan) dest() []any {
+	return []any{&l.is, &l.fine, &l.interest, &l.days, &l.feeBP, &l.interestBP, &l.grace}
+}
+
+func (l lateFeeScan) detail() *domain.LateFeeDetail {
+	return &domain.LateFeeDetail{
+		FineCents: l.fine.Int64, InterestCents: l.interest.Int64, DaysLate: int(l.days.Int64),
+		FeeBP: int(l.feeBP.Int64), InterestBP: int(l.interestBP.Int64), GraceDays: int(l.grace.Int64),
+	}
+}
+
+// periodScan receives the periodCols columns.
+type periodScan struct {
+	year, idx, installments int
+	per, desc               string
+	extraordinary           bool
+}
+
+func (p *periodScan) dest() []any {
+	return []any{&p.year, &p.per, &p.idx, &p.desc, &p.installments, &p.extraordinary}
+}
+
+func (p periodScan) period(unitCode string) domain.QuotaPeriod {
+	q := domain.QuotaPeriod{Year: p.year, Periodicity: domain.Periodicity(p.per), Index: p.idx, UnitCode: unitCode, Kind: domain.QuotaKindOrdinary}
+	if p.extraordinary {
+		q.Kind, q.Description, q.Installment, q.Installments = domain.QuotaKindExtraordinary, p.desc, p.idx, p.installments
+	}
+	return q
+}
 
 func scanIssuance(r rowScanner) (services.IssuanceSummary, error) {
 	var i services.IssuanceSummary
 	var per, status string
 	var canceled sql.NullTime
-	if err := r.Scan(&i.ID, &i.BudgetID, &i.Year, &per, &i.PeriodIndex, &status,
+	if err := r.Scan(&i.ID, &i.BudgetID, &i.ExtraordinaryID, &i.Year, &per, &i.PeriodIndex, &status,
 		&i.TotalCents, &i.BaseCents, &i.ReserveCents, &i.ChargeCount, &i.SettledCount,
 		&i.CreatedAt, &canceled); err != nil {
 		return i, err
@@ -176,7 +244,7 @@ func scanIssuance(r rowScanner) (services.IssuanceSummary, error) {
 // ListIssuances lists the issuances of a budget by period.
 func (s *QuotaStore) ListIssuances(ctx context.Context, condoID, budgetID string) ([]services.IssuanceSummary, error) {
 	rows, err := s.db.QueryContext(ctx, issuanceSelect+`
-		WHERE i.condominium_id = $1 AND i.budget_id = $2
+		WHERE i.condominium_id = $1 AND i.budget_id = $2 AND i.extraordinary_id IS NULL
 		ORDER BY i.period_index, i.created_at`, condoID, budgetID)
 	if err != nil {
 		return nil, mapQuotaErr("list issuances", err)
@@ -196,7 +264,8 @@ func (s *QuotaStore) ListIssuances(ctx context.Context, condoID, budgetID string
 // ActiveIssuanceFor returns the active issuance of a period, if any.
 func (s *QuotaStore) ActiveIssuanceFor(ctx context.Context, condoID, budgetID string, periodIndex int) (services.IssuanceSummary, bool, error) {
 	i, err := scanIssuance(s.db.QueryRowContext(ctx, issuanceSelect+`
-		WHERE i.condominium_id = $1 AND i.budget_id = $2 AND i.period_index = $3 AND i.status = 'issued'`,
+		WHERE i.condominium_id = $1 AND i.budget_id = $2 AND i.period_index = $3 AND i.status = 'issued'
+			AND i.extraordinary_id IS NULL`,
 		condoID, budgetID, periodIndex))
 	if errors.Is(err, sql.ErrNoRows) {
 		return services.IssuanceSummary{}, false, nil
@@ -236,12 +305,11 @@ func (s *QuotaStore) UnitReceivables(ctx context.Context, condoID, unitID string
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT fa.id, fa.condominium_id, fa.title, fa.category, fa.amount_cents, fa.due_date,
 			fa.status, fa.settlement_date, fa.unit_id,
-			qc.id IS NOT NULL, b.year, b.periodicity, i.period_index, u.code
+			qc.id IS NOT NULL, `+periodCols+`, COALESCE(u.code, ''), `+lateFeeCols+`, `+originCols+`
 		FROM finance_accounts fa
 		LEFT JOIN units u ON u.id = fa.unit_id
 		LEFT JOIN quota_charges qc ON qc.finance_account_id = fa.id
-		LEFT JOIN quota_issuances i ON i.id = qc.issuance_id
-		LEFT JOIN quota_budgets b ON b.id = i.budget_id
+		LEFT JOIN quota_issuances i ON i.id = qc.issuance_id`+periodJoins+originJoins+`
 		WHERE fa.condominium_id = $1 AND fa.unit_id = $2 AND fa.account_type = 'receivable'
 		ORDER BY fa.due_date, fa.title, fa.id`, condoID, unitID)
 	if err != nil {
@@ -253,11 +321,17 @@ func (s *QuotaStore) UnitReceivables(ctx context.Context, condoID, unitID string
 		var r services.StatementRow
 		a := &r.Account
 		var settlement sql.NullTime
-		var year, idx sql.NullInt64
-		var per, code sql.NullString
-		if err := rows.Scan(&a.ID, &a.CondominiumID, &a.Title, &a.Category, &a.AmountCents, &a.DueDate,
-			&a.Status, &settlement, &a.UnitID, &r.IsQuota, &year, &per, &idx, &code); err != nil {
+		var ps, os periodScan
+		var ls lateFeeScan
+		var code string
+		dest := append([]any{&a.ID, &a.CondominiumID, &a.Title, &a.Category, &a.AmountCents, &a.DueDate,
+			&a.Status, &settlement, &a.UnitID, &r.IsQuota}, ps.dest()...)
+		dest = append(append(append(dest, &code), ls.dest()...), os.dest()...)
+		if err := rows.Scan(dest...); err != nil {
 			return nil, err
+		}
+		if ls.is {
+			r.IsLateFee, r.LateFeeOrigin, r.LateFee = true, os.period(code), ls.detail()
 		}
 		a.Type = domain.AccountTypeReceivable
 		if settlement.Valid {
@@ -265,7 +339,7 @@ func (s *QuotaStore) UnitReceivables(ctx context.Context, condoID, unitID string
 			a.SettlementDate = &t
 		}
 		if r.IsQuota {
-			r.Period = domain.QuotaPeriod{Year: int(year.Int64), Periodicity: domain.Periodicity(per.String), Index: int(idx.Int64), UnitCode: code.String}
+			r.Period = ps.period(code)
 		}
 		out = append(out, r)
 	}
@@ -275,23 +349,25 @@ func (s *QuotaStore) UnitReceivables(ctx context.Context, condoID, unitID string
 // ReceiptData returns a receivable joined with condominium, unit and quota data.
 func (s *QuotaStore) ReceiptData(ctx context.Context, condoID, accountID string) (services.ReceiptRow, error) {
 	var r services.ReceiptRow
-	var unitID, unitCode, status, cur, per sql.NullString
+	var unitID, unitCode, status, cur sql.NullString
 	var settlement sql.NullTime
-	var year, idx, base, reserve sql.NullInt64
+	var base, reserve sql.NullInt64
 	var isQuota bool
+	var ps, os periodScan
+	var ls lateFeeScan
+	dest := append([]any{&r.AccountID, &r.CondominiumName, &cur, &unitID, &unitCode, &r.Title,
+		&r.AmountCents, &status, &settlement, &isQuota}, ps.dest()...)
 	err := s.db.QueryRowContext(ctx, `
 		SELECT fa.id, c.name, c.currency, fa.unit_id, u.code, fa.title, fa.amount_cents,
 			fa.status, fa.settlement_date,
-			qc.id IS NOT NULL, b.year, b.periodicity, i.period_index, qc.base_cents, qc.reserve_cents
+			qc.id IS NOT NULL, `+periodCols+`, qc.base_cents, qc.reserve_cents, `+lateFeeCols+`, `+originCols+`
 		FROM finance_accounts fa
 		JOIN condominiums c ON c.id = fa.condominium_id
 		LEFT JOIN units u ON u.id = fa.unit_id
 		LEFT JOIN quota_charges qc ON qc.finance_account_id = fa.id
-		LEFT JOIN quota_issuances i ON i.id = qc.issuance_id
-		LEFT JOIN quota_budgets b ON b.id = i.budget_id
+		LEFT JOIN quota_issuances i ON i.id = qc.issuance_id`+periodJoins+originJoins+`
 		WHERE fa.condominium_id = $1 AND fa.id = $2 AND fa.account_type = 'receivable'`,
-		condoID, accountID).Scan(&r.AccountID, &r.CondominiumName, &cur, &unitID, &unitCode, &r.Title,
-		&r.AmountCents, &status, &settlement, &isQuota, &year, &per, &idx, &base, &reserve)
+		condoID, accountID).Scan(append(append(append(dest, &base, &reserve), ls.dest()...), os.dest()...)...)
 	if err != nil {
 		return services.ReceiptRow{}, mapQuotaErr("receipt data", err)
 	}
@@ -304,14 +380,19 @@ func (s *QuotaStore) ReceiptData(ctx context.Context, condoID, accountID string)
 	}
 	if isQuota {
 		r.IsQuota = true
-		r.Period = domain.QuotaPeriod{Year: int(year.Int64), Periodicity: domain.Periodicity(per.String), Index: int(idx.Int64), UnitCode: unitCode.String}
+		r.Period = ps.period(unitCode.String)
 		r.BaseCents, r.ReserveCents = base.Int64, reserve.Int64
+	}
+	if ls.is {
+		r.IsLateFee, r.LateFeeOrigin, r.LateFee = true, os.period(unitCode.String), ls.detail()
 	}
 	return r, nil
 }
 
-// CardData returns the dashboard rows (unit-scoped quota figures and today's approved budget).
-func (s *QuotaStore) CardData(ctx context.Context, condoID string, unitIDs []string, today time.Time) (services.CardRows, error) {
+// CardData returns the dashboard rows (unit-scoped quota figures and today's
+// approved budget). The condominium-wide debtors aggregate runs only when
+// includeDebtors is true (syndic viewer); otherwise the debtor fields stay zero.
+func (s *QuotaStore) CardData(ctx context.Context, condoID string, unitIDs []string, today time.Time, includeDebtors bool) (services.CardRows, error) {
 	var out services.CardRows
 	if len(unitIDs) > 0 {
 		var amount sql.NullInt64
@@ -338,6 +419,17 @@ func (s *QuotaStore) CardData(ctx context.Context, condoID string, unitIDs []str
 			return out, mapQuotaErr("card overdue", err)
 		}
 	}
+	// Debtor units: any pending receivable of a unit due before today (FR-1, FR-18).
+	if includeDebtors {
+		if err := s.db.QueryRowContext(ctx, `
+		SELECT count(DISTINCT unit_id), COALESCE(SUM(amount_cents), 0)
+		FROM finance_accounts
+		WHERE condominium_id = $1 AND account_type = 'receivable' AND status = 'pending'
+			AND due_date < $2 AND unit_id IS NOT NULL`, condoID, today).
+			Scan(&out.DebtorUnits, &out.DebtorTotalCents); err != nil {
+			return out, mapQuotaErr("card debtors", err)
+		}
+	}
 	b, err := scanBudget(s.db.QueryRowContext(ctx, `SELECT `+budgetCols+`
 		FROM quota_budgets WHERE condominium_id = $1 AND year = $2 AND status = 'approved'`, condoID, today.Year()))
 	switch {
@@ -358,10 +450,9 @@ func (s *QuotaStore) QuotaPeriods(ctx context.Context, ids []string) (map[string
 		return out, nil
 	}
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT qc.finance_account_id, b.year, b.periodicity, i.period_index, COALESCE(u.code, '')
+		SELECT qc.finance_account_id, `+periodCols+`, COALESCE(u.code, '')
 		FROM quota_charges qc
-		JOIN quota_issuances i ON i.id = qc.issuance_id
-		JOIN quota_budgets b ON b.id = i.budget_id
+		JOIN quota_issuances i ON i.id = qc.issuance_id`+periodJoins+`
 		LEFT JOIN units u ON u.id = qc.unit_id
 		WHERE qc.finance_account_id = ANY($1::text[]::uuid[])`, ids)
 	if err != nil {
@@ -369,13 +460,12 @@ func (s *QuotaStore) QuotaPeriods(ctx context.Context, ids []string) (map[string
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var id, per string
-		var p domain.QuotaPeriod
-		if err := rows.Scan(&id, &p.Year, &per, &p.Index, &p.UnitCode); err != nil {
+		var id, code string
+		var ps periodScan
+		if err := rows.Scan(append(append([]any{&id}, ps.dest()...), &code)...); err != nil {
 			return nil, err
 		}
-		p.Periodicity = domain.Periodicity(per)
-		out[id] = p
+		out[id] = ps.period(code)
 	}
 	return out, rows.Err()
 }
@@ -537,7 +627,7 @@ func (l *lockedBudget) SetStatus(status domain.BudgetStatus) error {
 func (l *lockedBudget) HasActiveIssuance() (bool, error) {
 	var has bool
 	err := l.tx.QueryRowContext(l.ctx,
-		`SELECT EXISTS (SELECT 1 FROM quota_issuances WHERE budget_id = $1 AND status = 'issued')`,
+		`SELECT EXISTS (SELECT 1 FROM quota_issuances WHERE budget_id = $1 AND status = 'issued' AND extraordinary_id IS NULL)`,
 		l.budget.ID).Scan(&has)
 	if err != nil {
 		return false, mapQuotaErr("active issuance check", err)
@@ -575,19 +665,25 @@ func (l *lockedIssue) InsertIssuance(in services.NewIssuance) (string, bool, err
 }
 
 func (l *lockedIssue) InsertCharges(issuanceID string, charges []services.NewCharge) error {
+	return insertCharges(l.ctx, l.tx, l.condoID, issuanceID, domain.CategoryCondoFee, charges)
+}
+
+// insertCharges creates, for each charge, a pending receivable of the category
+// plus its quota_charges row (frozen share, base and reserve parts).
+func insertCharges(ctx context.Context, tx *sql.Tx, condoID, issuanceID string, category domain.Category, charges []services.NewCharge) error {
 	for _, c := range charges {
-		accID, err := insertAccount(l.ctx, l.tx, domain.FinancialAccount{
-			CondominiumID: l.condoID, Type: domain.AccountTypeReceivable, Title: c.Title,
-			Category: domain.CategoryCondoFee, AmountCents: c.AmountCents, DueDate: c.DueDate,
+		accID, err := insertAccount(ctx, tx, domain.FinancialAccount{
+			CondominiumID: condoID, Type: domain.AccountTypeReceivable, Title: c.Title,
+			Category: category, AmountCents: c.AmountCents, DueDate: c.DueDate,
 			Status: domain.StatusPending, UnitID: c.UnitID, CreatedBy: c.CreatedBy,
 		})
 		if err != nil {
 			return mapQuotaErr("insert quota account", err)
 		}
-		if _, err := l.tx.ExecContext(l.ctx, `
+		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO quota_charges (condominium_id, issuance_id, unit_id, finance_account_id, share_ppm, base_cents, reserve_cents)
 			VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-			l.condoID, issuanceID, c.UnitID, accID, c.SharePPM, c.BaseCents, c.ReserveCents); err != nil {
+			condoID, issuanceID, c.UnitID, accID, c.SharePPM, c.BaseCents, c.ReserveCents); err != nil {
 			return mapQuotaErr("insert quota charge", err)
 		}
 	}
@@ -605,13 +701,14 @@ func (s *QuotaStore) WithLockedIssuance(ctx context.Context, condoID, issuanceID
 	defer func() { _ = tx.Rollback() }()
 	// Locks only the issuance row; the budget is never locked on this path.
 	if _, err := tx.ExecContext(ctx, `
-		SELECT 1 FROM quota_issuances i WHERE i.condominium_id = $1 AND i.id = $2 FOR UPDATE`,
+		SELECT 1 FROM quota_issuances i WHERE i.condominium_id = $1 AND i.id = $2
+			AND i.extraordinary_id IS NULL FOR UPDATE`,
 		condoID, issuanceID); err != nil {
 		return mapQuotaErr("lock issuance", err)
 	}
 	// Separate statement: after waiting for the lock it sees what the previous holder committed.
 	iss, err := scanIssuance(tx.QueryRowContext(ctx, issuanceSelect+`
-		WHERE i.condominium_id = $1 AND i.id = $2`, condoID, issuanceID))
+		WHERE i.condominium_id = $1 AND i.id = $2 AND i.extraordinary_id IS NULL`, condoID, issuanceID))
 	if err != nil {
 		return mapQuotaErr("read issuance", err)
 	}

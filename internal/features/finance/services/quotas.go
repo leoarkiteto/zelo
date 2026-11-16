@@ -142,15 +142,18 @@ type NewCharge struct {
 
 // IssuanceSummary is an issuance with its settlement progress.
 type IssuanceSummary struct {
-	ID           string
-	BudgetID     string
-	Year         int
-	Periodicity  domain.Periodicity
-	PeriodIndex  int
-	Status       domain.IssuanceStatus
-	TotalCents   int64
-	BaseCents    int64
-	ReserveCents int64
+	ID       string
+	BudgetID string
+	// ExtraordinaryID is set (and BudgetID empty) for an installment issuance;
+	// PeriodIndex is then the installment number.
+	ExtraordinaryID string
+	Year            int
+	Periodicity     domain.Periodicity
+	PeriodIndex     int
+	Status          domain.IssuanceStatus
+	TotalCents      int64
+	BaseCents       int64
+	ReserveCents    int64
 	// ChargeCount is the number of quotas; SettledCount how many are settled.
 	ChargeCount  int
 	SettledCount int
@@ -204,6 +207,11 @@ type StatementRow struct {
 	// IsQuota is true for a quota; Period is then the metadata the views localise.
 	IsQuota bool
 	Period  domain.QuotaPeriod
+	// IsLateFee is true for a late fee receivable; LateFeeOrigin is then the
+	// quota it comes from and LateFee the stored breakdown (R3).
+	IsLateFee     bool
+	LateFeeOrigin domain.QuotaPeriod
+	LateFee       *domain.LateFeeDetail
 }
 
 // Statement is the Conta corrente of one unit (FR-18..20).
@@ -235,6 +243,10 @@ type ReceiptRow struct {
 	Period          domain.QuotaPeriod
 	BaseCents       int64
 	ReserveCents    int64
+	// IsLateFee, LateFeeOrigin and LateFee are filled for a late fee receivable (R3).
+	IsLateFee     bool
+	LateFeeOrigin domain.QuotaPeriod
+	LateFee       *domain.LateFeeDetail
 }
 
 // ReceiptData is what the Recibo page renders (FR-26).
@@ -253,6 +265,10 @@ type CardRows struct {
 	OverdueTotalCents int64
 	// Budget is the approved budget of today's year, if any.
 	Budget *Budget
+	// DebtorUnits and DebtorTotalCents count the units with a pending receivable
+	// due before today (any category) and the sum of those receivables.
+	DebtorUnits      int
+	DebtorTotalCents int64
 }
 
 // CardCharge is a quota amount and due date.
@@ -281,6 +297,10 @@ type SyndicCard struct {
 	IssuanceID   string
 	ChargeCount  int
 	SettledCount int
+	// DebtorUnits and DebtorTotalCents feed "N units overdue - total" (FR-18);
+	// the line is omitted when DebtorUnits is 0.
+	DebtorUnits      int
+	DebtorTotalCents int64
 }
 
 // CardData is the quotas card; either part is nil when it does not apply.
@@ -298,6 +318,9 @@ type QuotaService struct {
 	Audit AuditRecorder
 	// Currency resolves the condominium currency (EUR/BRL reserve default).
 	Currency func(ctx context.Context, condoID string) (money.Currency, error)
+	// LateFees resolves the condominium's late fee settings (wired to
+	// CondominiumStore.GetLateFeeSettings). Nil means zero rates, so no late fee.
+	LateFees func(ctx context.Context, condoID string) (model.LateFeeSettings, error)
 	Now      func() time.Time
 }
 
@@ -874,7 +897,7 @@ func (s *QuotaService) Card(ctx context.Context, viewer Viewer, condoID string, 
 	if len(unitIDs) == 0 && !viewer.IsSyndic {
 		return out, nil
 	}
-	rows, err := s.Store.CardData(ctx, condoID, unitIDs, today)
+	rows, err := s.Store.CardData(ctx, condoID, unitIDs, today, viewer.IsSyndic)
 	if err != nil {
 		return out, err
 	}
@@ -882,7 +905,7 @@ func (s *QuotaService) Card(ctx context.Context, viewer Viewer, condoID string, 
 		out.Resident = &ResidentCard{NextPending: rows.NextPending, OverdueCount: rows.OverdueCount, OverdueTotalCents: rows.OverdueTotalCents}
 	}
 	if viewer.IsSyndic {
-		sc := &SyndicCard{}
+		sc := &SyndicCard{DebtorUnits: rows.DebtorUnits, DebtorTotalCents: rows.DebtorTotalCents}
 		if rows.Budget != nil && rows.Budget.Status == domain.BudgetApproved {
 			b := rows.Budget
 			sc.HasBudget, sc.BudgetID = true, b.ID

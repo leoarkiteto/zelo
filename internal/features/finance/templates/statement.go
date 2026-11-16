@@ -53,7 +53,9 @@ type ReceiptPageData struct {
 	PeriodLabel string
 	Base        string
 	Reserve     string
-	Amount      string
+	// LateFee is set for a late fee receivable: the breakdown of the Recibo (FR-16).
+	LateFee *LateFeeReceiptView
+	Amount  string
 	SettledOn   string
 	BackHref    string
 }
@@ -76,6 +78,8 @@ type SyndicCardView struct {
 	// PreviewHref opens the issuance preview of the current period.
 	PreviewHref string
 	Progress    string
+	// DebtorsLine is "N units overdue — total"; empty (line hidden) when no unit is overdue (FR-18).
+	DebtorsLine string
 }
 
 // QuotasCardData backs the HX dashboard card (FR-22).

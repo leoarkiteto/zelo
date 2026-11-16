@@ -5,6 +5,7 @@ package services
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -46,6 +47,10 @@ type AccountRow struct {
 	IsQuota bool
 	// Period is the quota period and unit, set when IsQuota (display-time i18n).
 	Period domain.QuotaPeriod
+	// IsLateFee is true for a late fee receivable; LateFeeOrigin is then the
+	// quota it comes from and its stored breakdown (R2).
+	IsLateFee     bool
+	LateFeeOrigin domain.LateFeeOrigin
 }
 
 // AccountInput is a validated create/edit payload. Amount and dates are the
@@ -74,7 +79,37 @@ type FinanceService struct {
 	Overviews OverviewStore
 	// QuotaLinks is optional; nil means no account is quota-managed.
 	QuotaLinks QuotaLinks
-	Now        func() time.Time
+	// LateFeeLinks is optional; nil means no account is a late fee.
+	LateFeeLinks LateFeeLinks
+	Now          func() time.Time
+}
+
+// IsLateFeeAccount reports whether the account is a late fee receivable, so
+// the generic edit screen can refuse it up front (nil-safe).
+func (s *FinanceService) IsLateFeeAccount(ctx context.Context, accountID string) (bool, error) {
+	if s.LateFeeLinks == nil {
+		return false, nil
+	}
+	m, err := s.LateFeeLinks.LateFeeOrigins(ctx, []string{accountID})
+	if err != nil {
+		return false, err
+	}
+	_, ok := m[accountID]
+	return ok, nil
+}
+
+// LateFeeOrigin returns the origin quota and breakdown of one late fee account;
+// ok is false when the account is not a late fee or LateFeeLinks is not wired.
+func (s *FinanceService) LateFeeOrigin(ctx context.Context, accountID string) (domain.LateFeeOrigin, bool, error) {
+	if s.LateFeeLinks == nil {
+		return domain.LateFeeOrigin{}, false, nil
+	}
+	m, err := s.LateFeeLinks.LateFeeOrigins(ctx, []string{accountID})
+	if err != nil {
+		return domain.LateFeeOrigin{}, false, err
+	}
+	o, ok := m[accountID]
+	return o, ok, nil
 }
 
 // QuotaPeriod returns the quota metadata of one account. ok is false when the
@@ -121,9 +156,20 @@ func (s *FinanceService) ListAccountsWithFlags(ctx context.Context, condominiumI
 			return nil, err
 		}
 	}
+	var lateFees map[string]domain.LateFeeOrigin
+	if s.LateFeeLinks != nil && len(accs) > 0 {
+		ids := make([]string, len(accs))
+		for i, a := range accs {
+			ids[i] = a.ID
+		}
+		if lateFees, err = s.LateFeeLinks.LateFeeOrigins(ctx, ids); err != nil {
+			return nil, err
+		}
+	}
 	for i, a := range accs {
 		p, ok := quota[a.ID]
-		rows[i] = AccountRow{Account: a, IsQuota: ok, Period: p}
+		o, late := lateFees[a.ID]
+		rows[i] = AccountRow{Account: a, IsQuota: ok, Period: p, IsLateFee: late, LateFeeOrigin: o}
 	}
 	return rows, nil
 }
@@ -164,6 +210,12 @@ func (s *FinanceService) EditAccount(ctx context.Context, actorID, accountID, co
 	} else if quota {
 		return ErrQuotaManaged
 	}
+	// A late fee is recorded as calculated: it can be canceled, never edited.
+	if late, err := s.IsLateFeeAccount(ctx, accountID); err != nil {
+		return err
+	} else if late {
+		return ErrQuotaManaged
+	}
 	if !existing.CanEdit() {
 		return ErrNotEditable
 	}
@@ -190,6 +242,12 @@ func (s *FinanceService) SettleAccount(ctx context.Context, actorID, accountID, 
 	}
 	if existing.CondominiumID != condominiumID {
 		return ErrNotFound
+	}
+	// Quota charges settle only through QuotaService.SettleQuota (late fee decision).
+	if quota, err := s.isQuota(ctx, accountID); err != nil {
+		return err
+	} else if quota {
+		return ErrQuotaManaged
 	}
 	if !existing.CanSettle() {
 		return ErrNotEditable
@@ -223,12 +281,30 @@ func (s *FinanceService) CancelAccount(ctx context.Context, actorID, accountID, 
 	if !existing.CanCancel() {
 		return ErrNotEditable
 	}
+	origin, late, err := s.LateFeeOrigin(ctx, accountID)
+	if err != nil {
+		return err
+	}
 	if err := s.Accounts.SetStatus(ctx, accountID, condominiumID, domain.StatusCanceled, nil); err != nil {
 		return err
 	}
 	uid := actorID
-	return s.Audit.RecordEvent(ctx, &uid, model.AuditAccountCanceled,
-		map[string]any{"account_id": accountID, "condominium_id": condominiumID})
+	if err := s.Audit.RecordEvent(ctx, &uid, model.AuditAccountCanceled,
+		map[string]any{"account_id": accountID, "condominium_id": condominiumID}); err != nil {
+		return err
+	}
+	if late {
+		// Later waiver of an applied late fee (FR-8, FR-19). The cancel is
+		// already committed, so an audit failure is logged, not returned.
+		if err := s.Audit.RecordEvent(ctx, &uid, model.AuditLateFeeWaived, map[string]any{
+			"late_fee_account_id": accountID, "condominium_id": condominiumID, "stage": "cancel",
+			"amount_cents": existing.AmountCents, "fine_cents": origin.Detail.FineCents,
+			"interest_cents": origin.Detail.InterestCents, "days_late": origin.Detail.DaysLate,
+		}); err != nil {
+			slog.Error("finance: record late fee waiver audit", "error", err)
+		}
+	}
+	return nil
 }
 
 // ListAccounts returns the condominium's accounts matching the filter.

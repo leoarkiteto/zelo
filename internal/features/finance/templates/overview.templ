@@ -18,6 +18,8 @@ type OverviewData struct {
 	Locale   i18n.Language
 	Overview services.Overview
 	IsSyndic bool
+	// Reserve is the reserve fund balance, set for the syndic only (FR-17).
+	Reserve *ReserveView
 }
 
 type periodOption struct {
@@ -146,6 +148,7 @@ templ OverviewPanel(d OverviewData) {
 			<div class="flex flex-wrap items-end gap-3">
 				@overviewPeriodForm(d)
 				if d.IsSyndic {
+					<a href="/finance/debtors" class="btn btn-secondary">{ i18n.T(d.Locale, "quotas.debtors.title") }</a>
 					<a href="/finance" class="btn btn-secondary">{ i18n.T(d.Locale, "finance.overview.manage") }</a>
 				}
 			</div>
@@ -163,6 +166,7 @@ templ OverviewPanel(d OverviewData) {
 				@kpiTile("bg-amber-50", "text-amber-700", i18n.T(d.Locale, "finance.overview.kpi_overdue"), Money(ctx, d.Locale,d.Overview.Current.OverdueCents))
 			</div>
 		</div>
+		@reserveCard(d.Locale, d.Reserve)
 		if d.Overview.Empty {
 			<div class="card card-pad text-center">
 				<p class="text-sm text-ink-600">{ emptyMessage(d.Locale, d.Overview.Period) }</p>

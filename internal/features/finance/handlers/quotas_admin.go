@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/features/finance/services"
@@ -16,6 +15,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/money"
+	"github.com/leoarkiteto/zelo/internal/shared/percent"
 	"github.com/leoarkiteto/zelo/internal/shared/permille"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
 )
@@ -51,6 +51,12 @@ func quotaError(locale i18n.Language, err error) (string, int) {
 		return i18n.T(locale, "quotas.error.has_issuances"), http.StatusConflict
 	case errors.Is(err, domain.ErrIssuanceHasSettled):
 		return i18n.T(locale, "quotas.error.has_settled"), http.StatusConflict
+	case errors.Is(err, domain.ErrExtraordinaryHasSettled):
+		return i18n.T(locale, "quotas.error.extra_has_settled"), http.StatusConflict
+	case errors.Is(err, domain.ErrInvalidExtraordinary):
+		return i18n.T(locale, "quotas.error.invalid_extraordinary"), http.StatusUnprocessableEntity
+	case errors.Is(err, domain.ErrInvalidInstallments):
+		return i18n.T(locale, "quotas.error.invalid_installments"), http.StatusUnprocessableEntity
 	case errors.Is(err, domain.ErrBudgetEmpty):
 		return i18n.T(locale, "quotas.error.budget_empty"), http.StatusUnprocessableEntity
 	case errors.Is(err, domain.ErrBudgetExists):
@@ -85,44 +91,6 @@ func budgetRedirect(w http.ResponseWriter, r *http.Request, budgetID, flash stri
 		target += "/" + url.PathEscape(budgetID) + "/view"
 	}
 	http.Redirect(w, r, target+"?flash="+flash, http.StatusSeeOther)
-}
-
-// parseRateBP parses a percentage ("10", "7,5", "12.25") into basis points.
-func parseRateBP(s string) (int, error) {
-	s = strings.Replace(strings.TrimSpace(s), ",", ".", 1)
-	whole, frac, _ := strings.Cut(s, ".")
-	if whole == "" || len(frac) > 2 || len(whole) > 3 {
-		return 0, errInvalidRate
-	}
-	for len(frac) < 2 {
-		frac += "0"
-	}
-	w, err1 := strconv.Atoi(whole)
-	f, err2 := strconv.Atoi(frac)
-	if err1 != nil || err2 != nil || w < 0 || f < 0 || strings.ContainsAny(whole+frac, "+-") {
-		return 0, errInvalidRate
-	}
-	bp := w*100 + f
-	if bp > 10000 {
-		return 0, errInvalidRate
-	}
-	return bp, nil
-}
-
-func formatRateBP(bp int, locale i18n.Language) string {
-	s := strconv.Itoa(bp/100) + "." + twoDigits(bp%100)
-	s = strings.TrimSuffix(strings.TrimRight(s, "0"), ".")
-	if locale == i18n.LanguagePTBR || locale == i18n.LanguagePTPT {
-		s = strings.Replace(s, ".", ",", 1)
-	}
-	return s
-}
-
-func twoDigits(n int) string {
-	if n < 10 {
-		return "0" + strconv.Itoa(n)
-	}
-	return strconv.Itoa(n)
 }
 
 // parseLineAmount parses a decimal amount, tolerating a decimal comma.
@@ -188,6 +156,18 @@ func registerQuotaAdminRoutes(mux *http.ServeMux, h *Handler, syndicOnly func(ht
 	route("POST /finance/budgets/{id}/issuances/{period}", h.issuancePOST)
 	route("GET /finance/issuances/{id}/cancel", h.issuanceCancelGET)
 	route("POST /finance/issuances/{id}/cancel", h.issuanceCancelPOST)
+
+	// Extraordinary quotas: every path has a literal second segment, so none
+	// collides with /finance/{id}/….
+	route("GET /finance/debtors", h.debtorsGET)
+
+	route("GET /finance/extraordinaries", h.extraListGET)
+	route("GET /finance/extraordinaries/new", h.extraNewGET)
+	route("POST /finance/extraordinaries/preview", h.extraPreviewPOST)
+	route("POST /finance/extraordinaries", h.extraCreatePOST)
+	route("GET /finance/extraordinaries/{id}/view", h.extraViewGET)
+	route("GET /finance/extraordinaries/{id}/cancel", h.extraCancelGET)
+	route("POST /finance/extraordinaries/{id}/cancel", h.extraCancelPOST)
 }
 
 // budgetsGET lists the condominium's budgets.
@@ -223,10 +203,10 @@ func (h *Handler) budgetsGET(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) budgetNewGET(w http.ResponseWriter, r *http.Request) {
 	rate := services.DefaultReserveBP(money.From(r.Context()))
 	h.renderBudgetForm(w, r, http.StatusOK, financetemplates.BudgetFormData{
-		Year:        strconv.Itoa(time.Now().Year()),
+		Year:        strconv.Itoa(h.now().Year()),
 		Periodicity: string(domain.PeriodicityMonthly),
 		DueDay:      "5",
-		ReserveRate: formatRateBP(rate, i18n.LanguageFrom(r.Context())),
+		ReserveRate: percent.FormatBP(rate, i18n.LanguageFrom(r.Context())),
 	}, "")
 }
 
@@ -270,9 +250,9 @@ func (h *Handler) budgetCreatePOST(w http.ResponseWriter, r *http.Request) {
 	}
 	in := services.BudgetInput{Year: year, Periodicity: domain.Periodicity(form.Periodicity), DueDay: dueDay}
 	if form.ReserveRate != "" {
-		bp, err := parseRateBP(form.ReserveRate)
+		bp, err := percent.ParseBP(form.ReserveRate)
 		if err != nil {
-			fail(err)
+			fail(errInvalidRate)
 			return
 		}
 		in.ReserveRateBP = &bp
@@ -319,10 +299,11 @@ func (h *Handler) renderBudget(w http.ResponseWriter, r *http.Request, id string
 		IsDraft: detail.Status.CanEdit(), IsApproved: detail.Status == domain.BudgetApproved,
 		CanApprove:  detail.Status.CanApprove() && len(detail.Lines) > 0,
 		Periodicity: string(detail.Periodicity), PeriodicityLabel: periodicityLabel(locale, detail.Periodicity),
-		DueDay: strconv.Itoa(detail.DueDay), ReserveRate: formatRateBP(detail.ReserveRateBP, locale),
+		DueDay: strconv.Itoa(detail.DueDay), ReserveRate: percent.FormatBP(detail.ReserveRateBP, locale),
 		Total:   money(detail.TotalCents),
 		NewLine: newLine, Error: errMsg, Flash: quotaFlash(r, locale),
 		Categories: financetemplates.CategoryOptions(locale, domain.PayableCategories()),
+		Reserve:    h.reserveView(r),
 	}
 	data.PeriodicityOptions = []atoms.SelectOption{
 		{Value: string(domain.PeriodicityMonthly), Label: periodicityLabel(locale, domain.PeriodicityMonthly)},
@@ -407,9 +388,9 @@ func (h *Handler) budgetEditPOST(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return services.ErrInvalidInput
 		}
-		bp, err := parseRateBP(r.FormValue("reserve_rate"))
+		bp, err := percent.ParseBP(r.FormValue("reserve_rate"))
 		if err != nil {
-			return err
+			return errInvalidRate
 		}
 		return h.deps.Quotas.UpdateBudget(r.Context(), actor, condo, id, services.BudgetParams{
 			Periodicity: domain.Periodicity(r.FormValue("periodicity")), DueDay: dueDay, ReserveRateBP: bp,

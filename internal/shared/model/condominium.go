@@ -22,6 +22,18 @@ type Condominium struct {
 	CreatedAt time.Time
 }
 
+// MaxBRLLateFeeBP is the legal cap on the late fee (multa) for BRL
+// condominiums: 2 % in basis points.
+const MaxBRLLateFeeBP = 200
+
+// LateFeeSettings are a condominium's late-payment rules. Rates are integer
+// basis points (1 bp = 0.01 %); InterestBP is per month.
+type LateFeeSettings struct {
+	FeeBP      int
+	InterestBP int
+	GraceDays  int
+}
+
 // Unit is a property within a condominium.
 type Unit struct {
 	ID            string

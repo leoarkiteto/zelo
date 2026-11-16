@@ -52,10 +52,22 @@ type qstate struct {
 	issuances []fIssuance
 	charges   []fCharge
 	nextID    int
+	extras    []ExtraordinarySummary
+	// extraCharges are the receivables of extraordinary installments.
+	extraCharges []fExtraCharge
+}
+
+type fExtraCharge struct {
+	NewCharge
+	extraID string
+	number  int
+	status  domain.AccountStatus
 }
 
 func (s qstate) clone() qstate {
 	c := qstate{budgets: map[string]Budget{}, lines: map[string][]BudgetLine{}, nextID: s.nextID}
+	c.extras = append([]ExtraordinarySummary(nil), s.extras...)
+	c.extraCharges = append([]fExtraCharge(nil), s.extraCharges...)
 	for k, v := range s.budgets {
 		c.budgets[k] = v
 	}
@@ -76,6 +88,19 @@ type fakeQuotaStore struct {
 	rows     map[string][]StatementRow // unit id -> receivables
 	card     CardRows
 	locks    []string
+	// cardIncludeDebtors records the includeDebtors flag of each CardData call.
+	cardIncludeDebtors []bool
+	// onAccountLock, when set, runs as WithLockedQuotaAccount takes the lock.
+	onAccountLock func()
+
+	// late fee / debtors / reserve state (see latefee_test.go)
+	qaccts       map[string]QuotaAccount
+	lateFees     []fLateFee
+	debtors      []DebtorRow
+	overdue      []OverdueQuota
+	reserve      ReserveTotals
+	debtorCalls  int
+	overdueCalls int
 }
 
 func newFakeQuotaStore() *fakeQuotaStore {
@@ -302,7 +327,8 @@ func (f *fakeQuotaStore) ReceiptData(_ context.Context, _, accountID string) (Re
 	return r, nil
 }
 
-func (f *fakeQuotaStore) CardData(context.Context, string, []string, time.Time) (CardRows, error) {
+func (f *fakeQuotaStore) CardData(_ context.Context, _ string, _ []string, _ time.Time, includeDebtors bool) (CardRows, error) {
+	f.cardIncludeDebtors = append(f.cardIncludeDebtors, includeDebtors)
 	return f.card, nil
 }
 

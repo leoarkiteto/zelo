@@ -225,6 +225,12 @@ type QuotaPeriod struct {
 	Periodicity Periodicity
 	Index       int
 	UnitCode    string
+
+	// Extraordinary quotas only; zero values mean an ordinary quota.
+	Kind         QuotaKind
+	Description  string
+	Installment  int
+	Installments int
 }
 
 // PeriodLabel returns a language-neutral machine label ("2026-03" monthly or

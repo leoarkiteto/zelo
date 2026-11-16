@@ -60,6 +60,9 @@ func (h *Handler) overviewGET(w http.ResponseWriter, r *http.Request) {
 		Overview: ov,
 		IsSyndic: isSyndic,
 	}
+	if isSyndic {
+		data.Reserve = h.reserveView(r)
+	}
 	if hx {
 		httpx.Render(w, r, financetemplates.OverviewPanel(data))
 		return

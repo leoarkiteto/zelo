@@ -29,6 +29,8 @@ func RegisterRoutes(mux *http.ServeMux, deps Deps) {
 	// use cases are wired; the handlers assume deps.Quotas is set.
 	if deps.Quotas != nil {
 		registerQuotaAdminRoutes(mux, h, syndicOnly)
+		// HX fragment of the settle form: late fee breakdown for the chosen date.
+		mux.Handle("GET /finance/{id}/settle/late-fee", middleware.RequireRoleHX(deps.Roles, deps.Audit, settleLateFeeNoAccess, model.RoleSyndic)(http.HandlerFunc(h.settleLateFeeGET)))
 		mux.Handle("GET /finance/my-charges", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.myChargesGET))))
 		mux.Handle("GET /finance/{id}/recibo", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.reciboGET))))
 		mux.Handle("GET /finance/quotas/card", middleware.RequireRoleHX(deps.Roles, deps.Audit, quotasCardNoAccess, memberRoles...)(http.HandlerFunc(h.quotasCardGET)))

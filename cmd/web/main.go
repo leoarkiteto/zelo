@@ -178,6 +178,7 @@ func main() {
 	homeDeps := homehandlers.Deps{Roles: roles, Audit: audit}
 	quotaStore := financerepositories.NewQuotaStore(db)
 	financeDeps := financehandlers.Deps{
+		Now:       time.Now,
 		Roles:     roles,
 		Audit:     audit,
 		Accounts:  financeAccounts,
@@ -190,7 +191,9 @@ func main() {
 			Units:      units,
 			Audit:      audit,
 			QuotaLinks: quotaStore,
-			Now:        time.Now,
+			// Late fee receivables are linked to their origin quota (R2).
+			LateFeeLinks: quotaStore,
+			Now:          time.Now,
 		},
 		Quotas: &financeservices.QuotaService{
 			Store:       quotaStore,
@@ -198,6 +201,7 @@ func main() {
 			Units:       units,
 			Audit:       audit,
 			Currency:    condominiums.GetCurrency,
+			LateFees:    condominiums.GetLateFeeSettings,
 			Now:         time.Now,
 		},
 	}

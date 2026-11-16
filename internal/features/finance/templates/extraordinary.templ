@@ -1,0 +1,417 @@
+package templates
+
+import (
+	"strconv"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+)
+
+// ExtraRowView is one extraordinary quota in the list; amounts are formatted.
+type ExtraRowView struct {
+	ID            string
+	Description   string
+	Total         string
+	Installments  int
+	Status        string
+	StatusVariant atoms.BadgeVariant
+	// InstallmentProgress is "settled installments / installments".
+	InstallmentProgress string
+	CanCancel           bool
+}
+
+// ExtraListData backs the extraordinary quota list page.
+type ExtraListData struct {
+	Shell  *organisms.ShellData
+	Locale i18n.Language
+	Rows   []ExtraRowView
+	Flash  string
+	Error  string
+}
+
+// ExtraFormData backs the create form; values are the raw input for re-rendering.
+type ExtraFormData struct {
+	Shell        *organisms.ShellData
+	Locale       i18n.Language
+	CSRF         string
+	Description  string
+	Total        string
+	Division     string
+	Installments string
+	FirstDue     string
+	Error        string
+}
+
+// ExtraPreviewInstallmentView is one installment of the preview.
+type ExtraPreviewInstallmentView struct {
+	Number  int
+	DueDate string
+	Total   string
+}
+
+// ExtraPreviewUnitView is one unit of the preview with its amount per installment.
+type ExtraPreviewUnitView struct {
+	Code  string
+	Share string
+	Cells []string
+	Total string
+}
+
+// ExtraPreviewData backs the preview fragment. A non-empty Error replaces it.
+type ExtraPreviewData struct {
+	Locale       i18n.Language
+	Error        string
+	Total        string
+	Installments []ExtraPreviewInstallmentView
+	Units        []ExtraPreviewUnitView
+}
+
+// ExtraViewData backs the extraordinary quota detail page.
+type ExtraViewData struct {
+	Shell         *organisms.ShellData
+	Locale        i18n.Language
+	ID            string
+	Description   string
+	Total         string
+	Division      string
+	FirstDue      string
+	Status        string
+	StatusVariant atoms.BadgeVariant
+	Progress      string
+	Receivables   string
+	CanCancel     bool
+	Installments  []ExtraInstallmentView
+	Flash         string
+	Error         string
+}
+
+// ExtraInstallmentView is one installment of the detail page.
+type ExtraInstallmentView struct {
+	Number        int
+	DueDate       string
+	Total         string
+	Status        string
+	StatusVariant atoms.BadgeVariant
+	Progress      string
+}
+
+// ExtraCancelData backs the cancel confirmation page.
+type ExtraCancelData struct {
+	Shell    *organisms.ShellData
+	Locale   i18n.Language
+	CSRF     string
+	Row      ExtraRowView
+	Receiv   string
+	Error    string
+}
+
+func extraViewPath(id string) string   { return "/finance/extraordinaries/" + id + "/view" }
+func extraCancelPath(id string) string { return "/finance/extraordinaries/" + id + "/cancel" }
+
+func divisionOptions(locale i18n.Language) []atoms.SelectOption {
+	return []atoms.SelectOption{
+		{Value: "share", Label: i18n.T(locale, "quotas.extra.division.share")},
+		{Value: "equal", Label: i18n.T(locale, "quotas.extra.division.equal")},
+	}
+}
+
+templ extraNav(locale i18n.Language) {
+	<nav class="breadcrumb" aria-label="breadcrumb">
+		<a href="/finance">{ i18n.T(locale, "finance.title") }</a>
+		@atoms.Icon(atoms.IconProps{Kind: atoms.IconKindChevronLeft, Class: "h-4 w-4"})
+		<a href="/finance/extraordinaries">{ i18n.T(locale, "quotas.extra.title") }</a>
+	</nav>
+}
+
+templ ExtraListPage(data ExtraListData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.extra.title"), data.Locale, data.Shell, extraListBody(data))
+}
+
+templ extraListBody(data ExtraListData) {
+	<div class="space-y-4">
+		@extraNav(data.Locale)
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.extra.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "quotas.extra.subtitle") }</p>
+			</div>
+			<a class="btn btn-primary" href="/finance/extraordinaries/new">{ i18n.T(data.Locale, "quotas.extra.new") }</a>
+		</div>
+		if data.Flash != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
+		}
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<div class="card">
+			if len(data.Rows) == 0 {
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Icon:   atoms.IconKindClipboard,
+					Title:  i18n.T(data.Locale, "quotas.extra.empty_title"),
+					Copy:   i18n.T(data.Locale, "quotas.extra.empty_copy"),
+					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "quotas.extra.new"), Variant: atoms.ButtonVariantPrimary, Href: "/finance/extraordinaries/new", Class: "btn-sm mt-2"}),
+				})
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "quotas.extra.description") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.total") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.extra.installments") }</th>
+								<th>{ i18n.T(data.Locale, "quotas.extra.status") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.extra.installments_settled") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, r := range data.Rows {
+								<tr>
+									<td class="font-medium text-ink-800">{ r.Description }</td>
+									<td class="text-right">{ r.Total }</td>
+									<td class="text-right">{ strconv.Itoa(r.Installments) }</td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: r.Status, Variant: r.StatusVariant})</td>
+									<td class="text-right">{ r.InstallmentProgress }</td>
+									<td class="text-right">
+										<a class="btn btn-secondary btn-sm" href={ templ.SafeURL(extraViewPath(r.ID)) }>{ i18n.T(data.Locale, "quotas.extra.view") }</a>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ ExtraFormPage(data ExtraFormData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.extra.new"), data.Locale, data.Shell, extraFormBody(data))
+}
+
+templ extraFormBody(data ExtraFormData) {
+	<div class="max-w-4xl space-y-4">
+		@extraNav(data.Locale)
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.extra.new") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "quotas.extra.subtitle") }</p>
+			</div>
+		</div>
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<form id="extra-form" method="POST" action="/finance/extraordinaries" class="card card-pad space-y-4">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			@molecules.FormField(molecules.FormFieldProps{
+				Label:   i18n.T(data.Locale, "quotas.extra.description"),
+				For:     "description",
+				Control: atoms.TextInput(atoms.InputProps{ID: "description", Name: "description", Value: data.Description, Required: true, MaxLength: "120"}),
+			})
+			<div class="grid gap-4 sm:grid-cols-2">
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "quotas.total"),
+					For:     "total",
+					Hint:    i18n.T(data.Locale, "quotas.extra.total_hint"),
+					Control: atoms.TextInput(atoms.InputProps{ID: "total", Name: "total", Value: data.Total, Required: true, InputMode: "decimal"}),
+				})
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "quotas.extra.division"),
+					For:     "division",
+					Control: atoms.Select(atoms.SelectProps{ID: "division", Name: "division", Selected: data.Division, Required: true, Options: divisionOptions(data.Locale)}),
+				})
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "quotas.extra.installments"),
+					For:     "installments",
+					Hint:    i18n.T(data.Locale, "quotas.extra.installments_hint"),
+					Control: atoms.TextInput(atoms.InputProps{ID: "installments", Name: "installments", Value: data.Installments, Required: true, InputMode: "numeric", MaxLength: "2"}),
+				})
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "quotas.extra.first_due"),
+					For:     "first_due",
+					Hint:    i18n.T(data.Locale, "quotas.extra.first_due_hint"),
+					Control: atoms.TextInput(atoms.InputProps{Type: "date", ID: "first_due", Name: "first_due", Value: data.FirstDue, Required: true}),
+				})
+			</div>
+			<div class="flex flex-wrap gap-2">
+				<button
+					class="btn btn-secondary"
+					type="button"
+					hx-post="/finance/extraordinaries/preview"
+					hx-include="#extra-form"
+					hx-target="#extra-preview"
+					hx-swap="innerHTML"
+				>{ i18n.T(data.Locale, "quotas.extra.preview") }</button>
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "quotas.extra.create") }</button>
+				<a class="btn btn-secondary" href="/finance/extraordinaries">{ i18n.T(data.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+		<div id="extra-preview" aria-live="polite">
+			<p class="text-ink-500">{ i18n.T(data.Locale, "quotas.extra.preview_hint") }</p>
+		</div>
+	</div>
+}
+
+// ExtraPreview is the HTMX fragment swapped into #extra-preview.
+templ ExtraPreview(data ExtraPreviewData) {
+	if data.Error != "" {
+		@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+	} else {
+		<div class="space-y-4" data-testid="extra-preview">
+			<h2 class="text-base font-semibold text-ink-900">{ i18n.T(data.Locale, "quotas.extra.preview_title") }</h2>
+			<div class="card">
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "quotas.extra.installment_n") }</th>
+								<th>{ i18n.T(data.Locale, "quotas.due_date") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.total") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, in := range data.Installments {
+								<tr>
+									<td class="font-medium text-ink-800">{ strconv.Itoa(in.Number) }</td>
+									<td>{ in.DueDate }</td>
+									<td class="text-right">{ in.Total }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<div class="card">
+				<div class="table-wrap">
+					<table class="table">
+						<caption class="sr-only">{ i18n.T(data.Locale, "quotas.extra.per_unit") }</caption>
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "common.unit") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "units.share") } ({ i18n.T(data.Locale, "units.share_unit") })</th>
+								for _, in := range data.Installments {
+									<th class="text-right">{ strconv.Itoa(in.Number) }</th>
+								}
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.total") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, u := range data.Units {
+								<tr>
+									<td class="font-medium text-ink-800">{ u.Code }</td>
+									<td class="text-right">{ u.Share }</td>
+									for _, c := range u.Cells {
+										<td class="text-right">{ c }</td>
+									}
+									<td class="text-right">{ u.Total }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ ExtraViewPage(data ExtraViewData) {
+	@organisms.Layout(data.Description, data.Locale, data.Shell, extraViewBody(data))
+}
+
+templ extraViewBody(data ExtraViewData) {
+	<div class="space-y-4">
+		@extraNav(data.Locale)
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ data.Description }</h1>
+				<p class="page-subtitle">
+					@atoms.Badge(atoms.BadgeProps{Label: data.Status, Variant: data.StatusVariant})
+					<span class="ml-2">{ i18n.T(data.Locale, "quotas.total") }: { data.Total }</span>
+				</p>
+			</div>
+			if data.CanCancel {
+				<a class="btn btn-danger" href={ templ.SafeURL(extraCancelPath(data.ID)) }>{ i18n.T(data.Locale, "quotas.extra.cancel") }</a>
+			}
+		</div>
+		if data.Flash != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
+		}
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<div class="card card-pad">
+			<dl class="grid gap-4 sm:grid-cols-4">
+				<div>
+					<dt class="label">{ i18n.T(data.Locale, "quotas.extra.division") }</dt>
+					<dd class="text-ink-800">{ data.Division }</dd>
+				</div>
+				<div>
+					<dt class="label">{ i18n.T(data.Locale, "quotas.extra.first_due") }</dt>
+					<dd class="text-ink-800">{ data.FirstDue }</dd>
+				</div>
+				<div>
+					<dt class="label">{ i18n.T(data.Locale, "quotas.extra.installments_settled") }</dt>
+					<dd class="text-ink-800">{ data.Progress }</dd>
+				</div>
+				<div>
+					<dt class="label">{ i18n.T(data.Locale, "quotas.extra.receivables_settled") }</dt>
+					<dd class="text-ink-800">{ data.Receivables }</dd>
+				</div>
+			</dl>
+		</div>
+		<div class="card">
+			<div class="table-wrap">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>{ i18n.T(data.Locale, "quotas.extra.installment_n") }</th>
+							<th>{ i18n.T(data.Locale, "quotas.due_date") }</th>
+							<th class="text-right">{ i18n.T(data.Locale, "quotas.total") }</th>
+							<th>{ i18n.T(data.Locale, "quotas.extra.status") }</th>
+							<th class="text-right">{ i18n.T(data.Locale, "quotas.settled") }</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, in := range data.Installments {
+							<tr>
+								<td class="font-medium text-ink-800">{ strconv.Itoa(in.Number) }</td>
+								<td>{ in.DueDate }</td>
+								<td class="text-right">{ in.Total }</td>
+								<td>@atoms.Badge(atoms.BadgeProps{Label: in.Status, Variant: in.StatusVariant})</td>
+								<td class="text-right">{ in.Progress }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	</div>
+}
+
+templ ExtraCancelPage(data ExtraCancelData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.extra.cancel_title"), data.Locale, data.Shell, extraCancelBody(data))
+}
+
+templ extraCancelBody(data ExtraCancelData) {
+	<div class="max-w-xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.extra.cancel_title") }</h1>
+				<p class="page-subtitle">{ data.Row.Description } · { data.Row.Total } · { data.Receiv } { i18n.T(data.Locale, "quotas.settled") }</p>
+			</div>
+		</div>
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<p class="text-ink-700">{ i18n.T(data.Locale, "quotas.extra.cancel_copy") }</p>
+		<form method="POST" action={ templ.SafeURL(extraCancelPath(data.Row.ID)) } class="card card-pad flex gap-2">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			if data.Row.CanCancel {
+				<button class="btn btn-danger" type="submit">{ i18n.T(data.Locale, "quotas.extra.cancel_confirm") }</button>
+			}
+			<a class="btn btn-secondary" href={ templ.SafeURL(extraViewPath(data.Row.ID)) }>{ i18n.T(data.Locale, "common.back") }</a>
+		</form>
+	</div>
+}

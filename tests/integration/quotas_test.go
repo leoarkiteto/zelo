@@ -475,7 +475,7 @@ func TestIssuanceCancel(t *testing.T) {
 
 	// With one settled quota the cancellation is refused and nothing changes.
 	acct := e.quotaAccountID(t, second, "A")
-	if r := e.post(t, e.syndic, "/finance/"+acct+"/settle", url.Values{"settlement_date": {"2027-12-10"}}); r.code != http.StatusSeeOther {
+	if r := e.post(t, e.syndic, "/finance/"+acct+"/settle", url.Values{"settlement_date": {"2027-12-10"}, "late_fee_decision": {"waive"}}); r.code != http.StatusSeeOther {
 		t.Fatalf("settle = %d\n%s", r.code, r.body)
 	}
 	r = e.post(t, e.syndic, "/finance/issuances/"+second+"/cancel", url.Values{"budget_id": {id}})
@@ -645,7 +645,7 @@ func TestQuotaReceivableGenericScreensBlocked(t *testing.T) {
 	}
 
 	// Settlement works for a quota and the Recibo link appears afterwards.
-	r := e.post(t, e.syndic, "/finance/"+q+"/settle", url.Values{"settlement_date": {"2027-12-10"}})
+	r := e.post(t, e.syndic, "/finance/"+q+"/settle", url.Values{"settlement_date": {"2027-12-10"}, "late_fee_decision": {"waive"}})
 	if r.code != http.StatusSeeOther {
 		t.Fatalf("settle quota = %d\n%s", r.code, r.body)
 	}
@@ -838,7 +838,7 @@ func TestReceiptContentAndNotFound(t *testing.T) {
 		t.Errorf("owner recibo of a pending quota of their unit = %d, want 404", r.code)
 	}
 
-	if r := e.post(t, e.syndic, "/finance/"+qA+"/settle", url.Values{"settlement_date": {"2027-12-10"}}); r.code != http.StatusSeeOther {
+	if r := e.post(t, e.syndic, "/finance/"+qA+"/settle", url.Values{"settlement_date": {"2027-12-10"}, "late_fee_decision": {"waive"}}); r.code != http.StatusSeeOther {
 		t.Fatalf("settle = %d\n%s", r.code, r.body)
 	}
 	r := e.get(t, e.owner, "/finance/"+qA+"/recibo")
@@ -1064,7 +1064,7 @@ func TestRaceCancelVersusSettle(t *testing.T) {
 				cancelCode, _, cancelErr = e.postRaw(e.syndic, token, "/finance/issuances/"+iss+"/cancel", url.Values{"budget_id": {id}})
 			},
 			func() {
-				settleCode, _, settleErr = e.postRaw(e.syndic, token, "/finance/"+acct+"/settle", url.Values{"settlement_date": {"2027-01-20"}})
+				settleCode, _, settleErr = e.postRaw(e.syndic, token, "/finance/"+acct+"/settle", url.Values{"settlement_date": {"2027-01-20"}, "late_fee_decision": {"waive"}})
 			},
 		)
 		if cancelErr != nil || settleErr != nil {

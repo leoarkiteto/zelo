@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/features/finance/services"
@@ -49,7 +48,7 @@ func renderQuotaError(w http.ResponseWriter, r *http.Request, err error) {
 }
 
 func (h *Handler) statementRows(ctx context.Context, locale i18n.Language, rows []services.StatementRow, settled bool) []financetemplates.StatementRowView {
-	now := time.Now()
+	now := h.now()
 	out := make([]financetemplates.StatementRowView, 0, len(rows))
 	for _, row := range rows {
 		a := row.Account
@@ -66,6 +65,8 @@ func (h *Handler) statementRows(ctx context.Context, locale i18n.Language, rows 
 		if row.IsQuota {
 			v.Title = financetemplates.QuotaTitle(locale, row.Period)
 			v.PeriodLabel = financetemplates.QuotaPeriodText(locale, row.Period)
+		} else if row.IsLateFee {
+			v.Title = financetemplates.LateFeeTitle(locale, row.LateFeeOrigin)
 		}
 		if a.SettlementDate != nil {
 			v.SettlementDate = i18n.FormatDate(locale, *a.SettlementDate)
@@ -147,6 +148,19 @@ func (h *Handler) reciboGET(w http.ResponseWriter, r *http.Request) {
 		data.Title = financetemplates.QuotaTitle(locale, rec.Period)
 		data.Base = fmtMoney(rec.BaseCents)
 		data.Reserve = fmtMoney(rec.ReserveCents)
+	} else if rec.IsLateFee {
+		data.Title = financetemplates.LateFeeTitle(locale, rec.LateFeeOrigin)
+		if lf := rec.LateFee; lf != nil {
+			data.LateFee = &financetemplates.LateFeeReceiptView{
+				Origin:       financetemplates.QuotaTitle(locale, rec.LateFeeOrigin),
+				Fine:         fmtMoney(lf.FineCents),
+				Interest:     fmtMoney(lf.InterestCents),
+				DaysLate:     lf.DaysLate,
+				FeeRate:      financetemplates.RateText(locale, lf.FeeBP),
+				InterestRate: financetemplates.RateText(locale, lf.InterestBP),
+				GraceDays:    lf.GraceDays,
+			}
+		}
 	}
 	httpx.Render(w, r, financetemplates.ReceiptPage(data))
 }
@@ -172,7 +186,7 @@ func (h *Handler) quotasCardGET(w http.ResponseWriter, r *http.Request) {
 		httpx.Render(w, r, financetemplates.QuotasCardError(locale))
 	}
 	sess := httpx.CurrentSession(r)
-	card, err := h.deps.Quotas.Card(r.Context(), viewer(r), sess.CondominiumID, time.Now())
+	card, err := h.deps.Quotas.Card(r.Context(), viewer(r), sess.CondominiumID, h.now())
 	if err != nil {
 		fail(err)
 		return
@@ -197,6 +211,9 @@ func (h *Handler) quotasCardGET(w http.ResponseWriter, r *http.Request) {
 		}
 		if sc.HasBudget {
 			v.PreviewHref = "/finance/budgets/" + sc.BudgetID + "/issuances/" + strconv.Itoa(sc.PeriodIndex) + "/preview"
+		}
+		if sc.DebtorUnits > 0 {
+			v.DebtorsLine = financetemplates.DebtorsLine(locale, sc.DebtorUnits, financetemplates.Money(r.Context(), locale, sc.DebtorTotalCents))
 		}
 		if sc.Issued {
 			v.Progress = financetemplates.SettledProgress(locale, sc.SettledCount, sc.ChargeCount)

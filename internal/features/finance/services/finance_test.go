@@ -309,9 +309,12 @@ func TestQuotaManagedAccountsAreLocked(t *testing.T) {
 	if acc.accounts["q1"].Status != domain.StatusPending || len(audit.events) != 0 {
 		t.Fatal("quota account changed or audited")
 	}
-	// Settlement stays available through the generic flow.
-	if err := svc.SettleAccount(ctx, "u1", "q1", "c1", "2026-08-20"); err != nil {
-		t.Fatalf("SettleAccount(quota) = %v", err)
+	// Settlement goes through QuotaService.SettleQuota only (R6).
+	if err := svc.SettleAccount(ctx, "u1", "q1", "c1", "2026-08-20"); !errors.Is(err, ErrQuotaManaged) {
+		t.Fatalf("SettleAccount(quota) = %v, want ErrQuotaManaged", err)
+	}
+	if acc.accounts["q1"].Status != domain.StatusPending {
+		t.Fatal("generic settle changed a quota account")
 	}
 	// A non-quota receivable can still be canceled.
 	if err := svc.CancelAccount(ctx, "u1", "free", "c1"); err != nil {

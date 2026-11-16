@@ -98,6 +98,8 @@ type BudgetPageData struct {
 	// HasActiveIssuance blocks the reopen action.
 	HasActiveIssuance bool
 	CanApprove        bool
+	// Reserve is the reserve fund balance (syndic only); nil hides the card (FR-17).
+	Reserve *ReserveView
 
 	Periodicity        string
 	PeriodicityLabel   string
@@ -192,7 +194,10 @@ templ budgetsBody(data BudgetsPageData) {
 				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.budgets_title") }</h1>
 				<p class="page-subtitle">{ i18n.T(data.Locale, "quotas.budgets_subtitle") }</p>
 			</div>
-			<a class="btn btn-primary" href="/finance/budgets/new">{ i18n.T(data.Locale, "quotas.budget_new") }</a>
+			<div class="flex flex-wrap gap-2">
+				<a class="btn btn-secondary" href="/finance/extraordinaries">{ i18n.T(data.Locale, "quotas.extra.title") }</a>
+				<a class="btn btn-primary" href="/finance/budgets/new">{ i18n.T(data.Locale, "quotas.budget_new") }</a>
+			</div>
 		</div>
 		if data.Flash != "" {
 			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
@@ -344,6 +349,7 @@ templ budgetBody(data BudgetPageData) {
 		if data.IsApproved && data.HasActiveIssuance {
 			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "quotas.reopen_blocked")})
 		}
+		@reserveCard(data.Locale, data.Reserve)
 		@budgetParams(data)
 		@budgetLines(data)
 		@budgetPreview(data)

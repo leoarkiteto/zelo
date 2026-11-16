@@ -54,6 +54,9 @@ type AccountView struct {
 	SettlementDate  string
 	// IsQuota hides edit/cancel: a quota is changed only through its issuance (FR-16).
 	IsQuota bool
+	// IsLateFee hides edit (a late fee is not editable, FR-8) but keeps cancel,
+	// which is a later waiver.
+	IsLateFee bool
 	// CanReceipt is true for settled receivables (link to the Recibo, FR-26).
 	CanReceipt bool
 }
@@ -119,6 +122,11 @@ type SettleData struct {
 	CSRF    string
 	Account AccountView
 	Error   string
+	// Date is the settlement date shown in the input (YYYY-MM-DD).
+	Date string
+	// IsQuota enables the late fee fragment, refreshed when the date changes.
+	IsQuota bool
+	LateFee SettleLateFeeData
 }
 
 // CancelData backs the cancel confirmation page.
@@ -164,7 +172,11 @@ func PeriodText(locale i18n.Language, year int, p domain.Periodicity, index int)
 }
 
 // QuotaPeriodText is PeriodText for a QuotaPeriod.
+// For an extraordinary installment it is "installment n/N".
 func QuotaPeriodText(locale i18n.Language, q domain.QuotaPeriod) string {
+	if q.Kind == domain.QuotaKindExtraordinary {
+		return fmt.Sprintf(i18n.T(locale, "quotas.installment_label"), q.Installment, q.Installments)
+	}
 	return PeriodText(locale, q.Year, q.Periodicity, q.Index)
 }
 
@@ -175,9 +187,19 @@ func PeriodState(locale i18n.Language, period, state string) string {
 
 // QuotaTitle is the display title of a quota receivable ("Taxa condominial
 // dezembro de 2026 — Unidade A"), rendered per locale at display time. The
-// stored account title is only a neutral fallback.
+// stored account title is only a neutral fallback. An extraordinary installment
+// renders "Quota extraordinária — <descrição> — parcela n/N" (FR-14).
 func QuotaTitle(locale i18n.Language, q domain.QuotaPeriod) string {
+	if q.Kind == domain.QuotaKindExtraordinary {
+		return fmt.Sprintf(i18n.T(locale, "quotas.title_extraordinary"), q.Description, q.Installment, q.Installments)
+	}
 	return fmt.Sprintf(i18n.T(locale, "quotas.title"), QuotaPeriodText(locale, q), q.UnitCode)
+}
+
+// LateFeeTitle is the display title of a late fee receivable: "Multa e juros —
+// <title of the origin quota>" (FR-14).
+func LateFeeTitle(locale i18n.Language, origin domain.QuotaPeriod) string {
+	return fmt.Sprintf(i18n.T(locale, "quotas.title_late_fee"), QuotaTitle(locale, origin))
 }
 
 // statusBadge returns the badge variant for a status.

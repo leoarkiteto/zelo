@@ -78,7 +78,7 @@ func (h *Handler) financeEditGET(w http.ResponseWriter, r *http.Request) {
 		h.renderAccountGone(w, r, err)
 		return
 	}
-	if h.refuseQuota(w, r, account.ID) {
+	if h.refuseQuota(w, r, account.ID, true) {
 		return
 	}
 	if !account.CanEdit() {
@@ -115,7 +115,7 @@ func (h *Handler) financeEditPOST(w http.ResponseWriter, r *http.Request) {
 		h.renderAccountGone(w, r, err)
 		return
 	}
-	if h.refuseQuota(w, r, existing.ID) {
+	if h.refuseQuota(w, r, existing.ID, true) {
 		return
 	}
 	if !existing.CanEdit() {
@@ -181,10 +181,36 @@ func (h *Handler) financeSettlePOST(w http.ResponseWriter, r *http.Request) {
 		h.renderAccountGone(w, r, err)
 		return
 	}
-	if err := h.deps.Finance.SettleAccount(r.Context(), u.ID, id, sess.CondominiumID, date); err != nil {
+	// Quota charges settle through the quota use case, which decides the late
+	// fee (R6); every other receivable and payable keeps the generic path.
+	settle := func() error { return h.deps.Finance.SettleAccount(r.Context(), u.ID, id, sess.CondominiumID, date) }
+	if h.deps.Quotas != nil {
+		quota, qerr := h.deps.Finance.IsQuotaAccount(r.Context(), id)
+		if qerr != nil {
+			httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load"))
+			return
+		}
+		if quota {
+			settle = func() error {
+				on, perr := domain.ParseSettlementDate(date)
+				if perr != nil {
+					return perr
+				}
+				return h.deps.Quotas.SettleQuota(r.Context(), u.ID, sess.CondominiumID, id, on, r.FormValue("late_fee_decision"))
+			}
+		}
+	}
+	if err := settle(); err != nil {
 		switch {
-		case errors.Is(err, services.ErrSettlementDateRequired):
+		case errors.Is(err, services.ErrLateFeeDecisionRequired):
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			httpx.Render(w, r, financetemplates.SettlePage(h.settleData(r, account, i18n.T(locale, "quotas.error.late_fee_decision_required"))))
+		case errors.Is(err, services.ErrSettlementDateRequired), errors.Is(err, domain.ErrInvalidSettlementDate):
+			w.WriteHeader(http.StatusUnprocessableEntity)
 			httpx.Render(w, r, financetemplates.SettlePage(h.settleData(r, account, i18n.T(locale, "finance.error.settlement_date"))))
+		case errors.Is(err, services.ErrInvalidInput):
+			w.WriteHeader(http.StatusBadRequest)
+			httpx.Render(w, r, financetemplates.SettlePage(h.settleData(r, account, i18n.T(locale, "quotas.error.invalid_decision"))))
 		case errors.Is(err, services.ErrNotEditable):
 			httpx.RenderError(w, r, http.StatusBadRequest, i18n.T(locale, "finance.error.not_editable"))
 		case errors.Is(err, services.ErrNotFound):
@@ -205,7 +231,8 @@ func (h *Handler) financeCancelGET(w http.ResponseWriter, r *http.Request) {
 		h.renderAccountGone(w, r, err)
 		return
 	}
-	if h.refuseQuota(w, r, account.ID) {
+	// A late fee can be canceled here (a later waiver); only quotas are refused.
+	if h.refuseQuota(w, r, account.ID, false) {
 		return
 	}
 	if !account.CanCancel() {
@@ -255,7 +282,7 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 	default:
 		f.Status = domain.AccountStatus(rawStatus)
 	}
-	month := currentMonth(time.Now())
+	month := currentMonth(h.now())
 	if p := q.Get("period"); p != "" {
 		if m, err := time.Parse("2006-01", p); err == nil {
 			month = time.Date(m.Year(), m.Month(), 1, 0, 0, 0, 0, time.UTC)
@@ -302,8 +329,11 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 	for _, row := range accounts {
 		view := h.accountView(r.Context(), locale, row.Account)
 		view.IsQuota = row.IsQuota
+		view.IsLateFee = row.IsLateFee
 		if row.IsQuota {
 			view.Title = financetemplates.QuotaTitle(locale, row.Period)
+		} else if row.IsLateFee {
+			view.Title = financetemplates.LateFeeTitle(locale, row.LateFeeOrigin.Origin)
 		}
 		view.CanReceipt = row.Account.Type == domain.AccountTypeReceivable && view.EffectiveStatus == domain.StatusSettled
 		data.Accounts = append(data.Accounts, view)
@@ -319,8 +349,8 @@ func (h *Handler) accountView(ctx context.Context, locale i18n.Language, a domai
 		CategoryLabel:   financetemplates.CategoryLabel(locale, a.Type, a.Category),
 		Amount:          financetemplates.Money(ctx, locale, a.AmountCents),
 		DueDate:         i18n.FormatDate(locale, a.DueDate),
-		EffectiveStatus: a.EffectiveStatus(time.Now()),
-		StatusLabel:     financetemplates.StatusLabel(locale, a.EffectiveStatus(time.Now())),
+		EffectiveStatus: a.EffectiveStatus(h.now()),
+		StatusLabel:     financetemplates.StatusLabel(locale, a.EffectiveStatus(h.now())),
 		SupplierPayee:   a.SupplierPayee,
 		HasReceipt:      a.ReceiptPath != "",
 	}
@@ -444,16 +474,38 @@ func (h *Handler) settleData(r *http.Request, account domain.FinancialAccount, e
 	locale := i18n.LanguageFrom(r.Context())
 	shell, _ := httpx.ShellData(r, h.deps.Roles, "/finance")
 	view := h.accountView(r.Context(), locale, account)
-	if period, ok := h.quotaPeriod(r.Context(), account); ok {
-		view.Title = financetemplates.QuotaTitle(locale, period)
-	}
-	return financetemplates.SettleData{
+	data := financetemplates.SettleData{
 		Shell:   shell,
 		Locale:  locale,
 		CSRF:    sess.CSRFToken,
 		Account: view,
 		Error:   errorMsg,
 	}
+	on := h.settleDate(r)
+	data.Date = on.Format("2006-01-02")
+	if period, ok := h.quotaPeriod(r.Context(), account); ok {
+		data.Account.Title = financetemplates.QuotaTitle(locale, period)
+		// A quota charge settles with a late fee decision: show the breakdown for
+		// the chosen date (today on first load).
+		data.IsQuota = h.deps.Quotas != nil
+		if data.IsQuota {
+			data.LateFee = h.lateFeeFragment(r, account.ID, on)
+		}
+	} else if origin, ok := h.lateFeeOrigin(r.Context(), account.ID); ok {
+		data.Account.Title = financetemplates.LateFeeTitle(locale, origin.Origin)
+	}
+	return data
+}
+
+// lateFeeOrigin returns the origin of a late fee receivable. Any failure or a
+// non-late-fee account reports false and the stored title is kept.
+func (h *Handler) lateFeeOrigin(ctx context.Context, accountID string) (domain.LateFeeOrigin, bool) {
+	origin, ok, err := h.deps.Finance.LateFeeOrigin(ctx, accountID)
+	if err != nil {
+		log.Printf("finance: late fee origin of %s: %v", accountID, err)
+		return domain.LateFeeOrigin{}, false
+	}
+	return origin, ok
 }
 
 // quotaPeriod returns the quota metadata of a receivable so the generic pages
@@ -476,11 +528,16 @@ func (h *Handler) cancelData(r *http.Request, account domain.FinancialAccount, e
 	sess := httpx.CurrentSession(r)
 	locale := i18n.LanguageFrom(r.Context())
 	shell, _ := httpx.ShellData(r, h.deps.Roles, "/finance")
+	view := h.accountView(r.Context(), locale, account)
+	if origin, ok := h.lateFeeOrigin(r.Context(), account.ID); ok {
+		view.IsLateFee = true
+		view.Title = financetemplates.LateFeeTitle(locale, origin.Origin)
+	}
 	return financetemplates.CancelData{
 		Shell:   shell,
 		Locale:  locale,
 		CSRF:    sess.CSRFToken,
-		Account: h.accountView(r.Context(), locale, account),
+		Account: view,
 		Error:   errorMsg,
 	}
 }
@@ -513,9 +570,14 @@ func (h *Handler) renderAccountGone(w http.ResponseWriter, r *http.Request, err 
 }
 
 // refuseQuota answers 409 and reports true when the account is a quota
-// receivable, which the generic screens must not edit or cancel (FR-16).
-func (h *Handler) refuseQuota(w http.ResponseWriter, r *http.Request, accountID string) bool {
+// receivable, which the generic screens must not edit or cancel (FR-16). With
+// lateFee set it also refuses a late fee receivable, which cannot be edited
+// (FR-8) but can be canceled, so cancel passes false.
+func (h *Handler) refuseQuota(w http.ResponseWriter, r *http.Request, accountID string, lateFee bool) bool {
 	quota, err := h.deps.Finance.IsQuotaAccount(r.Context(), accountID)
+	if err == nil && !quota && lateFee {
+		quota, err = h.deps.Finance.IsLateFeeAccount(r.Context(), accountID)
+	}
 	if err != nil {
 		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(i18n.LanguageFrom(r.Context()), "finance.error.load"))
 		return true

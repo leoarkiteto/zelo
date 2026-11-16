@@ -58,6 +58,7 @@ type fakeFinance struct {
 	list              []domain.FinancialAccount
 	sum               services.MonthSummary
 	quotaIDs          map[string]bool
+	lateFees          map[string]domain.QuotaPeriod
 	overview          services.Overview
 	overviewErr       error
 	lastPeriod        domain.Period
@@ -102,6 +103,9 @@ func (f *fakeFinance) ListAccountsWithFlags(_ context.Context, _ string, filter 
 	rows := make([]services.AccountRow, len(f.list))
 	for i, a := range f.list {
 		rows[i] = services.AccountRow{Account: a, IsQuota: f.quotaIDs[a.ID]}
+		if origin, ok := f.lateFees[a.ID]; ok {
+			rows[i].IsLateFee, rows[i].LateFeeOrigin = true, domain.LateFeeOrigin{Origin: origin}
+		}
 		if rows[i].IsQuota {
 			rows[i].Period = domain.QuotaPeriod{Year: 2026, Periodicity: domain.PeriodicityQuarterly, Index: 2, UnitCode: "A"}
 		}
@@ -118,6 +122,16 @@ func (f *fakeFinance) QuotaPeriod(_ context.Context, id string) (domain.QuotaPer
 		return domain.QuotaPeriod{}, false, nil
 	}
 	return domain.QuotaPeriod{Year: 2026, Periodicity: domain.PeriodicityQuarterly, Index: 2, UnitCode: "A"}, true, nil
+}
+
+func (f *fakeFinance) IsLateFeeAccount(_ context.Context, id string) (bool, error) {
+	_, ok := f.lateFees[id]
+	return ok, nil
+}
+
+func (f *fakeFinance) LateFeeOrigin(_ context.Context, id string) (domain.LateFeeOrigin, bool, error) {
+	origin, ok := f.lateFees[id]
+	return domain.LateFeeOrigin{Origin: origin}, ok, nil
 }
 
 func (f *fakeFinance) Summary(context.Context, string, time.Time) (services.MonthSummary, error) {
@@ -312,11 +326,82 @@ func TestFinanceSettleRequiresDate(t *testing.T) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	router.ServeHTTP(rec, req)
 
-	if rec.Code != http.StatusOK {
-		t.Fatalf("POST settle without date = %d, want 200 re-render", rec.Code)
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("POST settle without date = %d, want 422 re-render", rec.Code)
 	}
 	if !strings.Contains(rec.Body.String(), "A transaction date is required") {
 		t.Errorf("settle date error not shown")
+	}
+}
+
+// settleQuotas records the quota settlement the handler routes to.
+type settleQuotas struct {
+	fakeQuotas
+	err      error
+	calls    int
+	decision string
+	on       time.Time
+}
+
+func (s *settleQuotas) SettleQuota(_ context.Context, _, _, _ string, on time.Time, decision string) error {
+	s.calls++
+	s.decision, s.on = decision, on
+	return s.err
+}
+
+func settleQuotaRequest(t *testing.T, fin *fakeFinance, q *settleQuotas, form url.Values) *httptest.ResponseRecorder {
+	t.Helper()
+	user, sess := syndicSession()
+	deps := baseDeps(fin)
+	deps.Quotas = q
+	deps.Accounts = &fakeAccountReader{account: domain.FinancialAccount{
+		ID: "a1", CondominiumID: "c1", Status: domain.StatusPending, Type: domain.AccountTypeReceivable,
+	}}
+	router := financeRouter(user, sess, deps)
+	form.Set("csrf_token", "x")
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/finance/a1/settle", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	router.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestFinanceSettleRoutesQuotaChargesToSettleQuota(t *testing.T) {
+	fin := &fakeFinance{quotaIDs: map[string]bool{"a1": true}}
+	q := &settleQuotas{}
+	rec := settleQuotaRequest(t, fin, q, url.Values{"settlement_date": {"2026-03-15"}, "late_fee_decision": {"waive"}})
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/finance?flash=settled" {
+		t.Fatalf("POST settle = %d %q, want 303 settled", rec.Code, rec.Header().Get("Location"))
+	}
+	if q.calls != 1 || q.decision != "waive" || !q.on.Equal(time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("SettleQuota got calls=%d decision=%q on=%v", q.calls, q.decision, q.on)
+	}
+	if fin.lastSettle != "" {
+		t.Fatal("a quota charge must not use the generic settle")
+	}
+}
+
+func TestFinanceSettleQuotaDecisionRequiredRendersError(t *testing.T) {
+	fin := &fakeFinance{quotaIDs: map[string]bool{"a1": true}}
+	q := &settleQuotas{err: services.ErrLateFeeDecisionRequired}
+	rec := settleQuotaRequest(t, fin, q, url.Values{"settlement_date": {"2026-03-15"}})
+	if rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("POST settle = %d, want 422 re-render of the settle page", rec.Code)
+	}
+	if !strings.Contains(rec.Body.String(), "Choose whether to apply or waive the late fee") {
+		t.Errorf("decision-required error not shown: %s", rec.Body.String())
+	}
+	if q.decision != "" {
+		t.Fatalf("decision = %q, want the empty form value", q.decision)
+	}
+}
+
+func TestFinanceSettleNonQuotaKeepsGenericPath(t *testing.T) {
+	fin := &fakeFinance{}
+	q := &settleQuotas{}
+	rec := settleQuotaRequest(t, fin, q, url.Values{"settlement_date": {"2026-03-15"}})
+	if rec.Code != http.StatusSeeOther || fin.lastSettle != "a1" || q.calls != 0 {
+		t.Fatalf("code=%d generic=%q quota calls=%d", rec.Code, fin.lastSettle, q.calls)
 	}
 }
 
