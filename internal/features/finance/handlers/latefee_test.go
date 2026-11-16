@@ -12,10 +12,14 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 )
 
+// settleTestNow is the injected clock of the settle-form tests, so the default
+// settlement date and the 20-days-late fixture never depend on the real date.
+var settleTestNow = time.Date(2026, 3, 15, 10, 30, 0, 0, time.UTC)
+
 func pendingReceivable() *fakeAccountReader {
 	return &fakeAccountReader{account: domain.FinancialAccount{
 		ID: "a1", CondominiumID: "c1", Status: domain.StatusPending, Type: domain.AccountTypeReceivable,
-		Title: "Stored title", AmountCents: 35000, DueDate: time.Now().AddDate(0, 0, -20),
+		Title: "Stored title", AmountCents: 35000, DueDate: settleTestNow.AddDate(0, 0, -20),
 	}}
 }
 
@@ -27,12 +31,7 @@ func sampleLateFee() services.LateFeeQuote {
 }
 
 func settleRouter(role model.Role, fin *fakeFinance, q *fakeQuotas) http.Handler {
-	user, sess := syndicSession()
-	deps := baseDeps(fin)
-	deps.Roles = &fakeRoles{roles: []model.Role{role}}
-	deps.Quotas = q
-	deps.Accounts = pendingReceivable()
-	return financeRouter(user, sess, deps)
+	return settleRouterAt(role, fin, q, settleTestNow)
 }
 
 func TestSettlePageShowsLateFeeBreakdownAndDecisionButtons(t *testing.T) {
@@ -49,7 +48,7 @@ func TestSettlePageShowsLateFeeBreakdownAndDecisionButtons(t *testing.T) {
 		`name="late_fee_decision" value="apply"`, `name="late_fee_decision" value="waive"`,
 		"Settle and apply late fee", "Settle and waive late fee",
 		`hx-get="/finance/a1/settle/late-fee"`, `hx-trigger="change"`, `id="settle-actions"`,
-		`value="` + time.Now().UTC().Format("2006-01-02") + `"`,
+		`value="` + settleTestNow.Format("2006-01-02") + `"`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("settle page is missing %q", want)
@@ -326,6 +325,16 @@ func TestHandlersUseInjectedClock(t *testing.T) {
 	body := get(srouter, "/finance/a1/settle", false).Body.String()
 	if !strings.Contains(body, `value="2026-03-15"`) {
 		t.Error("settle form default date is not the injected date")
+	}
+}
+
+// TestTodayIsTheUTCDay pins today() to the UTC calendar day the services use:
+// 22:30 in São Paulo (UTC-3) on 15 March is already 16 March in UTC.
+func TestTodayIsTheUTCDay(t *testing.T) {
+	brt := time.FixedZone("BRT", -3*60*60)
+	h := &Handler{deps: Deps{Now: func() time.Time { return time.Date(2026, 3, 15, 22, 30, 0, 0, brt) }}}
+	if got, want := h.today(), time.Date(2026, 3, 16, 0, 0, 0, 0, time.UTC); !got.Equal(want) || got.Location() != time.UTC {
+		t.Errorf("today() = %v, want %v", got, want)
 	}
 }
 

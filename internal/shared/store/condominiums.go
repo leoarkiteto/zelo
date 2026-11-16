@@ -46,10 +46,6 @@ func (s *CondominiumStore) GetLateFeeSettings(ctx context.Context, condoID strin
 	return out, nil
 }
 
-// ErrLateFeeAboveBRLCap is returned by SetLateFeeSettings when the condominium's
-// current currency is BRL and the requested multa exceeds maxBRLFeeBP.
-var ErrLateFeeAboveBRLCap = errors.New("late fee above BRL cap")
-
 // SetLateFeeSettings stores the condominium's late-fee settings. Range checks
 // are the database CHECKs. The BRL cap is enforced atomically in the UPDATE's
 // WHERE clause against the row's current currency: a BRL condominium with a fee

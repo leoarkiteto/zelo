@@ -97,8 +97,9 @@ func (h *Handler) now() time.Time {
 	return h.deps.Now()
 }
 
-// today is the current calendar day as a UTC date, the shape the services use.
+// today is the UTC calendar day of now, the same day the services derive with
+// utcDate (the instant is converted to UTC before taking year, month and day).
 func (h *Handler) today() time.Time {
-	n := h.now()
+	n := h.now().UTC()
 	return time.Date(n.Year(), n.Month(), n.Day(), 0, 0, 0, 0, time.UTC)
 }
