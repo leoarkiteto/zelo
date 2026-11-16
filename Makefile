@@ -17,6 +17,9 @@ dev:
 migrate:
 	go run ./cmd/web -migrate
 
+seed:
+	go run ./cmd/web -seed
+
 templ:
 	templ generate
 
