@@ -20,6 +20,7 @@ templ financeBody(data FinancePageData) {
 				<p class="page-subtitle">{ i18n.T(data.Locale, "finance.subtitle") }</p>
 			</div>
 			<div class="flex flex-wrap gap-2">
+				<a class="btn btn-secondary" href="/finance/budgets">{ i18n.T(data.Locale, "quotas.budgets_title") }</a>
 				<a class="btn btn-secondary" href="/finance/new?type=receivable">{ i18n.T(data.Locale, "finance.new_receivable") }</a>
 				<a class="btn btn-primary" href="/finance/new?type=payable">{ i18n.T(data.Locale, "finance.new_payable") }</a>
 			</div>
@@ -121,8 +122,13 @@ templ financeBody(data FinancePageData) {
 										<div class="flex flex-wrap items-center justify-end gap-2">
 											if a.EffectiveStatus == domain.StatusPending || a.EffectiveStatus == domain.StatusOverdue {
 												<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/settle") }>{ i18n.T(data.Locale, "finance.settle") }</a>
-												<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/edit") }>{ i18n.T(data.Locale, "common.edit") }</a>
-												<a class="btn btn-danger btn-sm" href={ templ.URL("/finance/" + a.ID + "/cancel") }>{ i18n.T(data.Locale, "common.delete") }</a>
+												if !a.IsQuota {
+													<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/edit") }>{ i18n.T(data.Locale, "common.edit") }</a>
+													<a class="btn btn-danger btn-sm" href={ templ.URL("/finance/" + a.ID + "/cancel") }>{ i18n.T(data.Locale, "common.delete") }</a>
+												}
+											}
+											if a.CanReceipt {
+												<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/recibo") }>{ i18n.T(data.Locale, "quotas.receipt.link") }</a>
 											}
 											if a.HasReceipt {
 												<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + a.ID + "/receipt") }>PDF</a>
@@ -287,53 +293,6 @@ templ cancelBody(data CancelData) {
 			<button class="btn btn-danger" type="submit">{ i18n.T(data.Locale, "finance.cancel") }</button>
 			<a class="btn btn-secondary" href="/finance">{ i18n.T(data.Locale, "common.cancel") }</a>
 		</form>
-	</div>
-}
-
-templ ChargesPage(data ChargesPageData) {
-	@organisms.Layout(i18n.T(data.Locale, "finance.my_charges_title"), data.Locale, data.Shell, chargesBody(data))
-}
-
-templ chargesBody(data ChargesPageData) {
-	<div class="space-y-6">
-		<div class="page-head">
-			<div>
-				<h1 class="page-title">{ i18n.T(data.Locale, "finance.my_charges_title") }</h1>
-				<p class="page-subtitle">{ i18n.T(data.Locale, "finance.my_charges_subtitle") }</p>
-			</div>
-		</div>
-		if data.NoUnit {
-			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "finance.no_unit")})
-		} else if len(data.Charges) == 0 {
-			@molecules.EmptyState(molecules.EmptyStateProps{Title: i18n.T(data.Locale, "finance.my_charges_empty")})
-		} else {
-			<section class="card">
-				<div class="table-wrap">
-					<table class="table">
-						<thead>
-							<tr>
-								<th>{ i18n.T(data.Locale, "finance.col.title") }</th>
-								<th>{ i18n.T(data.Locale, "finance.col.category") }</th>
-								<th>{ i18n.T(data.Locale, "finance.col.amount") }</th>
-								<th>{ i18n.T(data.Locale, "finance.col.due_date") }</th>
-								<th>{ i18n.T(data.Locale, "finance.col.status") }</th>
-							</tr>
-						</thead>
-						<tbody>
-							for _, c := range data.Charges {
-								<tr>
-									<td class="font-medium text-ink-800">{ c.Title }</td>
-									<td>@atoms.Badge(atoms.BadgeProps{Label: c.CategoryLabel, Variant: atoms.BadgeVariantInfo})</td>
-									<td class="text-ink-700">{ c.Amount }</td>
-									<td class="text-ink-700">{ c.DueDate }</td>
-									<td>@atoms.Badge(atoms.BadgeProps{Label: c.StatusLabel, Variant: statusBadgeVariant(c.EffectiveStatus)})</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
-			</section>
-		}
 	</div>
 }
 

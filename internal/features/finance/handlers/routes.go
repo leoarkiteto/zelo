@@ -25,7 +25,12 @@ func RegisterRoutes(mux *http.ServeMux, deps Deps) {
 	mux.Handle("GET /finance/{id}/cancel", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.financeCancelGET))))
 	mux.Handle("POST /finance/{id}/cancel", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.financeCancelPOST))))
 	mux.Handle("GET /finance/{id}/receipt", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.financeReceiptGET))))
+	if deps.Quotas != nil {
+		registerQuotaAdminRoutes(mux, h, syndicOnly)
+	}
 	mux.Handle("GET /finance/my-charges", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.myChargesGET))))
+	mux.Handle("GET /finance/{id}/recibo", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.reciboGET))))
+	mux.Handle("GET /finance/quotas/card", middleware.RequireRoleHX(deps.Roles, deps.Audit, quotasCardNoAccess, memberRoles...)(http.HandlerFunc(h.quotasCardGET)))
 	mux.Handle("GET /finance/health", middleware.RequireAuth(memberOnly(http.HandlerFunc(h.healthRedirect))))
 	mux.Handle("GET /finance/overview", middleware.RequireRoleHX(deps.Roles, deps.Audit, overviewNoAccess, memberRoles...)(http.HandlerFunc(h.overviewGET)))
 }

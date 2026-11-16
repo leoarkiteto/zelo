@@ -32,7 +32,21 @@ var (
 	ErrNoUnit = errors.New("resident has no active unit")
 	// ErrNotFound aliases the domain-level not-found sentinel.
 	ErrNotFound = model.ErrNotFound
+	// ErrQuotaManaged is returned when editing or canceling a receivable that
+	// belongs to a quota issuance (FR-16); it is changed only through its issuance.
+	ErrQuotaManaged = errors.New("account is managed by a quota issuance")
+	// ErrForbidden is returned when the viewer may not see the requested resource.
+	ErrForbidden = errors.New("forbidden")
 )
+
+// AccountRow is an account annotated for the generic list.
+type AccountRow struct {
+	Account domain.FinancialAccount
+	// IsQuota is true when the account is a quota receivable (FR-16).
+	IsQuota bool
+	// Period is the quota period and unit, set when IsQuota (display-time i18n).
+	Period domain.QuotaPeriod
+}
 
 // AccountInput is a validated create/edit payload. Amount and dates are the
 // raw form strings; parsing happens in the service.
@@ -58,7 +72,52 @@ type FinanceService struct {
 	Units     UnitStore
 	Audit     AuditRecorder
 	Overviews OverviewStore
-	Now       func() time.Time
+	// QuotaLinks is optional; nil means no account is quota-managed.
+	QuotaLinks QuotaLinks
+	Now        func() time.Time
+}
+
+// isQuota reports whether the account is linked to a quota (nil-safe).
+func (s *FinanceService) isQuota(ctx context.Context, accountID string) (bool, error) {
+	if s.QuotaLinks == nil {
+		return false, nil
+	}
+	m, err := s.QuotaLinks.QuotaPeriods(ctx, []string{accountID})
+	if err != nil {
+		return false, err
+	}
+	_, ok := m[accountID]
+	return ok, nil
+}
+
+// IsQuotaAccount reports whether the account is a quota receivable, so the
+// generic edit/cancel screens can refuse it up front (FR-16).
+func (s *FinanceService) IsQuotaAccount(ctx context.Context, accountID string) (bool, error) {
+	return s.isQuota(ctx, accountID)
+}
+
+// ListAccountsWithFlags is ListAccounts annotated with IsQuota using one batch lookup.
+func (s *FinanceService) ListAccountsWithFlags(ctx context.Context, condominiumID string, f AccountFilter) ([]AccountRow, error) {
+	accs, err := s.Accounts.List(ctx, condominiumID, f)
+	if err != nil {
+		return nil, err
+	}
+	rows := make([]AccountRow, len(accs))
+	var quota map[string]domain.QuotaPeriod
+	if s.QuotaLinks != nil && len(accs) > 0 {
+		ids := make([]string, len(accs))
+		for i, a := range accs {
+			ids[i] = a.ID
+		}
+		if quota, err = s.QuotaLinks.QuotaPeriods(ctx, ids); err != nil {
+			return nil, err
+		}
+	}
+	for i, a := range accs {
+		p, ok := quota[a.ID]
+		rows[i] = AccountRow{Account: a, IsQuota: ok, Period: p}
+	}
+	return rows, nil
 }
 
 // CreateAccount validates and stores a new account. Initial status is
@@ -91,6 +150,11 @@ func (s *FinanceService) EditAccount(ctx context.Context, actorID, accountID, co
 	}
 	if existing.CondominiumID != condominiumID {
 		return ErrNotFound
+	}
+	if quota, err := s.isQuota(ctx, accountID); err != nil {
+		return err
+	} else if quota {
+		return ErrQuotaManaged
 	}
 	if !existing.CanEdit() {
 		return ErrNotEditable
@@ -143,6 +207,11 @@ func (s *FinanceService) CancelAccount(ctx context.Context, actorID, accountID, 
 	if existing.CondominiumID != condominiumID {
 		return ErrNotFound
 	}
+	if quota, err := s.isQuota(ctx, accountID); err != nil {
+		return err
+	} else if quota {
+		return ErrQuotaManaged
+	}
 	if !existing.CanCancel() {
 		return ErrNotEditable
 	}
@@ -162,16 +231,6 @@ func (s *FinanceService) ListAccounts(ctx context.Context, condominiumID string,
 // Summary returns the dashboard projection for the month (FR-013).
 func (s *FinanceService) Summary(ctx context.Context, condominiumID string, month time.Time) (MonthSummary, error) {
 	return s.Summaries.SummaryForMonth(ctx, condominiumID, month)
-}
-
-// ResidentCharges returns the receivables pending for the user's active unit
-// (FR-016). Users without an active unit get ErrNoUnit.
-func (s *FinanceService) ResidentCharges(ctx context.Context, userID, condominiumID string) ([]domain.FinancialAccount, error) {
-	unit, err := s.Units.GetActiveUnitForUser(ctx, userID, condominiumID)
-	if err != nil {
-		return nil, ErrNoUnit
-	}
-	return s.Accounts.ListPendingForUnit(ctx, condominiumID, unit.ID)
 }
 
 // validateAndBuild validates an AccountInput and produces a

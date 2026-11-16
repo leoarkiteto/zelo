@@ -243,14 +243,6 @@ func TestSettleAndCancelRejectedWhenReadOnly(t *testing.T) {
 	}
 }
 
-func TestResidentChargesRequiresUnit(t *testing.T) {
-	units := &fakeUnitStore{err: model.ErrNotFound}
-	svc := newService(newFakeAccountStore(), units, &fakeAudit{})
-	if _, err := svc.ResidentCharges(context.Background(), "u1", "c1"); !errors.Is(err, ErrNoUnit) {
-		t.Fatalf("error = %v, want ErrNoUnit", err)
-	}
-}
-
 func TestSummaryPassthrough(t *testing.T) {
 	sum := &fakeSummaryStore{sum: MonthSummary{TotalReceivableCents: 100, TotalPayableCents: 40, ProjectedBalanceCents: 60}}
 	svc := &FinanceService{Summaries: sum, Now: time.Now}
@@ -258,5 +250,86 @@ func TestSummaryPassthrough(t *testing.T) {
 	got, err := svc.Summary(context.Background(), "c1", month)
 	if err != nil || got.ProjectedBalanceCents != 60 {
 		t.Fatalf("Summary() = %+v, %v", got, err)
+	}
+}
+
+type fakeQuotaLinks struct {
+	ids   map[string]bool
+	calls int
+	err   error
+}
+
+func (f *fakeQuotaLinks) QuotaPeriods(_ context.Context, ids []string) (map[string]domain.QuotaPeriod, error) {
+	f.calls++
+	out := map[string]domain.QuotaPeriod{}
+	for _, id := range ids {
+		if f.ids[id] {
+			out[id] = domain.QuotaPeriod{Year: 2026, Periodicity: domain.PeriodicityMonthly, Index: 8, UnitCode: "A"}
+		}
+	}
+	return out, f.err
+}
+
+func seedReceivable(acc *fakeAccountStore, id string) {
+	acc.accounts[id] = domain.FinancialAccount{
+		ID: id, CondominiumID: "c1", Type: domain.AccountTypeReceivable, Title: "Quota",
+		Category: domain.CategoryCondoFee, AmountCents: 1000, Status: domain.StatusPending,
+		DueDate: time.Date(2026, 8, 30, 0, 0, 0, 0, time.UTC),
+	}
+}
+
+func TestQuotaManagedAccountsAreLocked(t *testing.T) {
+	acc := newFakeAccountStore()
+	seedReceivable(acc, "q1")
+	seedReceivable(acc, "free")
+	audit := &fakeAudit{}
+	svc := newService(acc, &fakeUnitStore{}, audit)
+	svc.QuotaLinks = &fakeQuotaLinks{ids: map[string]bool{"q1": true}}
+	ctx := context.Background()
+
+	in := AccountInput{Title: "Quota", Category: domain.CategoryCondoFee, Amount: "10.00", DueDate: "2026-08-30"}
+	if err := svc.EditAccount(ctx, "u1", "q1", "c1", in); !errors.Is(err, ErrQuotaManaged) {
+		t.Fatalf("EditAccount(quota) = %v, want ErrQuotaManaged", err)
+	}
+	if err := svc.CancelAccount(ctx, "u1", "q1", "c1"); !errors.Is(err, ErrQuotaManaged) {
+		t.Fatalf("CancelAccount(quota) = %v, want ErrQuotaManaged", err)
+	}
+	if acc.accounts["q1"].Status != domain.StatusPending || len(audit.events) != 0 {
+		t.Fatal("quota account changed or audited")
+	}
+	// Settlement stays available through the generic flow.
+	if err := svc.SettleAccount(ctx, "u1", "q1", "c1", "2026-08-20"); err != nil {
+		t.Fatalf("SettleAccount(quota) = %v", err)
+	}
+	// A non-quota receivable can still be canceled.
+	if err := svc.CancelAccount(ctx, "u1", "free", "c1"); err != nil {
+		t.Fatalf("CancelAccount(free) = %v", err)
+	}
+}
+
+func TestListAccountsWithFlagsUsesOneBatchLookup(t *testing.T) {
+	acc := newFakeAccountStore()
+	seedReceivable(acc, "q1")
+	seedReceivable(acc, "free")
+	svc := newService(acc, &fakeUnitStore{}, &fakeAudit{})
+	links := &fakeQuotaLinks{ids: map[string]bool{"q1": true}}
+	svc.QuotaLinks = links
+	rows, err := svc.ListAccountsWithFlags(context.Background(), "c1", AccountFilter{})
+	if err != nil || len(rows) != 2 || links.calls != 1 {
+		t.Fatalf("rows=%d calls=%d err=%v", len(rows), links.calls, err)
+	}
+	for _, r := range rows {
+		if r.IsQuota != (r.Account.ID == "q1") {
+			t.Fatalf("flag wrong for %s", r.Account.ID)
+		}
+		if r.IsQuota && (r.Period.Index != 8 || r.Period.UnitCode != "A" || r.Period.Year != 2026) {
+			t.Fatalf("quota metadata missing: %+v", r.Period)
+		}
+	}
+	// nil QuotaLinks: no flags, no lookup.
+	svc.QuotaLinks = nil
+	rows, err = svc.ListAccountsWithFlags(context.Background(), "c1", AccountFilter{})
+	if err != nil || len(rows) != 2 || rows[0].IsQuota || rows[1].IsQuota {
+		t.Fatalf("nil links rows=%+v err=%v", rows, err)
 	}
 }

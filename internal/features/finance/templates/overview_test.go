@@ -33,7 +33,9 @@ func monthsFixture(vals [][2]int64) []services.MonthPoint {
 	return out
 }
 
-func last12() domain.Period { return domain.ParsePeriod("", time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC)) }
+func last12() domain.Period {
+	return domain.ParsePeriod("", time.Date(2026, 3, 10, 0, 0, 0, 0, time.UTC))
+}
 
 func mustContain(t *testing.T, html string, subs ...string) {
 	t.Helper()

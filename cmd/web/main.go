@@ -152,6 +152,7 @@ func main() {
 		Invitations: invitations,
 		Units:       units,
 		RoleService: &mgmtservices.RoleService{Roles: roles, Audit: audit},
+		UnitService: &mgmtservices.UnitService{Units: units, Audit: audit},
 
 		Condominiums:    condominiums,
 		SettingsService: &mgmtservices.SettingsService{Condominiums: condominiums, Audit: audit},
@@ -175,6 +176,7 @@ func main() {
 		},
 	}
 	homeDeps := homehandlers.Deps{Roles: roles, Audit: audit}
+	quotaStore := financerepositories.NewQuotaStore(db)
 	financeDeps := financehandlers.Deps{
 		Roles:     roles,
 		Audit:     audit,
@@ -182,12 +184,20 @@ func main() {
 		Units:     units,
 		UploadDir: cfg.UploadDir,
 		Finance: &financeservices.FinanceService{
-			Accounts:  financeAccounts,
-			Summaries: financeAccounts,
-			Overviews: financeAccounts,
-			Units:     units,
-			Audit:     audit,
-			Now:       time.Now,
+			Accounts:   financeAccounts,
+			Summaries:  financeAccounts,
+			Overviews:  financeAccounts,
+			Units:      units,
+			Audit:      audit,
+			QuotaLinks: quotaStore,
+			Now:        time.Now,
+		},
+		Quotas: &financeservices.QuotaService{
+			Store:       quotaStore,
+			Occupancies: units,
+			Audit:       audit,
+			Currency:    condominiums.GetCurrency,
+			Now:         time.Now,
 		},
 	}
 	profileDeps := profilehandlers.Deps{

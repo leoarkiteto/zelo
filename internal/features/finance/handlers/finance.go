@@ -77,6 +77,9 @@ func (h *Handler) financeEditGET(w http.ResponseWriter, r *http.Request) {
 		h.renderAccountGone(w, r, err)
 		return
 	}
+	if h.refuseQuota(w, r, account.ID) {
+		return
+	}
 	if !account.CanEdit() {
 		httpx.RenderError(w, r, http.StatusBadRequest, i18n.T(locale, "finance.error.not_editable"))
 		return
@@ -109,6 +112,9 @@ func (h *Handler) financeEditPOST(w http.ResponseWriter, r *http.Request) {
 	existing, err := h.accountForCondominium(r, id)
 	if err != nil {
 		h.renderAccountGone(w, r, err)
+		return
+	}
+	if h.refuseQuota(w, r, existing.ID) {
 		return
 	}
 	if !existing.CanEdit() {
@@ -198,6 +204,9 @@ func (h *Handler) financeCancelGET(w http.ResponseWriter, r *http.Request) {
 		h.renderAccountGone(w, r, err)
 		return
 	}
+	if h.refuseQuota(w, r, account.ID) {
+		return
+	}
 	if !account.CanCancel() {
 		httpx.RenderError(w, r, http.StatusBadRequest, i18n.T(locale, "finance.error.not_editable"))
 		return
@@ -215,37 +224,6 @@ func (h *Handler) financeCancelPOST(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/finance?flash=canceled", http.StatusSeeOther)
-}
-
-// myChargesGET renders the resident's pending charges (FR-016).
-func (h *Handler) myChargesGET(w http.ResponseWriter, r *http.Request) {
-	u := httpx.CurrentUser(r)
-	sess := httpx.CurrentSession(r)
-	locale := i18n.LanguageFrom(r.Context())
-
-	shell, err := httpx.ShellData(r, h.deps.Roles, "/finance/my-charges")
-	if err != nil {
-		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load_session"))
-		return
-	}
-	charges, err := h.deps.Finance.ResidentCharges(r.Context(), u.ID, sess.CondominiumID)
-	data := financetemplates.ChargesPageData{
-		Shell:  shell,
-		Locale: locale,
-		CSRF:   sess.CSRFToken,
-	}
-	switch {
-	case errors.Is(err, services.ErrNoUnit):
-		data.NoUnit = true
-	case err != nil:
-		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load"))
-		return
-	default:
-		for _, c := range charges {
-			data.Charges = append(data.Charges, h.accountView(r.Context(), locale, c))
-		}
-	}
-	httpx.Render(w, r, financetemplates.ChargesPage(data))
 }
 
 // --- shared helpers ---
@@ -284,7 +262,7 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 		}
 	}
 
-	accounts, err := h.deps.Finance.ListAccounts(r.Context(), sess.CondominiumID, f)
+	accounts, err := h.deps.Finance.ListAccountsWithFlags(r.Context(), sess.CondominiumID, f)
 	if err != nil {
 		return financetemplates.FinancePageData{}, err
 	}
@@ -320,8 +298,14 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 		},
 		Flash: flash,
 	}
-	for _, a := range accounts {
-		data.Accounts = append(data.Accounts, h.accountView(r.Context(), locale, a))
+	for _, row := range accounts {
+		view := h.accountView(r.Context(), locale, row.Account)
+		view.IsQuota = row.IsQuota
+		if row.IsQuota {
+			view.Title = financetemplates.QuotaTitle(locale, row.Period)
+		}
+		view.CanReceipt = row.Account.Type == domain.AccountTypeReceivable && view.EffectiveStatus == domain.StatusSettled
+		data.Accounts = append(data.Accounts, view)
 	}
 	return data, nil
 }
@@ -445,6 +429,8 @@ func (h *Handler) renderEditError(w http.ResponseWriter, r *http.Request, id str
 		h.renderFormWithError(w, r, values, true, id, accType, i18n.T(locale, "finance.error.unit"))
 	case errors.Is(err, services.ErrNotEditable):
 		httpx.RenderError(w, r, http.StatusBadRequest, i18n.T(locale, "finance.error.not_editable"))
+	case errors.Is(err, services.ErrQuotaManaged):
+		httpx.RenderError(w, r, http.StatusConflict, i18n.T(locale, "quotas.error.quota_managed"))
 	case errors.Is(err, services.ErrNotFound):
 		httpx.RenderError(w, r, http.StatusNotFound, i18n.T(locale, "finance.error.account_gone"))
 	default:
@@ -498,9 +484,26 @@ func (h *Handler) renderAccountGone(w http.ResponseWriter, r *http.Request, err 
 		httpx.RenderError(w, r, http.StatusNotFound, i18n.T(locale, "finance.error.account_gone"))
 	case errors.Is(err, services.ErrNotEditable):
 		httpx.RenderError(w, r, http.StatusBadRequest, i18n.T(locale, "finance.error.not_editable"))
+	case errors.Is(err, services.ErrQuotaManaged):
+		httpx.RenderError(w, r, http.StatusConflict, i18n.T(locale, "quotas.error.quota_managed"))
 	default:
 		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load"))
 	}
+}
+
+// refuseQuota answers 409 and reports true when the account is a quota
+// receivable, which the generic screens must not edit or cancel (FR-16).
+func (h *Handler) refuseQuota(w http.ResponseWriter, r *http.Request, accountID string) bool {
+	quota, err := h.deps.Finance.IsQuotaAccount(r.Context(), accountID)
+	if err != nil {
+		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(i18n.LanguageFrom(r.Context()), "finance.error.load"))
+		return true
+	}
+	if quota {
+		httpx.RenderError(w, r, http.StatusConflict, i18n.T(i18n.LanguageFrom(r.Context()), "quotas.error.quota_managed"))
+		return true
+	}
+	return false
 }
 
 func currentMonth(now time.Time) time.Time {

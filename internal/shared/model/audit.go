@@ -38,6 +38,15 @@ const (
 	AuditInvoicePaymentAdded        AuditEventType = "invoice_payment_added"
 	AuditInvoiceAttachmentAdded     AuditEventType = "invoice_attachment_added"
 	AuditInvoiceAttachmentRemoved   AuditEventType = "invoice_attachment_removed"
+
+	AuditUnitCreated           AuditEventType = "unit_created"
+	AuditUnitUpdated           AuditEventType = "unit_updated"
+	AuditBudgetCreated         AuditEventType = "budget_created"
+	AuditBudgetUpdated         AuditEventType = "budget_updated"
+	AuditBudgetApproved        AuditEventType = "budget_approved"
+	AuditBudgetReopened        AuditEventType = "budget_reopened"
+	AuditQuotaIssued           AuditEventType = "quota_issued"
+	AuditQuotaIssuanceCanceled AuditEventType = "quota_issuance_canceled"
 )
 
 // Valid reports whether t is a supported audit event type.
@@ -52,7 +61,9 @@ func (t AuditEventType) Valid() bool {
 		AuditCondominiumCurrencyChanged, AuditSupplierCreated, AuditSupplierUpdated,
 		AuditInvoiceCreated, AuditInvoiceUpdated, AuditInvoiceRegistered,
 		AuditInvoiceDraftDeleted, AuditInvoiceAnnulled, AuditInvoicePaymentAdded,
-		AuditInvoiceAttachmentAdded, AuditInvoiceAttachmentRemoved:
+		AuditInvoiceAttachmentAdded, AuditInvoiceAttachmentRemoved,
+		AuditUnitCreated, AuditUnitUpdated, AuditBudgetCreated, AuditBudgetUpdated,
+		AuditBudgetApproved, AuditBudgetReopened, AuditQuotaIssued, AuditQuotaIssuanceCanceled:
 		return true
 	default:
 		return false

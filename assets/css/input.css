@@ -231,6 +231,24 @@
   }
 }
 
+/* ---------- Print: Recibo (FR-26) ---------- */
+@media print {
+  .topbar,
+  .sidebar,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: var(--color-ink-900);
+  }
+  .receipt-sheet {
+    border: 1px solid var(--color-chrome-300);
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}
+
 /* ---------- Google Material Symbols (self-hosted icon font) ---------- */
 @font-face {
   font-family: 'Material Symbols Outlined';

@@ -27,6 +27,15 @@ type Unit struct {
 	ID            string
 	CondominiumID string
 	Code          string
+	// SharePPM is the unit's Permilagem in parts per million (0..1000000).
+	SharePPM int
+}
+
+// ActiveUnit is a unit the user currently occupies, with the occupancy facts.
+type ActiveUnit struct {
+	Unit          Unit
+	OccupancyType OccupancyType
+	StartedAt     time.Time
 }
 
 // UnitOccupancy ties a user to a unit as owner or tenant.

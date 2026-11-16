@@ -17,11 +17,31 @@ type Finance interface {
 	EditAccount(ctx context.Context, actorID, accountID, condominiumID string, in services.AccountInput) error
 	SettleAccount(ctx context.Context, actorID, accountID, condominiumID, settlementDate string) error
 	CancelAccount(ctx context.Context, actorID, accountID, condominiumID string) error
-	ListAccounts(ctx context.Context, condominiumID string, f services.AccountFilter) ([]domain.FinancialAccount, error)
+	IsQuotaAccount(ctx context.Context, accountID string) (bool, error)
 	Summary(ctx context.Context, condominiumID string, month time.Time) (services.MonthSummary, error)
-	ResidentCharges(ctx context.Context, userID, condominiumID string) ([]domain.FinancialAccount, error)
+	ListAccountsWithFlags(ctx context.Context, condominiumID string, f services.AccountFilter) ([]services.AccountRow, error)
 	Overview(ctx context.Context, condominiumID string, p domain.Period) (services.Overview, error)
 	ResolvePeriod(raw string) domain.Period
+}
+
+// QuotaAdmin is the budget and issuance use-case surface of the syndic screens.
+type QuotaAdmin interface {
+	CreateBudget(ctx context.Context, actorID, condoID string, in services.BudgetInput) (services.Budget, error)
+	UpdateBudget(ctx context.Context, actorID, condoID, budgetID string, p services.BudgetParams) error
+	AddLine(ctx context.Context, actorID, condoID, budgetID string, in services.LineInput) (string, error)
+	UpdateLine(ctx context.Context, actorID, condoID, budgetID, lineID string, in services.LineInput) error
+	RemoveLine(ctx context.Context, actorID, condoID, budgetID, lineID string) error
+	ApproveBudget(ctx context.Context, actorID, condoID, budgetID string) error
+	ReopenBudget(ctx context.Context, actorID, condoID, budgetID string) error
+	ListBudgets(ctx context.Context, condoID string) ([]services.BudgetSummary, error)
+	GetBudget(ctx context.Context, condoID, id string) (services.BudgetDetail, error)
+	PreviewIssuance(ctx context.Context, condoID, budgetID string, periodIndex int) (services.IssuancePreview, error)
+	Issue(ctx context.Context, actorID, condoID, budgetID string, periodIndex int) (string, bool, error)
+	CancelIssuance(ctx context.Context, actorID, condoID, issuanceID string) error
+	ListIssuances(ctx context.Context, condoID, budgetID string) ([]services.IssuanceSummary, error)
+	Statement(ctx context.Context, viewer services.Viewer, condoID, unitID string) (services.Statement, error)
+	Receipt(ctx context.Context, viewer services.Viewer, condoID, accountID string) (services.ReceiptData, error)
+	Card(ctx context.Context, viewer services.Viewer, condoID string, today time.Time) (services.CardData, error)
 }
 
 // AccountReader loads a single account by id.
@@ -41,6 +61,7 @@ type Deps struct {
 	Accounts  AccountReader
 	Units     UnitLister
 	Finance   Finance
+	Quotas    QuotaAdmin
 	UploadDir string
 }
 

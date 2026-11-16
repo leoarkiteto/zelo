@@ -370,6 +370,9 @@
   .ml-1 {
     margin-left: var(--spacing);
   }
+  .ml-2 {
+    margin-left: calc(var(--spacing) * 2);
+  }
   .ml-auto {
     margin-left: auto;
   }
@@ -801,6 +804,9 @@
   .pt-3 {
     padding-top: calc(var(--spacing) * 3);
   }
+  .pt-4 {
+    padding-top: calc(var(--spacing) * 4);
+  }
   .pr-10 {
     padding-right: calc(var(--spacing) * 10);
   }
@@ -818,6 +824,9 @@
   }
   .text-right {
     text-align: right;
+  }
+  .font-mono {
+    font-family: var(--font-mono);
   }
   .text-2xl {
     font-size: var(--text-2xl);
@@ -1048,11 +1057,23 @@
     outline-style: none;
   }
   @media (width >= 40rem) {
+    .sm\:col-span-2 {
+      grid-column: span 2 / span 2;
+    }
+    .sm\:col-span-3 {
+      grid-column: span 3 / span 3;
+    }
     .sm\:flex {
       display: flex;
     }
     .sm\:grid-cols-2 {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sm\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .sm\:grid-cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
     .sm\:flex-row {
       flex-direction: row;
@@ -1603,6 +1624,20 @@
     height: 1px;
     width: calc(var(--spacing) * 6);
     background-color: var(--color-chrome-300);
+  }
+}
+@media print {
+  .topbar, .sidebar, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: var(--color-ink-900);
+  }
+  .receipt-sheet {
+    border: 1px solid var(--color-chrome-300);
+    box-shadow: none;
+    break-inside: avoid;
   }
 }
 @font-face {

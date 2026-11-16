@@ -21,4 +21,9 @@ func RegisterRoutes(mux *http.ServeMux, deps Deps) {
 	mux.Handle("POST /roles/revoke", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.rolesRevoke))))
 	mux.Handle("GET /condominium/settings", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.settingsGET))))
 	mux.Handle("POST /condominium/settings", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.settingsPOST))))
+	mux.Handle("GET /condominium/units", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.unitsGET))))
+	mux.Handle("GET /condominium/units/new", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.unitsNewGET))))
+	mux.Handle("POST /condominium/units", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.unitsPOST))))
+	mux.Handle("GET /condominium/units/{id}/edit", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.unitsEditGET))))
+	mux.Handle("POST /condominium/units/{id}/edit", middleware.RequireAuth(syndicOnly(http.HandlerFunc(h.unitsEditPOST))))
 }

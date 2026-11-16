@@ -1,0 +1,96 @@
+package i18n
+
+// Units area: the syndic Unidades screen (units.*) and its nav label
+// (nav.units). units.share is the regional label of a unit's share of the
+// condominium (Permilagem in pt-PT, Fração ideal in pt-br, Ownership share in
+// en) and is reused by the quota screens.
+func init() {
+	registerArea("units", enUnits, ptbrUnits, ptptUnits)
+}
+
+var enUnits = map[MessageKey]string{
+	"nav.units":                  "Units",
+	"units.title":                "Units",
+	"units.subtitle":             "Manage the units of the condominium and their ownership share.",
+	"units.share":                "Ownership share",
+	"units.share_unit":           "‰",
+	"units.share_hint":           "A value from 0 to 1000 per mille, with up to three decimals (for example 45.5).",
+	"units.code":                 "Unit code",
+	"units.new":                  "New unit",
+	"units.new_title":            "New unit",
+	"units.edit_title":           "Edit unit",
+	"units.create":               "Create unit",
+	"units.empty_title":          "No units yet",
+	"units.empty_copy":           "Create the first unit of the condominium.",
+	"units.share_sum":            "Sum of shares",
+	"units.share_diff":           "Difference to 100%",
+	"units.share_status_ok":      "The shares add up to 100%.",
+	"units.share_status_missing": "The shares are below 100%.",
+	"units.share_status_excess":  "The shares are above 100%.",
+	"units.flash.created":        "Unit created.",
+	"units.flash.updated":        "Unit updated.",
+	"units.error.code_required":  "Enter the unit code.",
+	"units.error.code_too_long":  "The unit code is too long.",
+	"units.error.code_duplicate": "Another unit already uses this code.",
+	"units.error.invalid_share":  "Enter a share from 0 to 1000 with up to three decimals.",
+	"units.error.save_failed":    "The unit could not be saved.",
+	"units.error.not_found":      "Unit not found.",
+}
+
+var ptbrUnits = map[MessageKey]string{
+	"nav.units":                  "Unidades",
+	"units.title":                "Unidades",
+	"units.subtitle":             "Gerencie as unidades do condomínio e a sua fração ideal.",
+	"units.share":                "Fração ideal",
+	"units.share_unit":           "‰",
+	"units.share_hint":           "Um valor de 0 a 1000 por mil, com até três casas decimais (por exemplo 45,5).",
+	"units.code":                 "Código da unidade",
+	"units.new":                  "Nova unidade",
+	"units.new_title":            "Nova unidade",
+	"units.edit_title":           "Editar unidade",
+	"units.create":               "Criar unidade",
+	"units.empty_title":          "Nenhuma unidade ainda",
+	"units.empty_copy":           "Crie a primeira unidade do condomínio.",
+	"units.share_sum":            "Soma das frações",
+	"units.share_diff":           "Diferença para 100%",
+	"units.share_status_ok":      "As frações somam 100%.",
+	"units.share_status_missing": "As frações somam menos de 100%.",
+	"units.share_status_excess":  "As frações somam mais de 100%.",
+	"units.flash.created":        "Unidade criada.",
+	"units.flash.updated":        "Unidade atualizada.",
+	"units.error.code_required":  "Informe o código da unidade.",
+	"units.error.code_too_long":  "O código da unidade é muito longo.",
+	"units.error.code_duplicate": "Já existe outra unidade com este código.",
+	"units.error.invalid_share":  "Informe uma fração de 0 a 1000 com até três casas decimais.",
+	"units.error.save_failed":    "Não foi possível salvar a unidade.",
+	"units.error.not_found":      "Unidade não encontrada.",
+}
+
+var ptptUnits = map[MessageKey]string{
+	"nav.units":                  "Unidades",
+	"units.title":                "Unidades",
+	"units.subtitle":             "Gira as unidades do condomínio e a sua permilagem.",
+	"units.share":                "Permilagem",
+	"units.share_unit":           "‰",
+	"units.share_hint":           "Um valor de 0 a 1000 por mil, com até três casas decimais (por exemplo 45,5).",
+	"units.code":                 "Código da unidade",
+	"units.new":                  "Nova unidade",
+	"units.new_title":            "Nova unidade",
+	"units.edit_title":           "Editar unidade",
+	"units.create":               "Criar unidade",
+	"units.empty_title":          "Ainda sem unidades",
+	"units.empty_copy":           "Crie a primeira unidade do condomínio.",
+	"units.share_sum":            "Soma das permilagens",
+	"units.share_diff":           "Diferença para 100%",
+	"units.share_status_ok":      "As permilagens somam 100%.",
+	"units.share_status_missing": "As permilagens somam menos de 100%.",
+	"units.share_status_excess":  "As permilagens somam mais de 100%.",
+	"units.flash.created":        "Unidade criada.",
+	"units.flash.updated":        "Unidade atualizada.",
+	"units.error.code_required":  "Indique o código da unidade.",
+	"units.error.code_too_long":  "O código da unidade é demasiado longo.",
+	"units.error.code_duplicate": "Já existe outra unidade com este código.",
+	"units.error.invalid_share":  "Indique uma permilagem de 0 a 1000 com até três casas decimais.",
+	"units.error.save_failed":    "Não foi possível guardar a unidade.",
+	"units.error.not_found":      "Unidade não encontrada.",
+}

@@ -1,0 +1,695 @@
+package templates
+
+import (
+	"strconv"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+)
+
+// BudgetRowView is one budget in the list; amounts are already formatted.
+type BudgetRowView struct {
+	ID            string
+	Year          int
+	Periodicity   string
+	Status        string
+	StatusVariant atoms.BadgeVariant
+	LineCount     int
+	Total         string
+}
+
+// BudgetsPageData backs the budget list page.
+type BudgetsPageData struct {
+	Shell   *organisms.ShellData
+	Locale  i18n.Language
+	Budgets []BudgetRowView
+	Flash   string
+	Error   string
+}
+
+// BudgetFormData backs the create budget form.
+type BudgetFormData struct {
+	Shell       *organisms.ShellData
+	Locale      i18n.Language
+	CSRF        string
+	Year        string
+	Periodicity string
+	DueDay      string
+	ReserveRate string
+	Error       string
+}
+
+// LineView is one budget line; Amount is the plain decimal for form prefill
+// and AmountDisplay the localized money text.
+type LineView struct {
+	ID            string
+	Description   string
+	Category      string
+	CategoryLabel string
+	Amount        string
+	AmountDisplay string
+}
+
+// UnitPreviewRow is the per-period quota preview of one unit.
+type UnitPreviewRow struct {
+	Code  string
+	Share string
+	Cells []string
+}
+
+// PeriodView is one period of the budget with its active issuance, if any.
+type PeriodView struct {
+	Index   int
+	Label   string
+	DueDate string
+	Total   string
+	// Issued is true when the period has an active issuance.
+	Issued       bool
+	IssuanceID   string
+	SettledCount int
+	ChargeCount  int
+}
+
+// IssuanceView is one issuance of the budget.
+type IssuanceView struct {
+	ID            string
+	Label         string
+	Total         string
+	Status        string
+	StatusVariant atoms.BadgeVariant
+	SettledCount  int
+	ChargeCount   int
+	CanCancel     bool
+}
+
+// BudgetPageData backs the budget detail page.
+type BudgetPageData struct {
+	Shell         *organisms.ShellData
+	Locale        i18n.Language
+	CSRF          string
+	ID            string
+	Year          int
+	Status        string
+	StatusVariant atoms.BadgeVariant
+	IsDraft       bool
+	IsApproved    bool
+	// HasActiveIssuance blocks the reopen action.
+	HasActiveIssuance bool
+	CanApprove        bool
+
+	Periodicity        string
+	PeriodicityLabel   string
+	PeriodicityOptions []atoms.SelectOption
+	DueDay             string
+	ReserveRate        string
+	Total              string
+
+	Lines      []LineView
+	Categories []CategoryOption
+	NewLine    LineView
+
+	PeriodHeaders []string
+	UnitRows      []UnitPreviewRow
+	// SharesDiff is the formatted difference to 100% in per mille, empty when the shares add up.
+	SharesDiff string
+	Periods    []PeriodView
+	Issuances  []IssuanceView
+
+	Flash string
+	Error string
+}
+
+// IssuancePreviewRowView is one unit of an issuance preview.
+type IssuancePreviewRowView struct {
+	Code    string
+	Share   string
+	Base    string
+	Reserve string
+	Quota   string
+	DueDate string
+}
+
+// IssuancePreviewData backs the issuance preview page. A non-empty Error
+// replaces the preview.
+type IssuancePreviewData struct {
+	Shell    *organisms.ShellData
+	Locale   i18n.Language
+	CSRF     string
+	BudgetID string
+	Period   int
+	Label    string
+	DueDate  string
+	Total    string
+	Base     string
+	Reserve  string
+	Rows     []IssuancePreviewRowView
+	Error    string
+}
+
+// IssuanceCancelData backs the cancel issuance confirmation page.
+type IssuanceCancelData struct {
+	Shell    *organisms.ShellData
+	Locale   i18n.Language
+	CSRF     string
+	BudgetID string
+	Issuance IssuanceView
+	Error    string
+}
+
+func budgetViewPath(id string) string { return "/finance/budgets/" + id + "/view" }
+
+func previewPath(budgetID string, period int) string {
+	return "/finance/budgets/" + budgetID + "/issuances/" + strconv.Itoa(period) + "/preview"
+}
+
+func issuePath(budgetID string, period int) string {
+	return "/finance/budgets/" + budgetID + "/issuances/" + strconv.Itoa(period)
+}
+
+func progress(settled, count int) string {
+	return strconv.Itoa(settled) + " / " + strconv.Itoa(count)
+}
+
+templ quotasNav(locale i18n.Language) {
+	<nav class="breadcrumb" aria-label="breadcrumb">
+		<a href="/finance">{ i18n.T(locale, "finance.title") }</a>
+		@atoms.Icon(atoms.IconProps{Kind: atoms.IconKindChevronLeft, Class: "h-4 w-4"})
+		<a href="/finance/budgets">{ i18n.T(locale, "quotas.budgets_title") }</a>
+	</nav>
+}
+
+templ BudgetsPage(data BudgetsPageData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.budgets_title"), data.Locale, data.Shell, budgetsBody(data))
+}
+
+templ budgetsBody(data BudgetsPageData) {
+	<div class="space-y-4">
+		@quotasNav(data.Locale)
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.budgets_title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "quotas.budgets_subtitle") }</p>
+			</div>
+			<a class="btn btn-primary" href="/finance/budgets/new">{ i18n.T(data.Locale, "quotas.budget_new") }</a>
+		</div>
+		if data.Flash != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
+		}
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<div class="card">
+			if len(data.Budgets) == 0 {
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Icon:   atoms.IconKindClipboard,
+					Title:  i18n.T(data.Locale, "quotas.empty_title"),
+					Copy:   i18n.T(data.Locale, "quotas.empty_copy"),
+					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "quotas.budget_new"), Variant: atoms.ButtonVariantPrimary, Href: "/finance/budgets/new", Class: "btn-sm mt-2"}),
+				})
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "quotas.year") }</th>
+								<th>{ i18n.T(data.Locale, "quotas.periodicity") }</th>
+								<th>{ i18n.T(data.Locale, "common.status") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.line_count") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.total") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, b := range data.Budgets {
+								<tr>
+									<td class="font-medium text-ink-800">{ strconv.Itoa(b.Year) }</td>
+									<td>{ b.Periodicity }</td>
+									<td>@atoms.Badge(atoms.BadgeProps{Label: b.Status, Variant: b.StatusVariant})</td>
+									<td class="text-right">{ strconv.Itoa(b.LineCount) }</td>
+									<td class="text-right">{ b.Total }</td>
+									<td class="text-right">
+										<a class="btn btn-secondary btn-sm" href={ templ.SafeURL(budgetViewPath(b.ID)) }>{ i18n.T(data.Locale, "quotas.open") }</a>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	</div>
+}
+
+templ BudgetFormPage(data BudgetFormData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.budget_new"), data.Locale, data.Shell, budgetFormBody(data))
+}
+
+templ budgetFormBody(data BudgetFormData) {
+	<div class="max-w-2xl space-y-4">
+		@quotasNav(data.Locale)
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.budget_new") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "quotas.budgets_subtitle") }</p>
+			</div>
+		</div>
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<form method="POST" action="/finance/budgets" class="card card-pad space-y-4">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			@molecules.FormField(molecules.FormFieldProps{
+				Label:   i18n.T(data.Locale, "quotas.year"),
+				For:     "year",
+				Control: atoms.TextInput(atoms.InputProps{ID: "year", Name: "year", Value: data.Year, Required: true, InputMode: "numeric", MaxLength: "4"}),
+			})
+			@molecules.FormField(molecules.FormFieldProps{
+				Label:   i18n.T(data.Locale, "quotas.periodicity"),
+				For:     "periodicity",
+				Control: atoms.Select(atoms.SelectProps{ID: "periodicity", Name: "periodicity", Selected: data.Periodicity, Required: true, Options: periodicityOptions(data.Locale)}),
+			})
+			@molecules.FormField(molecules.FormFieldProps{
+				Label:   i18n.T(data.Locale, "quotas.due_day"),
+				For:     "due_day",
+				Hint:    i18n.T(data.Locale, "quotas.due_day_hint"),
+				Control: atoms.TextInput(atoms.InputProps{ID: "due_day", Name: "due_day", Value: data.DueDay, Required: true, InputMode: "numeric", MaxLength: "2"}),
+			})
+			@molecules.FormField(molecules.FormFieldProps{
+				Label:   i18n.T(data.Locale, "quotas.reserve_rate") + " (%)",
+				For:     "reserve_rate",
+				Hint:    i18n.T(data.Locale, "quotas.reserve_rate_hint"),
+				Control: atoms.TextInput(atoms.InputProps{ID: "reserve_rate", Name: "reserve_rate", Value: data.ReserveRate, InputMode: "decimal"}),
+			})
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "quotas.budget_create") }</button>
+				<a class="btn btn-secondary" href="/finance/budgets">{ i18n.T(data.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+	</div>
+}
+
+func periodicityOptions(locale i18n.Language) []atoms.SelectOption {
+	return []atoms.SelectOption{
+		{Value: "monthly", Label: i18n.T(locale, "quotas.periodicity.monthly")},
+		{Value: "quarterly", Label: i18n.T(locale, "quotas.periodicity.quarterly")},
+	}
+}
+
+func categorySelectOptions(opts []CategoryOption) []atoms.SelectOption {
+	out := make([]atoms.SelectOption, 0, len(opts))
+	for _, o := range opts {
+		out = append(out, atoms.SelectOption{Value: o.Key, Label: o.Label})
+	}
+	return out
+}
+
+templ BudgetPage(data BudgetPageData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.budget_title")+" "+strconv.Itoa(data.Year), data.Locale, data.Shell, budgetBody(data))
+}
+
+templ budgetBody(data BudgetPageData) {
+	<div class="space-y-4">
+		@quotasNav(data.Locale)
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.budget_title") } { strconv.Itoa(data.Year) }</h1>
+				<p class="page-subtitle">
+					@atoms.Badge(atoms.BadgeProps{Label: data.Status, Variant: data.StatusVariant})
+					<span class="ml-2">{ i18n.T(data.Locale, "quotas.total") }: { data.Total }</span>
+				</p>
+			</div>
+			<div class="flex gap-2">
+				if data.IsDraft && data.CanApprove {
+					<form method="POST" action={ templ.SafeURL("/finance/budgets/" + data.ID + "/approve") }>
+						<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+						<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "quotas.approve") }</button>
+					</form>
+				}
+				if data.IsApproved && !data.HasActiveIssuance {
+					<form method="POST" action={ templ.SafeURL("/finance/budgets/" + data.ID + "/reopen") }>
+						<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+						<button class="btn btn-secondary" type="submit">{ i18n.T(data.Locale, "quotas.reopen") }</button>
+					</form>
+				}
+			</div>
+		</div>
+		if data.Flash != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
+		}
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		if data.IsApproved && data.HasActiveIssuance {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "quotas.reopen_blocked")})
+		}
+		@budgetParams(data)
+		@budgetLines(data)
+		@budgetPreview(data)
+		if data.IsApproved {
+			@budgetPeriods(data)
+			@budgetIssuances(data)
+		}
+	</div>
+}
+
+templ budgetParams(data BudgetPageData) {
+	<div class="card card-pad space-y-4">
+		<h2 class="text-base font-semibold text-ink-900">{ i18n.T(data.Locale, "quotas.params") }</h2>
+		if data.IsDraft {
+			<form method="POST" action={ templ.SafeURL("/finance/budgets/" + data.ID + "/edit") } class="grid gap-4 sm:grid-cols-3">
+				<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "quotas.periodicity"),
+					For:     "periodicity",
+					Control: atoms.Select(atoms.SelectProps{ID: "periodicity", Name: "periodicity", Selected: data.Periodicity, Required: true, Options: data.PeriodicityOptions}),
+				})
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "quotas.due_day"),
+					For:     "due_day",
+					Hint:    i18n.T(data.Locale, "quotas.due_day_hint"),
+					Control: atoms.TextInput(atoms.InputProps{ID: "due_day", Name: "due_day", Value: data.DueDay, Required: true, InputMode: "numeric", MaxLength: "2"}),
+				})
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "quotas.reserve_rate") + " (%)",
+					For:     "reserve_rate",
+					Hint:    i18n.T(data.Locale, "quotas.reserve_rate_hint"),
+					Control: atoms.TextInput(atoms.InputProps{ID: "reserve_rate", Name: "reserve_rate", Value: data.ReserveRate, Required: true, InputMode: "decimal"}),
+				})
+				<div class="sm:col-span-3">
+					<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "common.save_changes") }</button>
+				</div>
+			</form>
+		} else {
+			<dl class="grid gap-4 sm:grid-cols-3">
+				<div>
+					<dt class="label">{ i18n.T(data.Locale, "quotas.periodicity") }</dt>
+					<dd class="text-ink-800">{ data.PeriodicityLabel }</dd>
+				</div>
+				<div>
+					<dt class="label">{ i18n.T(data.Locale, "quotas.due_day") }</dt>
+					<dd class="text-ink-800">{ data.DueDay }</dd>
+				</div>
+				<div>
+					<dt class="label">{ i18n.T(data.Locale, "quotas.reserve_rate") }</dt>
+					<dd class="text-ink-800">{ data.ReserveRate }%</dd>
+				</div>
+			</dl>
+		}
+	</div>
+}
+
+templ budgetLines(data BudgetPageData) {
+	<div class="card card-pad space-y-4">
+		<h2 class="text-base font-semibold text-ink-900">{ i18n.T(data.Locale, "quotas.lines") }</h2>
+		if len(data.Lines) == 0 {
+			<p class="text-ink-500">{ i18n.T(data.Locale, "quotas.lines_empty") }</p>
+		} else if data.IsDraft {
+			for _, l := range data.Lines {
+				<div class="flex flex-wrap items-end gap-2">
+					<form method="POST" action={ templ.SafeURL("/finance/budgets/" + data.ID + "/lines/" + l.ID + "/edit") } class="flex flex-wrap items-end gap-2">
+						<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+						@molecules.FormField(molecules.FormFieldProps{
+							Label:   i18n.T(data.Locale, "quotas.line_description"),
+							For:     "description-" + l.ID,
+							Control: atoms.TextInput(atoms.InputProps{ID: "description-" + l.ID, Name: "description", Value: l.Description, Required: true, MaxLength: "120"}),
+						})
+						@molecules.FormField(molecules.FormFieldProps{
+							Label:   i18n.T(data.Locale, "common.category"),
+							For:     "category-" + l.ID,
+							Control: atoms.Select(atoms.SelectProps{ID: "category-" + l.ID, Name: "category", Selected: l.Category, Required: true, Options: categorySelectOptions(data.Categories)}),
+						})
+						@molecules.FormField(molecules.FormFieldProps{
+							Label:   i18n.T(data.Locale, "quotas.line_amount"),
+							For:     "amount-" + l.ID,
+							Control: atoms.TextInput(atoms.InputProps{ID: "amount-" + l.ID, Name: "amount", Value: l.Amount, Required: true, InputMode: "decimal"}),
+						})
+						<button class="btn btn-secondary btn-sm" type="submit">{ i18n.T(data.Locale, "quotas.line_save") }</button>
+					</form>
+					<form method="POST" action={ templ.SafeURL("/finance/budgets/" + data.ID + "/lines/" + l.ID + "/delete") }>
+						<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+						<button class="btn btn-danger btn-sm" type="submit">{ i18n.T(data.Locale, "common.delete") }</button>
+					</form>
+				</div>
+			}
+		} else {
+			<div class="table-wrap">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>{ i18n.T(data.Locale, "quotas.line_description") }</th>
+							<th>{ i18n.T(data.Locale, "common.category") }</th>
+							<th class="text-right">{ i18n.T(data.Locale, "quotas.line_amount") }</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, l := range data.Lines {
+							<tr>
+								<td class="font-medium text-ink-800">{ l.Description }</td>
+								<td>{ l.CategoryLabel }</td>
+								<td class="text-right">{ l.AmountDisplay }</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+		if data.IsDraft {
+			<form method="POST" action={ templ.SafeURL("/finance/budgets/" + data.ID + "/lines") } class="flex flex-wrap items-end gap-2 border-t border-chrome-200 pt-4">
+				<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "quotas.line_description"),
+					For:     "new-description",
+					Control: atoms.TextInput(atoms.InputProps{ID: "new-description", Name: "description", Value: data.NewLine.Description, Required: true, MaxLength: "120"}),
+				})
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "common.category"),
+					For:     "new-category",
+					Control: atoms.Select(atoms.SelectProps{ID: "new-category", Name: "category", Selected: data.NewLine.Category, Required: true, Options: categorySelectOptions(data.Categories)}),
+				})
+				@molecules.FormField(molecules.FormFieldProps{
+					Label:   i18n.T(data.Locale, "quotas.line_amount"),
+					For:     "new-amount",
+					Hint:    i18n.T(data.Locale, "quotas.line_amount_hint"),
+					Control: atoms.TextInput(atoms.InputProps{ID: "new-amount", Name: "amount", Value: data.NewLine.Amount, Required: true, InputMode: "decimal"}),
+				})
+				<button class="btn btn-primary btn-sm" type="submit">{ i18n.T(data.Locale, "quotas.line_add") }</button>
+			</form>
+		}
+	</div>
+}
+
+templ budgetPreview(data BudgetPageData) {
+	<div class="card card-pad space-y-4">
+		<h2 class="text-base font-semibold text-ink-900">{ i18n.T(data.Locale, "quotas.preview_title") }</h2>
+		if data.SharesDiff != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "quotas.shares_indicative") + " " + data.SharesDiff + i18n.T(data.Locale, "units.share_unit")})
+		}
+		if len(data.UnitRows) == 0 {
+			<p class="text-ink-500">{ i18n.T(data.Locale, "quotas.preview_empty") }</p>
+		} else {
+			<div class="table-wrap">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>{ i18n.T(data.Locale, "common.unit") }</th>
+							<th class="text-right">{ i18n.T(data.Locale, "units.share") } ({ i18n.T(data.Locale, "units.share_unit") })</th>
+							for _, h := range data.PeriodHeaders {
+								<th class="text-right">{ h }</th>
+							}
+						</tr>
+					</thead>
+					<tbody>
+						for _, u := range data.UnitRows {
+							<tr>
+								<td class="font-medium text-ink-800">{ u.Code }</td>
+								<td class="text-right">{ u.Share }</td>
+								for _, c := range u.Cells {
+									<td class="text-right">{ c }</td>
+								}
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+}
+
+templ budgetPeriods(data BudgetPageData) {
+	<div class="card card-pad space-y-4">
+		<h2 class="text-base font-semibold text-ink-900">{ i18n.T(data.Locale, "quotas.periods") }</h2>
+		<div class="table-wrap">
+			<table class="table">
+				<thead>
+					<tr>
+						<th>{ i18n.T(data.Locale, "quotas.period") }</th>
+						<th>{ i18n.T(data.Locale, "quotas.due_date") }</th>
+						<th class="text-right">{ i18n.T(data.Locale, "quotas.period_total") }</th>
+						<th>{ i18n.T(data.Locale, "common.status") }</th>
+						<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, p := range data.Periods {
+						<tr>
+							<td class="font-medium text-ink-800">{ p.Label }</td>
+							<td>{ p.DueDate }</td>
+							<td class="text-right">{ p.Total }</td>
+							<td>
+								if p.Issued {
+									@atoms.Badge(atoms.BadgeProps{Label: i18n.T(data.Locale, "quotas.issuance_status.issued") + " " + progress(p.SettledCount, p.ChargeCount), Variant: atoms.BadgeVariantSuccess})
+								} else {
+									@atoms.Badge(atoms.BadgeProps{Label: i18n.T(data.Locale, "quotas.issuance_status.none"), Variant: atoms.BadgeVariantNeutral})
+								}
+							</td>
+							<td class="text-right">
+								if !p.Issued {
+									<a class="btn btn-secondary btn-sm" href={ templ.SafeURL(previewPath(data.ID, p.Index)) }>{ i18n.T(data.Locale, "quotas.preview_issue") }</a>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</div>
+}
+
+templ budgetIssuances(data BudgetPageData) {
+	<div class="card card-pad space-y-4" id="issuances">
+		<h2 class="text-base font-semibold text-ink-900">{ i18n.T(data.Locale, "quotas.issuances") }</h2>
+		if len(data.Issuances) == 0 {
+			<p class="text-ink-500">{ i18n.T(data.Locale, "quotas.issuances_empty") }</p>
+		} else {
+			<div class="table-wrap">
+				<table class="table">
+					<thead>
+						<tr>
+							<th>{ i18n.T(data.Locale, "quotas.period") }</th>
+							<th class="text-right">{ i18n.T(data.Locale, "quotas.total") }</th>
+							<th>{ i18n.T(data.Locale, "common.status") }</th>
+							<th class="text-right">{ i18n.T(data.Locale, "quotas.settled") }</th>
+							<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, i := range data.Issuances {
+							<tr>
+								<td class="font-medium text-ink-800">{ i.Label }</td>
+								<td class="text-right">{ i.Total }</td>
+								<td>@atoms.Badge(atoms.BadgeProps{Label: i.Status, Variant: i.StatusVariant})</td>
+								<td class="text-right">{ progress(i.SettledCount, i.ChargeCount) }</td>
+								<td class="text-right">
+									if i.CanCancel {
+										<a class="btn btn-danger btn-sm" href={ templ.SafeURL("/finance/issuances/" + i.ID + "/cancel?budget=" + data.ID) }>{ i18n.T(data.Locale, "quotas.cancel_issuance") }</a>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+}
+
+templ IssuancePreviewPage(data IssuancePreviewData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.issue_title"), data.Locale, data.Shell, issuancePreviewBody(data))
+}
+
+templ issuancePreviewBody(data IssuancePreviewData) {
+	<div class="space-y-4">
+		@quotasNav(data.Locale)
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.issue_title") } { data.Label }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "quotas.issue_copy") }</p>
+			</div>
+			<a class="btn btn-secondary" href={ templ.SafeURL(budgetViewPath(data.BudgetID)) }>{ i18n.T(data.Locale, "quotas.back_to_budget") }</a>
+		</div>
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		} else {
+			<div class="card card-pad">
+				<dl class="grid gap-4 sm:grid-cols-4">
+					<div>
+						<dt class="label">{ i18n.T(data.Locale, "quotas.period_total") }</dt>
+						<dd class="text-ink-800" data-testid="preview-total">{ data.Total }</dd>
+					</div>
+					<div>
+						<dt class="label">{ i18n.T(data.Locale, "quotas.base") }</dt>
+						<dd class="text-ink-800">{ data.Base }</dd>
+					</div>
+					<div>
+						<dt class="label">{ i18n.T(data.Locale, "quotas.reserve") }</dt>
+						<dd class="text-ink-800">{ data.Reserve }</dd>
+					</div>
+					<div>
+						<dt class="label">{ i18n.T(data.Locale, "quotas.due_date") }</dt>
+						<dd class="text-ink-800">{ data.DueDate }</dd>
+					</div>
+				</dl>
+			</div>
+			<div class="card">
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "common.unit") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "units.share") } ({ i18n.T(data.Locale, "units.share_unit") })</th>
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.base") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.reserve") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "quotas.quota") }</th>
+								<th>{ i18n.T(data.Locale, "quotas.due_date") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, r := range data.Rows {
+								<tr>
+									<td class="font-medium text-ink-800">{ r.Code }</td>
+									<td class="text-right">{ r.Share }</td>
+									<td class="text-right">{ r.Base }</td>
+									<td class="text-right">{ r.Reserve }</td>
+									<td class="text-right">{ r.Quota }</td>
+									<td>{ r.DueDate }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<form method="POST" action={ templ.SafeURL(issuePath(data.BudgetID, data.Period)) } class="flex gap-2">
+				<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+				<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "quotas.issue") }</button>
+				<a class="btn btn-secondary" href={ templ.SafeURL(budgetViewPath(data.BudgetID)) }>{ i18n.T(data.Locale, "common.cancel") }</a>
+			</form>
+		}
+	</div>
+}
+
+templ IssuanceCancelPage(data IssuanceCancelData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.cancel_title"), data.Locale, data.Shell, issuanceCancelBody(data))
+}
+
+templ issuanceCancelBody(data IssuanceCancelData) {
+	<div class="max-w-xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.cancel_title") }</h1>
+				<p class="page-subtitle">{ data.Issuance.Label } · { data.Issuance.Total } · { progress(data.Issuance.SettledCount, data.Issuance.ChargeCount) } { i18n.T(data.Locale, "quotas.settled") }</p>
+			</div>
+		</div>
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<p class="text-ink-700">{ i18n.T(data.Locale, "quotas.cancel_copy") }</p>
+		<form method="POST" action={ templ.SafeURL("/finance/issuances/" + data.Issuance.ID + "/cancel") } class="card card-pad flex gap-2">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			<input type="hidden" name="budget_id" value={ data.BudgetID }/>
+			<button class="btn btn-danger" type="submit">{ i18n.T(data.Locale, "quotas.cancel_confirm") }</button>
+			<a class="btn btn-secondary" href={ templ.SafeURL(budgetViewPath(data.BudgetID)) }>{ i18n.T(data.Locale, "common.back") }</a>
+		</form>
+	</div>
+}

@@ -25,22 +25,36 @@ func NewAccountStore(db *sql.DB) *AccountStore { return &AccountStore{db: db} }
 
 // Create inserts an account and returns its id.
 func (s *AccountStore) Create(ctx context.Context, a domain.FinancialAccount) (string, error) {
-	row := s.db.QueryRowContext(ctx, `
+	id, err := insertAccount(ctx, s.db, a)
+	if err != nil {
+		return "", fmt.Errorf("create account: %w", err)
+	}
+	return id, nil
+}
+
+// dbtx is satisfied by *sql.DB and *sql.Tx.
+type dbtx interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+// insertAccount is the single finance_accounts INSERT, shared by
+// AccountStore.Create and the quota issuance (QuotaStore InsertCharges) so the
+// two cannot drift. It returns the new id.
+func insertAccount(ctx context.Context, q dbtx, a domain.FinancialAccount) (string, error) {
+	var id string
+	err := q.QueryRowContext(ctx, `
 		INSERT INTO finance_accounts
 			(condominium_id, account_type, title, category, amount_cents, due_date,
 			 status, settlement_date, supplier_payee, receipt_path, receipt_name,
 			 unit_id, payment_code, created_by)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-		RETURNING id, created_at, updated_at`,
+		RETURNING id`,
 		a.CondominiumID, a.Type, a.Title, a.Category, a.AmountCents, a.DueDate,
 		a.Status, nullTime(a.SettlementDate), sharedstore.NullString(a.SupplierPayee),
 		sharedstore.NullString(a.ReceiptPath), sharedstore.NullString(a.ReceiptName),
-		sharedstore.NullString(a.UnitID), sharedstore.NullString(a.PaymentCode), a.CreatedBy)
-	var id string
-	if err := row.Scan(&id, &a.CreatedAt, &a.UpdatedAt); err != nil {
-		return "", fmt.Errorf("create account: %w", err)
-	}
-	return id, nil
+		sharedstore.NullString(a.UnitID), sharedstore.NullString(a.PaymentCode), a.CreatedBy).Scan(&id)
+	return id, err
 }
 
 // GetByID returns an account by id.

@@ -1,0 +1,245 @@
+package templates
+
+import (
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+)
+
+templ StatementPage(data StatementPageData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.statement.title"), data.Locale, data.Shell, statementBody(data))
+}
+
+templ statementBody(data StatementPageData) {
+	<div class="space-y-6">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.statement.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "quotas.statement.subtitle") }</p>
+			</div>
+		</div>
+		if data.NoUnit {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "quotas.statement.no_unit")})
+		} else {
+			if len(data.Units) > 1 {
+				<form method="GET" action="/finance/my-charges" class="card card-pad flex flex-wrap items-end gap-3">
+					<div>
+						<label class="label" for="statement-unit">{ i18n.T(data.Locale, "quotas.statement.unit") }</label>
+						<select class="select" id="statement-unit" name="unit">
+							for _, u := range data.Units {
+								<option value={ u.ID } selected={ u.ID == data.UnitID }>{ u.Code }</option>
+							}
+						</select>
+					</div>
+					<button class="btn btn-primary" type="submit">{ i18n.T(data.Locale, "quotas.statement.show") }</button>
+				</form>
+			} else {
+				<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.statement.unit") }: <span class="font-medium text-ink-800">{ data.UnitCode }</span></p>
+			}
+			<section class="grid gap-4 md:grid-cols-3">
+				<div class="card card-pad">
+					<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.statement.pending_sum") }</p>
+					<p class="text-2xl font-bold text-ink-900">{ data.PendingTotal }</p>
+				</div>
+				<div class="card card-pad">
+					<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.statement.overdue_n") }</p>
+					<p class="text-2xl font-bold text-ink-900">{ itoa(data.OverdueCount) }</p>
+				</div>
+				<div class="card card-pad">
+					<p class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.statement.overdue_sum") }</p>
+					<p class="text-2xl font-bold text-red-700">{ data.OverdueTotal }</p>
+				</div>
+			</section>
+			<section class="card">
+				<div class="border-b border-chrome-200 px-6 py-4">
+					<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "quotas.statement.pending") }</h2>
+				</div>
+				if len(data.Pending) == 0 {
+					@molecules.EmptyState(molecules.EmptyStateProps{Title: i18n.T(data.Locale, "quotas.statement.empty")})
+				} else {
+					@statementTable(data.Locale, data.Pending, false)
+				}
+			</section>
+			<section class="card">
+				<div class="border-b border-chrome-200 px-6 py-4">
+					<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "quotas.statement.settled") }</h2>
+				</div>
+				if len(data.Settled) == 0 {
+					@molecules.EmptyState(molecules.EmptyStateProps{Title: i18n.T(data.Locale, "quotas.statement.empty_settled")})
+				} else {
+					@statementTable(data.Locale, data.Settled, true)
+				}
+			</section>
+			if len(data.Canceled) > 0 {
+				<section class="card">
+					<div class="border-b border-chrome-200 px-6 py-4">
+						<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "quotas.statement.canceled") }</h2>
+					</div>
+					@statementTable(data.Locale, data.Canceled, false)
+				</section>
+			}
+		}
+	</div>
+}
+
+templ statementTable(locale i18n.Language, rows []StatementRowView, settled bool) {
+	<div class="table-wrap">
+		<table class="table">
+			<thead>
+				<tr>
+					<th>{ i18n.T(locale, "finance.col.title") }</th>
+					<th>{ i18n.T(locale, "finance.col.amount") }</th>
+					<th>{ i18n.T(locale, "finance.col.due_date") }</th>
+					if settled {
+						<th>{ i18n.T(locale, "quotas.statement.settled_on") }</th>
+						<th class="text-right">{ i18n.T(locale, "common.actions") }</th>
+					} else {
+						<th>{ i18n.T(locale, "finance.col.status") }</th>
+					}
+				</tr>
+			</thead>
+			<tbody>
+				for _, r := range rows {
+					<tr class={ templ.KV("bg-red-50", r.Overdue) }>
+						<td class="font-medium text-ink-800">
+							{ r.Title }
+							if r.PeriodLabel != "" {
+								<span class="block text-xs text-ink-500">{ r.PeriodLabel }</span>
+							}
+						</td>
+						<td class="text-ink-700">{ r.Amount }</td>
+						<td class="text-ink-700">{ r.DueDate }</td>
+						if settled {
+							<td class="text-ink-700">{ r.SettlementDate }</td>
+							<td>
+								<div class="flex justify-end">
+									if r.CanReceipt {
+										<a class="btn btn-secondary btn-sm" href={ templ.URL("/finance/" + r.ID + "/recibo") }>{ i18n.T(locale, "quotas.receipt.link") }</a>
+									}
+								</div>
+							</td>
+						} else {
+							<td>
+								if r.Overdue {
+									@atoms.Badge(atoms.BadgeProps{Label: r.StatusLabel, Variant: atoms.BadgeVariantDanger})
+								} else {
+									@atoms.Badge(atoms.BadgeProps{Label: r.StatusLabel, Variant: atoms.BadgeVariantInfo})
+								}
+							</td>
+						}
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}
+
+templ ReceiptPage(data ReceiptPageData) {
+	@organisms.Layout(i18n.T(data.Locale, "quotas.receipt.title")+" "+data.Number, data.Locale, data.Shell, receiptBody(data))
+}
+
+templ receiptBody(data ReceiptPageData) {
+	<div class="max-w-2xl space-y-4">
+		<div class="page-head no-print">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "quotas.receipt.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "quotas.receipt.print_hint") }</p>
+			</div>
+			<a class="btn btn-secondary" href={ templ.URL(data.BackHref) }>{ i18n.T(data.Locale, "quotas.receipt.back") }</a>
+		</div>
+		<article class="card card-pad receipt-sheet space-y-4" aria-labelledby="receipt-heading">
+			<header class="flex flex-wrap items-baseline justify-between gap-2 border-b border-chrome-200 pb-3">
+				<h2 id="receipt-heading" class="text-xl font-bold text-ink-900">{ i18n.T(data.Locale, "quotas.receipt.title") }</h2>
+				<p class="text-sm text-ink-600">{ i18n.T(data.Locale, "quotas.receipt.number") } <span class="font-mono font-semibold text-ink-900">{ data.Number }</span></p>
+			</header>
+			<dl class="grid gap-3 sm:grid-cols-2">
+				<div>
+					<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.receipt.condo") }</dt>
+					<dd class="font-medium text-ink-900">{ data.Condominium }</dd>
+				</div>
+				<div>
+					<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.receipt.unit") }</dt>
+					<dd class="font-medium text-ink-900">{ data.UnitCode }</dd>
+				</div>
+				<div class="sm:col-span-2">
+					<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.receipt.description") }</dt>
+					<dd class="font-medium text-ink-900">{ data.Title }</dd>
+				</div>
+				if data.PeriodLabel != "" {
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.receipt.period") }</dt>
+						<dd class="font-medium text-ink-900">{ data.PeriodLabel }</dd>
+					</div>
+					<div>
+						<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.base") } / { i18n.T(data.Locale, "quotas.reserve") }</dt>
+						<dd class="font-medium text-ink-900">{ data.Base } / { data.Reserve }</dd>
+					</div>
+				}
+				<div>
+					<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.receipt.amount") }</dt>
+					<dd class="text-2xl font-bold text-ink-900">{ data.Amount }</dd>
+				</div>
+				<div>
+					<dt class="text-sm text-ink-500">{ i18n.T(data.Locale, "quotas.receipt.settled_on") }</dt>
+					<dd class="font-medium text-ink-900">{ data.SettledOn }</dd>
+				</div>
+			</dl>
+		</article>
+	</div>
+}
+
+templ QuotasCard(d QuotasCardData) {
+	<section id="quotas-card" class="card card-pad space-y-3" aria-labelledby="quotas-card-heading">
+		<h2 id="quotas-card-heading" class="text-lg font-bold text-ink-900">{ i18n.T(d.Locale, "quotas.card.title") }</h2>
+		if d.Resident == nil && d.Syndic == nil {
+			<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "quotas.card.none") }</p>
+		}
+		if d.Resident != nil {
+			<div data-quotas-card="resident">
+				if d.Resident.OverdueCount > 0 {
+					<p class="text-sm text-ink-500">{ i18n.T(d.Locale, "quotas.card.overdue") }</p>
+					<p class="text-2xl font-bold text-red-700">{ itoa(d.Resident.OverdueCount) }</p>
+					<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "quotas.card.overdue_total") }: { d.Resident.OverdueTotal }</p>
+				} else if d.Resident.HasNext {
+					<p class="text-sm text-ink-500">{ i18n.T(d.Locale, "quotas.card.next") }</p>
+					<p class="text-2xl font-bold text-ink-900">{ d.Resident.NextAmount }</p>
+					<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "quotas.card.due") }: { d.Resident.NextDue }</p>
+				} else {
+					<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "quotas.card.none") }</p>
+				}
+				<a href="/finance/my-charges" class="mt-2 inline-block text-sm font-medium text-steel-700 underline hover:text-steel-900">{ i18n.T(d.Locale, "quotas.card.statement") }</a>
+			</div>
+		}
+		if d.Syndic != nil {
+			<div data-quotas-card="syndic">
+				if !d.Syndic.HasBudget {
+					<p class="text-sm text-ink-600">{ i18n.T(d.Locale, "quotas.card.no_budget") }</p>
+					<a href="/finance/budgets" class="btn btn-secondary btn-sm mt-2">{ i18n.T(d.Locale, "quotas.budgets_title") }</a>
+				} else if d.Syndic.Issued {
+					<p class="text-lg font-semibold text-ink-900">{ PeriodState(d.Locale, d.Syndic.PeriodLabel, d.Syndic.Progress) }</p>
+				} else {
+					<p class="text-lg font-semibold text-ink-900">{ PeriodState(d.Locale, d.Syndic.PeriodLabel, i18n.T(d.Locale, "quotas.card.not_issued")) }</p>
+					<a href={ templ.URL(d.Syndic.PreviewHref) } class="btn btn-primary btn-sm mt-2">{ i18n.T(d.Locale, "quotas.preview_issue") }</a>
+				}
+			</div>
+		}
+	</section>
+}
+
+// QuotasCardError replaces the card on a load failure and offers a retry.
+templ QuotasCardError(locale i18n.Language) {
+	<section id="quotas-card" class="card card-pad text-center" role="alert">
+		<h2 class="text-lg font-semibold text-ink-900">{ i18n.T(locale, "quotas.card.error_title") }</h2>
+		<p class="mt-1 text-sm text-ink-600">{ i18n.T(locale, "quotas.card.error_text") }</p>
+		<button type="button" class="btn btn-secondary mt-4" hx-get="/finance/quotas/card" hx-target="#quotas-card" hx-swap="outerHTML">{ i18n.T(locale, "quotas.card.retry") }</button>
+	</section>
+}
+
+// QuotasCardNoAccess is the denied variant (HX 403).
+templ QuotasCardNoAccess(locale i18n.Language) {
+	<section id="quotas-card" class="card card-pad text-center" role="alert">
+		<h2 class="text-lg font-semibold text-ink-900">{ i18n.T(locale, "quotas.card.error_title") }</h2>
+		<p class="mt-1 text-sm text-ink-600">{ i18n.T(locale, "quotas.card.no_access") }</p>
+	</section>
+}

@@ -1,0 +1,181 @@
+package templates
+
+import (
+	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
+	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+)
+
+// UnitRowView is one unit in the list; Share is already formatted for the locale.
+type UnitRowView struct {
+	ID    string
+	Code  string
+	Share string
+}
+
+// ShareStatus describes the sum of shares against 100%.
+type ShareStatus string
+
+const (
+	ShareStatusOK      ShareStatus = "ok"
+	ShareStatusMissing ShareStatus = "missing"
+	ShareStatusExcess  ShareStatus = "excess"
+)
+
+// UnitsPageData backs the units list page.
+type UnitsPageData struct {
+	Shell  *organisms.ShellData
+	Locale i18n.Language
+	Units  []UnitRowView
+	// Sum and Diff are formatted per mille values for the locale.
+	Sum    string
+	Diff   string
+	Status ShareStatus
+	Flash  string
+	Error  string
+}
+
+// UnitFormData backs the create and edit unit form.
+type UnitFormData struct {
+	Shell  *organisms.ShellData
+	Locale i18n.Language
+	CSRF   string
+	// Action is the form action path; Edit selects the edit wording.
+	Action    string
+	Edit      bool
+	Code      string
+	Share     string
+	CodeError string
+	ShareErr  string
+	Error     string
+}
+
+templ UnitsPage(data UnitsPageData) {
+	@organisms.Layout(i18n.T(data.Locale, "units.title"), data.Locale, data.Shell, unitsBody(data))
+}
+
+templ unitsBody(data UnitsPageData) {
+	<div class="space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ i18n.T(data.Locale, "units.title") }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "units.subtitle") }</p>
+			</div>
+			<a class="btn btn-primary" href="/condominium/units/new">{ i18n.T(data.Locale, "units.new") }</a>
+		</div>
+		if data.Flash != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: data.Flash})
+		}
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<div class="card">
+			if len(data.Units) == 0 {
+				@molecules.EmptyState(molecules.EmptyStateProps{
+					Icon:   atoms.IconKindBuilding,
+					Title:  i18n.T(data.Locale, "units.empty_title"),
+					Copy:   i18n.T(data.Locale, "units.empty_copy"),
+					Action: atoms.Button(atoms.ButtonProps{Label: i18n.T(data.Locale, "units.new"), Variant: atoms.ButtonVariantPrimary, Href: "/condominium/units/new", Class: "btn-sm mt-2"}),
+				})
+			} else {
+				<div class="table-wrap">
+					<table class="table">
+						<thead>
+							<tr>
+								<th>{ i18n.T(data.Locale, "units.code") }</th>
+								<th class="text-right">{ i18n.T(data.Locale, "units.share") } ({ i18n.T(data.Locale, "units.share_unit") })</th>
+								<th class="text-right">{ i18n.T(data.Locale, "common.actions") }</th>
+							</tr>
+						</thead>
+						<tbody>
+							for _, u := range data.Units {
+								<tr>
+									<td class="font-medium text-ink-800">{ u.Code }</td>
+									<td class="text-right">{ u.Share }</td>
+									<td class="text-right">
+										<a class="btn btn-secondary btn-sm" href={ templ.SafeURL("/condominium/units/" + u.ID + "/edit") }>{ i18n.T(data.Locale, "common.edit") }</a>
+									</td>
+								</tr>
+							}
+						</tbody>
+						<tfoot>
+							<tr>
+								<th>{ i18n.T(data.Locale, "units.share_sum") }</th>
+								<th class="text-right" data-testid="share-sum">{ data.Sum }{ i18n.T(data.Locale, "units.share_unit") }</th>
+								<th></th>
+							</tr>
+							<tr>
+								<th>{ i18n.T(data.Locale, "units.share_diff") }</th>
+								<th class="text-right" data-testid="share-diff">{ data.Diff }{ i18n.T(data.Locale, "units.share_unit") }</th>
+								<th></th>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+			}
+		</div>
+		if len(data.Units) > 0 {
+			switch data.Status {
+				case ShareStatusOK:
+					@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantSuccess, Message: i18n.T(data.Locale, "units.share_status_ok")})
+				case ShareStatusExcess:
+					@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: i18n.T(data.Locale, "units.share_status_excess")})
+				default:
+					@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantInfo, Message: i18n.T(data.Locale, "units.share_status_missing")})
+			}
+		}
+	</div>
+}
+
+templ UnitFormPage(data UnitFormData) {
+	@organisms.Layout(unitFormTitle(data), data.Locale, data.Shell, unitFormBody(data))
+}
+
+func unitFormTitle(data UnitFormData) string {
+	if data.Edit {
+		return i18n.T(data.Locale, "units.edit_title")
+	}
+	return i18n.T(data.Locale, "units.new_title")
+}
+
+templ unitFormBody(data UnitFormData) {
+	<div class="max-w-2xl space-y-4">
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">{ unitFormTitle(data) }</h1>
+				<p class="page-subtitle">{ i18n.T(data.Locale, "units.subtitle") }</p>
+			</div>
+		</div>
+		if data.Error != "" {
+			@molecules.Alert(molecules.AlertProps{Variant: molecules.AlertVariantError, Message: data.Error})
+		}
+		<form method="POST" action={ templ.SafeURL(data.Action) } class="card card-pad space-y-4">
+			<input type="hidden" name="csrf_token" value={ data.CSRF }/>
+			@molecules.FormField(molecules.FormFieldProps{
+				Label:   i18n.T(data.Locale, "units.code"),
+				For:     "code",
+				Error:   data.CodeError,
+				Control: atoms.TextInput(atoms.InputProps{ID: "code", Name: "code", Value: data.Code, Required: true, MaxLength: "32"}),
+			})
+			@molecules.FormField(molecules.FormFieldProps{
+				Label:   i18n.T(data.Locale, "units.share") + " (" + i18n.T(data.Locale, "units.share_unit") + ")",
+				For:     "share",
+				Error:   data.ShareErr,
+				Hint:    i18n.T(data.Locale, "units.share_hint"),
+				Control: atoms.TextInput(atoms.InputProps{ID: "share", Name: "share", Value: data.Share, Required: true, InputMode: "decimal"}),
+			})
+			<div class="flex gap-2">
+				<button class="btn btn-primary" type="submit">
+					if data.Edit {
+						{ i18n.T(data.Locale, "common.save_changes") }
+					} else {
+						{ i18n.T(data.Locale, "units.create") }
+					}
+				</button>
+				<a class="btn btn-secondary" href="/condominium/units">{ i18n.T(data.Locale, "common.cancel") }</a>
+			</div>
+		</form>
+	</div>
+}

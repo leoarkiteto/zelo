@@ -57,6 +57,12 @@ templ dashboardBody(data DashboardData) {
 					<a href="/finance/overview" class="font-medium text-steel-700 underline hover:text-steel-900">{ i18n.T(data.Locale, "home.finance_retry") }</a>
 				</p>
 			</section>
+			<section id="quotas-card" hx-get="/finance/quotas/card" hx-trigger="load" hx-swap="outerHTML" class="card card-pad">
+				<p class="text-sm text-ink-500">
+					{ i18n.T(data.Locale, "quotas.card.loading") }
+					<a href="/finance/my-charges" class="font-medium text-steel-700 underline hover:text-steel-900">{ i18n.T(data.Locale, "quotas.card.statement") }</a>
+				</p>
+			</section>
 		}
 		<section>
 			<h2 class="mb-3 text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "home.quick_actions") }</h2>

@@ -4,6 +4,8 @@ package templates
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
@@ -50,6 +52,10 @@ type AccountView struct {
 	SupplierPayee   string
 	HasReceipt      bool
 	SettlementDate  string
+	// IsQuota hides edit/cancel: a quota is changed only through its issuance (FR-16).
+	IsQuota bool
+	// CanReceipt is true for settled receivables (link to the Recibo, FR-26).
+	CanReceipt bool
 }
 
 // SummaryView is the dashboard projection.
@@ -124,16 +130,6 @@ type CancelData struct {
 	Error   string
 }
 
-// ChargesPageData backs the resident pendências page.
-type ChargesPageData struct {
-	Shell   *organisms.ShellData
-	Locale  i18n.Language
-	CSRF    string
-	Charges []AccountView
-	NoUnit  bool
-	Empty   bool
-}
-
 // Money renders integer cents as a localized amount in the currency carried
 // by ctx (BRL when unset).
 func Money(ctx context.Context, locale i18n.Language, cents int64) string {
@@ -154,6 +150,34 @@ func StatusLabel(locale i18n.Language, s domain.AccountStatus) string {
 	default:
 		return string(s)
 	}
+}
+
+// PeriodText renders a quota period in the viewer's language: a month name and
+// year (monthly) or an ordinal quarter and year (quarterly). The machine label
+// (YYYY-MM / YYYY-Tn) is never shown.
+func PeriodText(locale i18n.Language, year int, p domain.Periodicity, index int) string {
+	if p == domain.PeriodicityQuarterly {
+		return fmt.Sprintf(i18n.T(locale, "quotas.period.quarterly"), index, year)
+	}
+	month := i18n.T(locale, i18n.MessageKey("quotas.month."+strconv.Itoa(index)))
+	return fmt.Sprintf(i18n.T(locale, "quotas.period.monthly"), month, year)
+}
+
+// QuotaPeriodText is PeriodText for a QuotaPeriod.
+func QuotaPeriodText(locale i18n.Language, q domain.QuotaPeriod) string {
+	return PeriodText(locale, q.Year, q.Periodicity, q.Index)
+}
+
+// PeriodState joins a localised period and its state ("dezembro de 2026 — não emitido").
+func PeriodState(locale i18n.Language, period, state string) string {
+	return fmt.Sprintf(i18n.T(locale, "quotas.card.period_state"), period, state)
+}
+
+// QuotaTitle is the display title of a quota receivable ("Taxa condominial
+// dezembro de 2026 — Unidade A"), rendered per locale at display time. The
+// stored account title is only a neutral fallback.
+func QuotaTitle(locale i18n.Language, q domain.QuotaPeriod) string {
+	return fmt.Sprintf(i18n.T(locale, "quotas.title"), QuotaPeriodText(locale, q), q.UnitCode)
 }
 
 // statusBadge returns the badge variant for a status.

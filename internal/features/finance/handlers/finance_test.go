@@ -57,8 +57,7 @@ type fakeFinance struct {
 	cancelErr         error
 	list              []domain.FinancialAccount
 	sum               services.MonthSummary
-	charges           []domain.FinancialAccount
-	chargesErr        error
+	quotaIDs          map[string]bool
 	overview          services.Overview
 	overviewErr       error
 	lastPeriod        domain.Period
@@ -92,20 +91,30 @@ func (f *fakeFinance) SettleAccount(_ context.Context, _, id, _, date string) er
 
 func (f *fakeFinance) CancelAccount(_ context.Context, _, id, _ string) error {
 	f.lastCancel = id
+	if f.quotaIDs[id] {
+		return services.ErrQuotaManaged
+	}
 	return f.cancelErr
 }
 
-func (f *fakeFinance) ListAccounts(_ context.Context, _ string, filter services.AccountFilter) ([]domain.FinancialAccount, error) {
+func (f *fakeFinance) ListAccountsWithFlags(_ context.Context, _ string, filter services.AccountFilter) ([]services.AccountRow, error) {
 	f.lastFilter = filter
-	return f.list, nil
+	rows := make([]services.AccountRow, len(f.list))
+	for i, a := range f.list {
+		rows[i] = services.AccountRow{Account: a, IsQuota: f.quotaIDs[a.ID]}
+		if rows[i].IsQuota {
+			rows[i].Period = domain.QuotaPeriod{Year: 2026, Periodicity: domain.PeriodicityQuarterly, Index: 2, UnitCode: "A"}
+		}
+	}
+	return rows, nil
+}
+
+func (f *fakeFinance) IsQuotaAccount(_ context.Context, id string) (bool, error) {
+	return f.quotaIDs[id], nil
 }
 
 func (f *fakeFinance) Summary(context.Context, string, time.Time) (services.MonthSummary, error) {
 	return f.sum, nil
-}
-
-func (f *fakeFinance) ResidentCharges(context.Context, string, string) ([]domain.FinancialAccount, error) {
-	return f.charges, f.chargesErr
 }
 
 func (f *fakeFinance) Overview(_ context.Context, condominiumID string, p domain.Period) (services.Overview, error) {
@@ -316,21 +325,6 @@ func TestFinanceReceiptMissingReturns404(t *testing.T) {
 	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/finance/a1/receipt", nil))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("GET receipt without file = %d, want 404", rec.Code)
-	}
-}
-
-func TestMyChargesNoUnit(t *testing.T) {
-	user, sess := syndicSession()
-	fin := &fakeFinance{chargesErr: services.ErrNoUnit}
-	router := financeRouter(user, sess, baseDeps(fin))
-
-	rec := httptest.NewRecorder()
-	router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/finance/my-charges", nil))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("GET /finance/my-charges = %d, want 200", rec.Code)
-	}
-	if !strings.Contains(rec.Body.String(), "You need an active unit") {
-		t.Errorf("no-unit message missing")
 	}
 }
 

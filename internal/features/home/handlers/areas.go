@@ -16,6 +16,7 @@ func (h *Handler) condominium(w http.ResponseWriter, r *http.Request) {
 		Links: []templates.DashboardLink{
 			{Label: i18n.T(locale, "nav.invitations"), Path: "/invitations"},
 			{Label: i18n.T(locale, "nav.roles"), Path: "/roles"},
+			{Label: i18n.T(locale, "nav.units"), Path: "/condominium/units"},
 			{Label: i18n.T(locale, "common.dashboard"), Path: "/"},
 		},
 	})

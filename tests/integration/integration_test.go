@@ -72,7 +72,8 @@ func newAppDB(t *testing.T) (http.Handler, *sql.DB) {
 		t.Fatalf("migrate: %v", err)
 	}
 	if _, err := db.ExecContext(ctx, `
-		TRUNCATE audit_events, invoice_attachments, invoice_payments, invoice_taxes,
+		TRUNCATE audit_events, quota_charges, quota_issuances, quota_budget_lines, quota_budgets,
+			invoice_attachments, invoice_payments, invoice_taxes,
 			invoice_items, invoices, suppliers, finance_accounts, invitations, service_provider_listings,
 		service_categories, ticket_replies, tickets, unit_occupancies, user_roles,
 		units, condominiums, users RESTART IDENTITY CASCADE`); err != nil {
@@ -113,6 +114,7 @@ func composeApp(t *testing.T, db *sql.DB, redisClient *redis.Client) http.Handle
 	categories := repositories.NewCategoryStore(db)
 	ticketStore := ticketrepositories.NewTicketStore(db)
 	financeAccounts := financerepositories.NewAccountStore(db)
+	quotaStore := financerepositories.NewQuotaStore(db)
 	hasher := security.NewPasswordHasher("integration-test-pepper")
 	tokens := security.TokenHasher{}
 	sessMgr := security.NewSessionManager(sessions, false)
@@ -172,6 +174,7 @@ func composeApp(t *testing.T, db *sql.DB, redisClient *redis.Client) http.Handle
 		Invitations: invitations,
 		Units:       units,
 		RoleService: &mgmtservices.RoleService{Roles: roles, Audit: audit},
+		UnitService: &mgmtservices.UnitService{Units: units, Audit: audit},
 
 		Condominiums:    condominiums,
 		SettingsService: &mgmtservices.SettingsService{Condominiums: condominiums, Audit: audit},
@@ -201,12 +204,20 @@ func composeApp(t *testing.T, db *sql.DB, redisClient *redis.Client) http.Handle
 		Units:     units,
 		UploadDir: uploadDir,
 		Finance: &financeservices.FinanceService{
-			Accounts:  financeAccounts,
-			Summaries: financeAccounts,
-			Overviews: financeAccounts,
-			Units:     units,
-			Audit:     audit,
-			Now:       time.Now,
+			Accounts:   financeAccounts,
+			Summaries:  financeAccounts,
+			Overviews:  financeAccounts,
+			Units:      units,
+			Audit:      audit,
+			QuotaLinks: quotaStore,
+			Now:        time.Now,
+		},
+		Quotas: &financeservices.QuotaService{
+			Store:       quotaStore,
+			Occupancies: units,
+			Audit:       audit,
+			Currency:    condominiums.GetCurrency,
+			Now:         time.Now,
 		},
 	})
 	supplierStore := invoicerepositories.NewSupplierStore(db)
