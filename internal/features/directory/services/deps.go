@@ -5,6 +5,7 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/features/directory/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // ListingStore is the persistence port for directory listings.
@@ -17,6 +18,11 @@ type ListingStore interface {
 		ctx context.Context,
 		condominiumID, query, categoryID string,
 	) ([]domain.ServiceProviderListing, error)
+	ListListingsPage(
+		ctx context.Context,
+		condominiumID, query, categoryID string,
+		requested int,
+	) ([]domain.ServiceProviderListing, pagination.Page, error)
 	FindDuplicatePhone(
 		ctx context.Context,
 		condominiumID, phoneDigits, excludeID string,

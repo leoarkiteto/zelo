@@ -18,6 +18,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // --- fakes ---
@@ -132,6 +133,15 @@ func (f *fakeSuppliers) Search(context.Context, string, string, int) ([]domain.S
 		out = append(out, s)
 	}
 	return out, nil
+}
+
+func (f *fakeSuppliers) SearchPage(ctx context.Context, condo, q string, requested int) ([]domain.Supplier, pagination.Page, error) {
+	list, err := f.Search(ctx, condo, q, 0)
+	if err != nil {
+		return nil, pagination.Page{}, err
+	}
+	items, p := pagination.Slice(list, requested)
+	return items, p, nil
 }
 
 type auditSpy struct{ events []model.AuditEventType }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/features/directory/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // Directory service errors.
@@ -118,6 +119,22 @@ func (s *DirectoryService) SearchListings(
 		}
 	}
 	return s.Listings.ListListings(ctx, condominiumID, strings.TrimSpace(query), categoryID)
+}
+
+// SearchListingsPage is SearchListings for one page (requested is 1-based and
+// clamped); it returns the resolved pagination metadata.
+func (s *DirectoryService) SearchListingsPage(
+	ctx context.Context,
+	condominiumID, query, categoryID string,
+	requested int,
+) ([]domain.ServiceProviderListing, pagination.Page, error) {
+	if categoryID != "" {
+		if _, err := s.requireActiveCategory(ctx, condominiumID, categoryID); err != nil {
+			return nil, pagination.Page{}, err
+		}
+	}
+	return s.Listings.ListListingsPage(
+		ctx, condominiumID, strings.TrimSpace(query), categoryID, requested)
 }
 
 // EditListing updates a listing's editable fields (syndic moderation).

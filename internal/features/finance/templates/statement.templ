@@ -59,6 +59,7 @@ templ statementBody(data StatementPageData) {
 					@molecules.EmptyState(molecules.EmptyStateProps{Title: i18n.T(data.Locale, "quotas.statement.empty")})
 				} else {
 					@statementTable(data.Locale, data.Pending, false)
+						@molecules.Pagination(data.PendingPagination)
 				}
 			</section>
 			<section class="card">
@@ -69,6 +70,7 @@ templ statementBody(data StatementPageData) {
 					@molecules.EmptyState(molecules.EmptyStateProps{Title: i18n.T(data.Locale, "quotas.statement.empty_settled")})
 				} else {
 					@statementTable(data.Locale, data.Settled, true)
+						@molecules.Pagination(data.SettledPagination)
 				}
 			</section>
 			if len(data.Canceled) > 0 {
@@ -77,6 +79,7 @@ templ statementBody(data StatementPageData) {
 						<h2 class="text-lg font-bold text-ink-900">{ i18n.T(data.Locale, "quotas.statement.canceled") }</h2>
 					</div>
 					@statementTable(data.Locale, data.Canceled, false)
+					@molecules.Pagination(data.CanceledPagination)
 				</section>
 			}
 		}

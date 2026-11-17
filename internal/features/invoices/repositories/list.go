@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // statusCaseSQL mirrors domain.Status, rule for rule and in the same order
@@ -117,7 +118,18 @@ func (r *InvoiceStore) List(ctx context.Context, condoID string, f domain.ListFi
 	}
 	res.Totals.DebtCents = domain.DebtCents(res.Totals.PayableCents, res.Totals.PaidCents)
 
-	pageArgs := append(append([]any{}, args...), f.PageSize, (f.Page-1)*f.PageSize)
+	// Clamp a page past the last one to the last page (FR-4).
+	pg := pagination.New(f.Page, res.RowCount)
+	if f.PageSize == pagination.PageSize {
+		res.Page = pg.Number
+	} else {
+		last := (res.RowCount + f.PageSize - 1) / f.PageSize
+		if last < 1 {
+			last = 1
+		}
+		res.Page = min(f.Page, last)
+	}
+	pageArgs := append(append([]any{}, args...), f.PageSize, (res.Page-1)*f.PageSize)
 	limit := "$" + strconv.Itoa(len(args)+1)
 	offset := "$" + strconv.Itoa(len(args)+2)
 	rows, err := r.db.QueryContext(ctx, `

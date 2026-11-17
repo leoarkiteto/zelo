@@ -13,6 +13,8 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 // settleDate is the settlement date of the request: ?date= (or the form's
@@ -103,8 +105,12 @@ func (h *Handler) debtorsGET(w http.ResponseWriter, r *http.Request) {
 		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "finance.error.load"))
 		return
 	}
-	data := financetemplates.DebtorsPageData{Shell: shell, Locale: locale}
-	for _, d := range debtors {
+	pageDebtors, page := pagination.Slice(debtors, pagination.Parse(r.URL.Query().Get("page")))
+	data := financetemplates.DebtorsPageData{
+		Shell: shell, Locale: locale,
+		Pagination: molecules.PaginationFrom(locale, page, r.URL.Path, r.URL.Query(), "page"),
+	}
+	for _, d := range pageDebtors {
 		row := financetemplates.DebtorRowView{
 			UnitCode:      d.UnitCode,
 			StatementHref: "/finance/my-charges?unit=" + d.UnitID,

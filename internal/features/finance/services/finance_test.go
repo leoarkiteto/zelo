@@ -3,11 +3,14 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sort"
 	"testing"
 	"time"
 
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 type fakeAccountStore struct {
@@ -64,6 +67,16 @@ func (f *fakeAccountStore) List(_ context.Context, _ string, _ AccountFilter) ([
 		out = append(out, a)
 	}
 	return out, nil
+}
+
+func (f *fakeAccountStore) ListPage(ctx context.Context, condo string, filter AccountFilter, requested int) ([]domain.FinancialAccount, pagination.Page, error) {
+	all, err := f.List(ctx, condo, filter)
+	if err != nil {
+		return nil, pagination.Page{}, err
+	}
+	sort.Slice(all, func(i, j int) bool { return all[i].ID < all[j].ID })
+	rows, page := pagination.Slice(all, requested)
+	return rows, page, nil
 }
 
 type fakeSummaryStore struct {
@@ -319,6 +332,28 @@ func TestQuotaManagedAccountsAreLocked(t *testing.T) {
 	// A non-quota receivable can still be canceled.
 	if err := svc.CancelAccount(ctx, "u1", "free", "c1"); err != nil {
 		t.Fatalf("CancelAccount(free) = %v", err)
+	}
+}
+
+func TestListAccountsPageWithFlagsAnnotatesOnlyThePage(t *testing.T) {
+	acc := newFakeAccountStore()
+	for i := 0; i < 25; i++ {
+		seedReceivable(acc, fmt.Sprintf("a%02d", i))
+	}
+	svc := newService(acc, &fakeUnitStore{}, &fakeAudit{})
+	links := &fakeQuotaLinks{ids: map[string]bool{"a00": true}}
+	svc.QuotaLinks = links
+	rows, page, err := svc.ListAccountsPageWithFlags(context.Background(), "c1", AccountFilter{}, 2)
+	if err != nil || len(rows) != 5 || page.Number != 2 || page.TotalPages != 2 || page.Total != 25 || links.calls != 1 {
+		t.Fatalf("rows=%d page=%+v calls=%d err=%v", len(rows), page, links.calls, err)
+	}
+	rows, page, err = svc.ListAccountsPageWithFlags(context.Background(), "c1", AccountFilter{}, 99)
+	if err != nil || len(rows) != 5 || page.Number != 2 {
+		t.Fatalf("clamp rows=%d page=%+v err=%v", len(rows), page, err)
+	}
+	rows, _, _ = svc.ListAccountsPageWithFlags(context.Background(), "c1", AccountFilter{}, 1)
+	if len(rows) != 20 || !rows[0].IsQuota {
+		t.Fatalf("page 1 rows=%d first=%+v", len(rows), rows[0])
 	}
 }
 

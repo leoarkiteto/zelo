@@ -8,6 +8,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
 	"github.com/leoarkiteto/zelo/internal/features/invoices/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 const suppliersPath = "/suppliers"
@@ -33,7 +34,7 @@ func supplierFromForm(r *http.Request, prefix string) domain.Supplier {
 func (h *Handler) suppliersGET(w http.ResponseWriter, r *http.Request) {
 	_, condo := actor(r)
 	q := strings.TrimSpace(r.URL.Query().Get("q"))
-	list, err := h.deps.Suppliers.Search(r.Context(), condo, q, 0)
+	list, page, err := h.deps.Suppliers.SearchPage(r.Context(), condo, q, pagination.Parse(r.URL.Query().Get("page")))
 	if err != nil {
 		serverError(w, r, "list suppliers", err, "invoices.error.load_failed")
 		return
@@ -49,6 +50,7 @@ func (h *Handler) suppliersGET(w http.ResponseWriter, r *http.Request) {
 		CSRF:      httpx.CurrentSession(r).CSRFToken,
 		Query:     q,
 		Suppliers: list,
+		Page:      page,
 		Flash:     flashText(r, "suppliers.flash.", "created", "updated"),
 	}))
 }

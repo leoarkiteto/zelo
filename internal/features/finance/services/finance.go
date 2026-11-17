@@ -11,6 +11,7 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // Service errors surfaced to handlers.
@@ -145,6 +146,26 @@ func (s *FinanceService) ListAccountsWithFlags(ctx context.Context, condominiumI
 	if err != nil {
 		return nil, err
 	}
+	return s.annotate(ctx, accs)
+}
+
+// ListAccountsPageWithFlags pages the accounts in the database first, then
+// annotates only the page's rows with the quota and late fee flags.
+func (s *FinanceService) ListAccountsPageWithFlags(ctx context.Context, condominiumID string, f AccountFilter, requested int) ([]AccountRow, pagination.Page, error) {
+	accs, page, err := s.Accounts.ListPage(ctx, condominiumID, f, requested)
+	if err != nil {
+		return nil, pagination.Page{}, err
+	}
+	rows, err := s.annotate(ctx, accs)
+	if err != nil {
+		return nil, pagination.Page{}, err
+	}
+	return rows, page, nil
+}
+
+// annotate adds the quota and late fee flags to accs with one batch lookup each.
+func (s *FinanceService) annotate(ctx context.Context, accs []domain.FinancialAccount) ([]AccountRow, error) {
+	var err error
 	rows := make([]AccountRow, len(accs))
 	var quota map[string]domain.QuotaPeriod
 	if s.QuotaLinks != nil && len(accs) > 0 {

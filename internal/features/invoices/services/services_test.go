@@ -16,6 +16,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
 	"github.com/leoarkiteto/zelo/internal/features/invoices/repositories"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // ---- fakes ----
@@ -71,6 +72,14 @@ func (f *fakeRepo) SearchSuppliers(_ context.Context, condo, q string, _ int) ([
 		}
 	}
 	return out, nil
+}
+func (f *fakeRepo) SearchSuppliersPage(ctx context.Context, condo, q string, requested int) ([]domain.Supplier, pagination.Page, error) {
+	list, err := f.SearchSuppliers(ctx, condo, q, 0)
+	if err != nil {
+		return nil, pagination.Page{}, err
+	}
+	items, p := pagination.Slice(list, requested)
+	return items, p, nil
 }
 
 func (f *fakeRepo) get(condo, id string) (*domain.Invoice, error) {

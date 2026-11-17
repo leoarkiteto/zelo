@@ -8,7 +8,9 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 // Option is one <option> of a select.
@@ -185,56 +187,21 @@ func statusVariant(s domain.PaymentStatus) atoms.BadgeVariant {
 	}
 }
 
-// pageURL builds the list URL of a page keeping the active filters.
-func pageURL(f domain.ListFilter, page int) string {
+// supplierPagination builds the pagination props of the suppliers page,
+// keeping the q search.
+func supplierPagination(d SupplierListData) molecules.PaginationProps {
 	v := url.Values{}
-	set := func(k, val string) {
-		if val != "" {
-			v.Set(k, val)
-		}
+	if d.Query != "" {
+		v.Set("q", d.Query)
 	}
-	set("supplier", f.SupplierName)
-	set("nif", f.NIF)
-	set("number", f.Number)
-	set("document_type", f.DocumentType)
-	set("expense_type", f.ExpenseType)
-	set("category", f.Category)
-	set("status", f.Status)
-	set("issue_from", f.IssueFrom)
-	set("issue_to", f.IssueTo)
-	set("due_from", f.DueFrom)
-	set("due_to", f.DueTo)
-	set("period", f.ReferencePeriod)
-	if page > 1 {
-		v.Set("page", strconv.Itoa(page))
-	}
-	if len(v) == 0 {
-		return "/invoices"
-	}
-	return "/invoices?" + v.Encode()
+	return molecules.PaginationFrom(d.Locale, d.Page, "/suppliers", v, "page")
 }
 
-func totalPages(r domain.ListResult) int {
-	size := r.PageSize
-	if size < 1 {
-		size = domain.DefaultPageSize
-	}
-	n := (r.RowCount + size - 1) / size
-	if n < 1 {
-		n = 1
-	}
-	return n
-}
-
-func currentPage(r domain.ListResult) int {
-	if r.Page < 1 {
-		return 1
-	}
-	return r.Page
-}
-
-func pageIndicator(l i18n.Language, r domain.ListResult) string {
-	return fmt.Sprintf(tr(l, "invoices.list.page_of"), currentPage(r), totalPages(r))
+// listPagination builds the shared pagination props of the invoice list,
+// keeping the active filters from the request query.
+func listPagination(d ListPageData) molecules.PaginationProps {
+	p := pagination.New(d.Page, d.RowCount)
+	return molecules.PaginationFrom(d.Locale, p, "/invoices", d.Query, "page")
 }
 
 func invoiceHref(id string) string { return "/invoices/" + id }

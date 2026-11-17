@@ -12,6 +12,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 	"github.com/leoarkiteto/zelo/internal/shared/money"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
@@ -85,6 +86,7 @@ type FinancePageData struct {
 	Period     string
 	Summary    SummaryView
 	Flash      string
+	Pagination molecules.PaginationProps
 }
 
 // FormValues carries the raw form input for re-rendering on validation errors.

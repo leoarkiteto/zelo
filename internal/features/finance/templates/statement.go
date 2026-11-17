@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
@@ -39,6 +40,11 @@ type StatementPageData struct {
 	PendingTotal string
 	OverdueTotal string
 	OverdueCount int
+
+	// Independent pagination of each table.
+	PendingPagination  molecules.PaginationProps
+	SettledPagination  molecules.PaginationProps
+	CanceledPagination molecules.PaginationProps
 }
 
 // ReceiptPageData backs the printable Recibo (FR-26).
@@ -54,10 +60,10 @@ type ReceiptPageData struct {
 	Base        string
 	Reserve     string
 	// LateFee is set for a late fee receivable: the breakdown of the Recibo (FR-16).
-	LateFee *LateFeeReceiptView
-	Amount  string
-	SettledOn   string
-	BackHref    string
+	LateFee   *LateFeeReceiptView
+	Amount    string
+	SettledOn string
+	BackHref  string
 }
 
 // ResidentCardView is the morador part of the dashboard card.

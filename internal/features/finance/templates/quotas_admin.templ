@@ -27,6 +27,8 @@ type BudgetsPageData struct {
 	Budgets []BudgetRowView
 	Flash   string
 	Error   string
+
+	Pagination molecules.PaginationProps
 }
 
 // BudgetFormData backs the create budget form.
@@ -242,6 +244,7 @@ templ budgetsBody(data BudgetsPageData) {
 						</tbody>
 					</table>
 				</div>
+				@molecules.Pagination(data.Pagination)
 			}
 		</div>
 	</div>

@@ -9,6 +9,8 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/management/services"
 	"github.com/leoarkiteto/zelo/internal/features/management/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
+	"github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 func (h *Handler) rolesGET(w http.ResponseWriter, r *http.Request) {
@@ -77,8 +79,10 @@ func (h *Handler) rolesData(r *http.Request, message string) (templates.RolesPag
 	if err != nil {
 		return templates.RolesPageData{}, err
 	}
-	views := make([]templates.UserRoleView, 0, len(rows))
-	for _, row := range rows {
+	locale := i18n.LanguageFrom(r.Context())
+	pageRows, page := pagination.Slice(rows, pagination.Parse(r.URL.Query().Get("page")))
+	views := make([]templates.UserRoleView, 0, len(pageRows))
+	for _, row := range pageRows {
 		roles := make([]string, 0, len(row.Roles))
 		for _, role := range row.Roles {
 			roles = append(roles, string(role))
@@ -89,5 +93,14 @@ func (h *Handler) rolesData(r *http.Request, message string) (templates.RolesPag
 			Roles:  roles,
 		})
 	}
-	return templates.RolesPageData{Shell: shell, Locale: i18n.LanguageFrom(r.Context()), CSRF: sess.CSRFToken, Users: views, Error: message}, nil
+	// Pagination uses the fixed list path: this builder also serves POST error
+	// re-renders, whose r.URL.Path is a POST-only route.
+	return templates.RolesPageData{
+		Shell:      shell,
+		Locale:     locale,
+		CSRF:       sess.CSRFToken,
+		Users:      views,
+		Pagination: molecules.PaginationFrom(locale, page, "/roles", r.URL.Query(), "page"),
+		Error:      message,
+	}, nil
 }

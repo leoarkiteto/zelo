@@ -9,6 +9,7 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // AccountStore is the persistence port for financial accounts.
@@ -24,6 +25,9 @@ type AccountStore interface {
 	SetStatus(ctx context.Context, id, condominiumID string, status domain.AccountStatus, settlementDate *time.Time) error
 	// List returns accounts of a condominium matching the filter.
 	List(ctx context.Context, condominiumID string, f AccountFilter) ([]domain.FinancialAccount, error)
+	// ListPage returns one page of accounts matching the filter and the clamped
+	// page descriptor (count and LIMIT/OFFSET in the database).
+	ListPage(ctx context.Context, condominiumID string, f AccountFilter, requested int) ([]domain.FinancialAccount, pagination.Page, error)
 }
 
 // AccountFilter carries the list filters (contracts/http-routes.md).

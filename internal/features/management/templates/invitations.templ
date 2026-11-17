@@ -28,7 +28,9 @@ type InvitationsPageData struct {
 	CSRF        string
 	Units       []UnitOption
 	Invitations []InvitationView
-	Error       string
+	// Pagination is the nav for the current page of Invitations.
+	Pagination molecules.PaginationProps
+	Error      string
 	Flash       string
 }
 
@@ -134,6 +136,7 @@ templ invitationsBody(data InvitationsPageData) {
 						</tbody>
 					</table>
 				</div>
+				@molecules.Pagination(data.Pagination)
 			}
 		</section>
 	</div>

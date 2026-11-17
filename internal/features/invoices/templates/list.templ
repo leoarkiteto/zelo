@@ -82,7 +82,7 @@ templ listBody(d ListPageData) {
 			}
 		</section>
 		@totalsFooter(d)
-		@pagination(d)
+		@molecules.Pagination(listPagination(d))
 	</div>
 }
 
@@ -172,16 +172,3 @@ templ totalsFooter(d ListPageData) {
 	</section>
 }
 
-templ pagination(d ListPageData) {
-	<nav class="flex items-center justify-between" aria-label={ i18n.T(d.Locale, "invoices.list.pagination") }>
-		<p class="text-sm text-ink-600">{ pageIndicator(d.Locale, d.ListResult) }</p>
-		<div class="flex gap-2">
-			if currentPage(d.ListResult) > 1 {
-				<a class="btn btn-secondary btn-sm" href={ templ.URL(pageURL(d.Filter, currentPage(d.ListResult)-1)) }>{ i18n.T(d.Locale, "invoices.list.previous") }</a>
-			}
-			if currentPage(d.ListResult) < totalPages(d.ListResult) {
-				<a class="btn btn-secondary btn-sm" href={ templ.URL(pageURL(d.Filter, currentPage(d.ListResult)+1)) }>{ i18n.T(d.Locale, "invoices.list.next") }</a>
-			}
-		</div>
-	</nav>
-}

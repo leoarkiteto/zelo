@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/invoices/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/money"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 const listPath = "/invoices"
@@ -36,9 +36,7 @@ func filterFromQuery(r *http.Request) domain.ListFilter {
 		DueTo:           q.Get("due_to"),
 		ReferencePeriod: q.Get("period"),
 	}
-	if p, err := strconv.Atoi(q.Get("page")); err == nil {
-		f.Page = p
-	}
+	f.Page = pagination.Parse(q.Get("page"))
 	return f.Normalized()
 }
 
@@ -62,6 +60,7 @@ func (h *Handler) listGET(w http.ResponseWriter, r *http.Request) {
 		Locale:     locale(r),
 		CSRF:       httpx.CurrentSession(r).CSRFToken,
 		Filter:     f,
+		Query:      r.URL.Query(),
 		Flash:      flashText(r, "invoices.flash.", "draft_deleted"),
 	}))
 }

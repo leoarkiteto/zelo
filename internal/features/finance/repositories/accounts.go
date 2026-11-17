@@ -7,11 +7,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
 	"github.com/leoarkiteto/zelo/internal/features/finance/services"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 	sharedstore "github.com/leoarkiteto/zelo/internal/shared/store"
 )
 
@@ -131,6 +133,59 @@ func (s *AccountStore) SetStatus(ctx context.Context, id, condominiumID string, 
 
 // List returns accounts of a condominium matching the filter.
 func (s *AccountStore) List(ctx context.Context, condominiumID string, f services.AccountFilter) ([]domain.FinancialAccount, error) {
+	whereSQL, params := accountWhere(condominiumID, f)
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT `+accountColumns+`
+		FROM finance_accounts
+		WHERE `+whereSQL+`
+		ORDER BY due_date, title`, params...)
+	if err != nil {
+		return nil, fmt.Errorf("list accounts: %w", err)
+	}
+	defer rows.Close()
+	return scanAccounts(rows)
+}
+
+// ListPage returns one page (pagination.PageSize rows) of the accounts matching
+// the filter, in the same order as List with id as a stable tie-breaker. The
+// requested page is clamped to the existing range.
+func (s *AccountStore) ListPage(ctx context.Context, condominiumID string, f services.AccountFilter, requested int) ([]domain.FinancialAccount, pagination.Page, error) {
+	whereSQL, params := accountWhere(condominiumID, f)
+	var total int
+	if err := s.db.QueryRowContext(ctx,
+		`SELECT count(*) FROM finance_accounts WHERE `+whereSQL, params...).Scan(&total); err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("count accounts: %w", err)
+	}
+	p := pagination.New(requested, total)
+	if total == 0 {
+		return nil, p, nil
+	}
+	n := len(params)
+	paged := append(append([]any{}, params...), p.Size, p.Offset())
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT `+accountColumns+`
+		FROM finance_accounts
+		WHERE `+whereSQL+`
+		ORDER BY due_date, title, id
+		LIMIT $`+strconv.Itoa(n+1)+` OFFSET $`+strconv.Itoa(n+2), paged...)
+	if err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("list accounts page: %w", err)
+	}
+	defer rows.Close()
+	out, err := scanAccounts(rows)
+	if err != nil {
+		return nil, pagination.Page{}, err
+	}
+	return out, p, nil
+}
+
+const accountColumns = `id, condominium_id, account_type, title, category, amount_cents,
+				due_date, status, settlement_date, supplier_payee, receipt_path,
+				receipt_name, unit_id, payment_code, created_by, created_at, updated_at`
+
+// accountWhere builds the WHERE clause (without the keyword) and its params
+// shared by List and ListPage.
+func accountWhere(condominiumID string, f services.AccountFilter) (string, []any) {
 	params := []any{condominiumID}
 	where := []string{"condominium_id = $1"}
 	next := 2
@@ -167,19 +222,7 @@ func (s *AccountStore) List(ctx context.Context, condominiumID string, f service
 		params = append(params, pattern)
 		next++
 	}
-
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT id, condominium_id, account_type, title, category, amount_cents,
-			due_date, status, settlement_date, supplier_payee, receipt_path,
-			receipt_name, unit_id, payment_code, created_by, created_at, updated_at
-		FROM finance_accounts
-		WHERE `+strings.Join(where, " AND ")+`
-		ORDER BY due_date, title`, params...)
-	if err != nil {
-		return nil, fmt.Errorf("list accounts: %w", err)
-	}
-	defer rows.Close()
-	return scanAccounts(rows)
+	return strings.Join(where, " AND "), params
 }
 
 // SummaryForMonth computes the monthly dashboard projection (research.md R5).

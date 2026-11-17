@@ -3,11 +3,14 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/leoarkiteto/zelo/internal/features/directory/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // fakeAudit records audit events in memory.
@@ -194,6 +197,17 @@ func (f *fakeListingStore) ListListings(
 		out = append(out, l)
 	}
 	return out, nil
+}
+
+func (f *fakeListingStore) ListListingsPage(
+	ctx context.Context,
+	condominiumID, query, categoryID string,
+	requested int,
+) ([]domain.ServiceProviderListing, pagination.Page, error) {
+	all, _ := f.ListListings(ctx, condominiumID, query, categoryID)
+	sort.Slice(all, func(i, j int) bool { return all[i].Name < all[j].Name })
+	items, page := pagination.Slice(all, requested)
+	return items, page, nil
 }
 
 func (f *fakeListingStore) FindDuplicatePhone(
@@ -405,6 +419,32 @@ func TestSearchListings(t *testing.T) {
 		ErrInvalidCategory,
 	) {
 		t.Fatalf("SearchListings(bad category) = %v, want ErrInvalidCategory", err)
+	}
+}
+
+func TestSearchListingsPage(t *testing.T) {
+	svc, _, categories, _, _ := directoryFixture()
+	seedCategory(t, categories, "cat-1", "condo-1", "Plumber", true)
+	for i := 0; i < 25; i++ {
+		_, _, err := svc.CreateListing(context.Background(), "resident-1", "condo-1", ListingInput{
+			Name: fmt.Sprintf("Pro %02d", i), CategoryID: "cat-1",
+			Phone: fmt.Sprintf("+55119%08d", i), ConfirmDuplicate: true,
+		})
+		if err != nil {
+			t.Fatalf("seed %d: %v", i, err)
+		}
+	}
+	rows, p, err := svc.SearchListingsPage(context.Background(), "condo-1", "", "", 1)
+	if err != nil || len(rows) != 20 || p.TotalPages != 2 || p.Total != 25 {
+		t.Fatalf("page 1 = %d rows, %+v, %v", len(rows), p, err)
+	}
+	rows, p, err = svc.SearchListingsPage(context.Background(), "condo-1", " pro ", "cat-1", 7)
+	if err != nil || len(rows) != 5 || p.Number != 2 {
+		t.Fatalf("clamped page = %d rows, %+v, %v", len(rows), p, err)
+	}
+	if _, _, err := svc.SearchListingsPage(context.Background(), "condo-1", "", "missing", 1); !errors.Is(
+		err, ErrInvalidCategory) {
+		t.Fatalf("bad category err = %v", err)
 	}
 }
 

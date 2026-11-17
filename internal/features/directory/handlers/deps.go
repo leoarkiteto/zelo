@@ -8,6 +8,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/directory/repositories"
 	"github.com/leoarkiteto/zelo/internal/features/directory/services"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 type ListingService interface {
@@ -16,10 +17,11 @@ type ListingService interface {
 		residentID, condominiumID string,
 		in services.ListingInput) (domain.ServiceProviderListing, bool, error)
 
-	SearchListings(
+	SearchListingsPage(
 		ctx context.Context,
 		condominiumID, query, categoryID string,
-	) ([]domain.ServiceProviderListing, error)
+		requested int,
+	) ([]domain.ServiceProviderListing, pagination.Page, error)
 
 	EditListing(
 		ctx context.Context,

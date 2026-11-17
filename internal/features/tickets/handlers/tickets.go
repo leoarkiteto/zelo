@@ -10,6 +10,8 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
+	"github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 // ticketsGET renders the current user's own tickets (FR-009).
@@ -23,16 +25,18 @@ func (h *Handler) ticketsGET(w http.ResponseWriter, r *http.Request) {
 		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "tickets.error.load_session"))
 		return
 	}
-	tickets, err := h.deps.Tickets.ListMine(r.Context(), u.ID, sess.CondominiumID)
+	tickets, page, err := h.deps.Tickets.ListMinePage(r.Context(), u.ID, sess.CondominiumID,
+		pagination.Parse(r.URL.Query().Get("page")))
 	if err != nil {
 		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "tickets.error.load"))
 		return
 	}
 	data := tickettemplates.TicketsPageData{
-		Shell:  shell,
-		Locale: locale,
-		CSRF:   sess.CSRFToken,
-		Flash:  flashMessage(r, locale),
+		Shell:      shell,
+		Locale:     locale,
+		CSRF:       sess.CSRFToken,
+		Flash:      flashMessage(r, locale),
+		Pagination: molecules.PaginationFrom(locale, page, r.URL.Path, r.URL.Query(), "page"),
 	}
 	for _, t := range tickets {
 		data.Tickets = append(data.Tickets, h.ticketView(locale, r, t, nil))
@@ -104,17 +108,19 @@ func (h *Handler) inboxGET(w http.ResponseWriter, r *http.Request) {
 	case "all":
 		status = ""
 	}
-	tickets, err := h.deps.Tickets.ListInbox(r.Context(), sess.CondominiumID, status)
+	tickets, page, err := h.deps.Tickets.ListInboxPage(r.Context(), sess.CondominiumID, status,
+		pagination.Parse(r.URL.Query().Get("page")))
 	if err != nil {
 		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "tickets.error.load"))
 		return
 	}
 	data := tickettemplates.TicketsInboxPageData{
-		Shell:  shell,
-		Locale: locale,
-		CSRF:   sess.CSRFToken,
-		Status: raw,
-		Flash:  flashMessage(r, locale),
+		Shell:      shell,
+		Locale:     locale,
+		CSRF:       sess.CSRFToken,
+		Status:     raw,
+		Flash:      flashMessage(r, locale),
+		Pagination: molecules.PaginationFrom(locale, page, r.URL.Path, r.URL.Query(), "page"),
 	}
 	for _, t := range tickets {
 		data.Tickets = append(data.Tickets, h.ticketView(locale, r, t, nil))

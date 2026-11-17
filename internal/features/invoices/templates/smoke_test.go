@@ -74,7 +74,7 @@ func listFixture() ListPageData {
 			}, {
 				ID: "inv2", Number: "FT 2026/2", SupplierName: "Anulada SA", State: domain.StateAnnulled, Status: domain.StatusAnulado,
 			}},
-			RowCount: 60, Page: 2, PageSize: 25,
+			RowCount: 60, Page: 2, PageSize: 20,
 			Totals: domain.ListTotals{TotalCents: 123456, PayableCents: 123456, PaidCents: 1000, DebtCents: 122456, Count: 1},
 		},
 		Shell: shellFixture(), Locale: ptBR, CSRF: "tok",

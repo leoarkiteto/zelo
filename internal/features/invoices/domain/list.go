@@ -1,10 +1,14 @@
 package domain
 
-import "time"
+import (
+	"time"
+
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
+)
 
 // Pagination defaults of the invoice list.
 const (
-	DefaultPageSize = 25
+	DefaultPageSize = pagination.PageSize
 	MaxPageSize     = 100
 )
 

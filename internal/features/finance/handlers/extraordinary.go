@@ -12,8 +12,10 @@ import (
 	financetemplates "github.com/leoarkiteto/zelo/internal/features/finance/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 	"github.com/leoarkiteto/zelo/internal/shared/permille"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 const extraordinariesPath = "/finance/extraordinaries"
@@ -90,12 +92,14 @@ func (h *Handler) extraListGET(w http.ResponseWriter, r *http.Request) {
 		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "quotas.error.load_failed"))
 		return
 	}
-	rows := make([]financetemplates.ExtraRowView, 0, len(list))
-	for _, s := range list {
+	pageList, page := pagination.Slice(list, pagination.Parse(r.URL.Query().Get("page")))
+	rows := make([]financetemplates.ExtraRowView, 0, len(pageList))
+	for _, s := range pageList {
 		rows = append(rows, extraRowView(r, locale, s))
 	}
 	httpx.Render(w, r, financetemplates.ExtraListPage(financetemplates.ExtraListData{
 		Shell: shell, Locale: locale, Rows: rows, Flash: extraFlash(r, locale),
+		Pagination: molecules.PaginationFrom(locale, page, r.URL.Path, r.URL.Query(), "page"),
 	}))
 }
 

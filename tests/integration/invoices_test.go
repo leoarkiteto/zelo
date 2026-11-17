@@ -669,8 +669,8 @@ func TestInvoiceListPagination(t *testing.T) {
 	if n := len(tableRows(p1.body)); n != domain.DefaultPageSize {
 		t.Fatalf("page 1 rows = %d, want %d", n, domain.DefaultPageSize)
 	}
-	mustContain(t, "page 1", p1.body, fmt.Sprintf(en("invoices.list.page_of"), 1, 2), en("invoices.list.next"))
-	mustNotContain(t, "page 1", p1.body, ">"+en("invoices.list.previous")+"<")
+	mustContain(t, "page 1", p1.body, fmt.Sprintf(en("pagination.page_of"), 1, 2), en("pagination.next"))
+	mustNotContain(t, "page 1", p1.body, ">"+en("pagination.previous")+"<")
 	// Totals cover the whole filtered set, not the page: 30 x 100.00.
 	mustContain(t, "totals", section(t, p1.body, `data-totals-footer`, `</section>`), fmtMoney(300000))
 
@@ -678,8 +678,15 @@ func TestInvoiceListPagination(t *testing.T) {
 	if n := len(tableRows(p2.body)); n != 30-domain.DefaultPageSize {
 		t.Fatalf("page 2 rows = %d, want %d", n, 30-domain.DefaultPageSize)
 	}
-	mustContain(t, "page 2", p2.body, fmt.Sprintf(en("invoices.list.page_of"), 2, 2), en("invoices.list.previous"))
-	mustNotContain(t, "page 2", p2.body, ">"+en("invoices.list.next")+"<")
+	mustContain(t, "page 2", p2.body, fmt.Sprintf(en("pagination.page_of"), 2, 2), en("pagination.previous"))
+	mustNotContain(t, "page 2", p2.body, ">"+en("pagination.next")+"<")
+
+	// A page past the last resolves to the last page (FR-4).
+	p9 := e.get(t, e.syndic, "/invoices?page=9")
+	if n := len(tableRows(p9.body)); n != 30-domain.DefaultPageSize {
+		t.Fatalf("page 9 rows = %d, want %d", n, 30-domain.DefaultPageSize)
+	}
+	mustContain(t, "page 9", p9.body, fmt.Sprintf(en("pagination.page_of"), 2, 2))
 
 	seen := map[string]bool{}
 	for _, body := range []string{p1.body, p2.body} {

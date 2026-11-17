@@ -51,7 +51,7 @@ Status colors use the Tailwind defaults: `green` (approved/used/success),
 | `.alert`, `.alert-success`, `.alert-error`, `.alert-info` | Flash / error banners |
 | `.table-wrap`, `.table` | Data tables: header on `chrome-50`, row hover, dividers |
 | `.topbar`, `.sidebar`, `.nav-group`, `.nav-link`, `.nav-link-active` | App shell chrome |
-| `.nav-details`, `.nav-summary`, `.nav-summary-active`, `.nav-sublist` | Collapsible sidebar submenu (group toggle + indented child links) |
+| `.nav-details`, `.nav-summary`, `.nav-summary-active`, `.nav-sublist` | Collapsible sidebar submenu: `.nav-details` is the `<details>` group container (hook class, no visual styles; used with `group` for `group-open:`), `.nav-summary` the toggle, `.nav-sublist` the indented child links |
 | `.breadcrumb` | Secondary navigation (area pages) |
 | `.quick-card`, `.quick-card-icon` | Dashboard quick-action cards |
 | `.empty-state`, `.empty-state-title`, `.empty-state-copy` | Empty collections |

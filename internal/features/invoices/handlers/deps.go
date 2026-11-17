@@ -10,6 +10,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
 	"github.com/leoarkiteto/zelo/internal/features/invoices/services"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // Invoices is the invoice use-case surface the handlers depend on.
@@ -36,6 +37,7 @@ type Suppliers interface {
 	Update(ctx context.Context, actorID, condoID, id string, in domain.Supplier) error
 	Get(ctx context.Context, condoID, id string) (domain.Supplier, error)
 	Search(ctx context.Context, condoID, q string, limit int) ([]domain.Supplier, error)
+	SearchPage(ctx context.Context, condoID, q string, requested int) ([]domain.Supplier, pagination.Page, error)
 }
 
 var (

@@ -29,6 +29,8 @@ type UnitsPageData struct {
 	Shell  *organisms.ShellData
 	Locale i18n.Language
 	Units  []UnitRowView
+	// Pagination is the nav for the current page of Units.
+	Pagination molecules.PaginationProps
 	// Sum and Diff are formatted per mille values for the locale.
 	Sum    string
 	Diff   string
@@ -114,6 +116,7 @@ templ unitsBody(data UnitsPageData) {
 						</tfoot>
 					</table>
 				</div>
+				@molecules.Pagination(data.Pagination)
 			}
 		</div>
 		if len(data.Units) > 0 {

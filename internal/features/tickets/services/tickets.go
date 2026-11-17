@@ -9,6 +9,7 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/features/tickets/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // Service errors surfaced to handlers.
@@ -141,6 +142,16 @@ func (s *TicketService) ListMine(ctx context.Context, userID, condominiumID stri
 // (FR-005).
 func (s *TicketService) ListInbox(ctx context.Context, condominiumID string, status domain.TicketStatus) ([]domain.Ticket, error) {
 	return s.Tickets.ListInbox(ctx, condominiumID, status)
+}
+
+// ListMinePage returns one page of the current user's own tickets.
+func (s *TicketService) ListMinePage(ctx context.Context, userID, condominiumID string, requested int) ([]domain.Ticket, pagination.Page, error) {
+	return s.Tickets.ListMinePage(ctx, condominiumID, userID, requested)
+}
+
+// ListInboxPage returns one page of the inbox, optionally filtered by status.
+func (s *TicketService) ListInboxPage(ctx context.Context, condominiumID string, status domain.TicketStatus, requested int) ([]domain.Ticket, pagination.Page, error) {
+	return s.Tickets.ListInboxPage(ctx, condominiumID, status, requested)
 }
 
 // GetTicket returns a ticket by id. Ownership is enforced by handlers.

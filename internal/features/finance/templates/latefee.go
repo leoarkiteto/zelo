@@ -5,6 +5,7 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/percent"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
@@ -53,6 +54,8 @@ type DebtorsPageData struct {
 	Shell  *organisms.ShellData
 	Locale i18n.Language
 	Rows   []DebtorRowView
+
+	Pagination molecules.PaginationProps
 }
 
 // ReserveView carries the reserve fund balance figures (FR-17), already formatted.

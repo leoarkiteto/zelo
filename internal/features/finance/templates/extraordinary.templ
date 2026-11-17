@@ -29,6 +29,8 @@ type ExtraListData struct {
 	Rows   []ExtraRowView
 	Flash  string
 	Error  string
+
+	Pagination molecules.PaginationProps
 }
 
 // ExtraFormData backs the create form; values are the raw input for re-rendering.
@@ -182,6 +184,7 @@ templ extraListBody(data ExtraListData) {
 						</tbody>
 					</table>
 				</div>
+				@molecules.Pagination(data.Pagination)
 			}
 		</div>
 	</div>

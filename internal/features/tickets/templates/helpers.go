@@ -6,6 +6,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/tickets/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
@@ -51,6 +52,8 @@ type TicketsPageData struct {
 	CSRF    string
 	Tickets []TicketView
 	Flash   string
+	// Pagination drives the page navigation below the table.
+	Pagination molecules.PaginationProps
 }
 
 // TicketsNewPageData backs the ticket creation form page.
@@ -81,6 +84,8 @@ type TicketsInboxPageData struct {
 	Tickets []TicketView
 	Status  string
 	Flash   string
+	// Pagination drives the page navigation below the table.
+	Pagination molecules.PaginationProps
 }
 
 // CategoryLabel returns the localized label for a category key.

@@ -182,7 +182,12 @@
   .nav-link-active {
     @apply bg-white font-semibold text-steel-600 shadow-sm;
   }
-  /* Collapsible nav group (<details>/<summary>, no JS) */
+  /* Collapsible nav group (<details>/<summary>, no JS).
+     .nav-details is the group container and a hook class: it carries no
+     styles of its own (pair it with Tailwind's `group` for `group-open:`). */
+  .nav-details {
+    @apply block;
+  }
   .nav-summary {
     @apply cursor-pointer list-none select-none;
   }

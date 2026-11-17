@@ -13,6 +13,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/tickets/services"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 type fakeRoles struct{ roles []model.Role }
@@ -56,6 +57,8 @@ type fakeTickets struct {
 	lastReply string
 	lastClose string
 	created   bool
+
+	lastInboxStatus domain.TicketStatus
 }
 
 func (f *fakeTickets) CreateTicket(_ context.Context, _, _ string, in services.TicketInput) (domain.Ticket, error) {
@@ -83,6 +86,17 @@ func (f *fakeTickets) ListMine(context.Context, string, string) ([]domain.Ticket
 
 func (f *fakeTickets) ListInbox(context.Context, string, domain.TicketStatus) ([]domain.Ticket, error) {
 	return f.listInbox, nil
+}
+
+func (f *fakeTickets) ListMinePage(_ context.Context, _, _ string, requested int) ([]domain.Ticket, pagination.Page, error) {
+	rows, p := pagination.Slice(f.listMine, requested)
+	return rows, p, nil
+}
+
+func (f *fakeTickets) ListInboxPage(_ context.Context, _ string, status domain.TicketStatus, requested int) ([]domain.Ticket, pagination.Page, error) {
+	f.lastInboxStatus = status
+	rows, p := pagination.Slice(f.listInbox, requested)
+	return rows, p, nil
 }
 
 func (f *fakeTickets) GetTicket(_ context.Context, _ string) (domain.Ticket, error) {
@@ -238,6 +252,74 @@ func TestInboxGETDefaultOpen(t *testing.T) {
 		ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/tickets/inbox", nil))
 	if rec.Code != http.StatusOK {
 		t.Errorf("GET /tickets/inbox = %d, want 200", rec.Code)
+	}
+}
+
+func manyTickets(n int) []domain.Ticket {
+	out := make([]domain.Ticket, n)
+	for i := range out {
+		out[i] = openTicket("u1")
+	}
+	return out
+}
+
+func TestInboxGETPaginatesAndKeepsStatus(t *testing.T) {
+	u2, s2 := syndicSession()
+	tk := &fakeTickets{listInbox: manyTickets(45)}
+	rec := httptest.NewRecorder()
+	ticketsRouter(u2, s2, baseDeps(tk, model.RoleSyndic)).
+		ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/tickets/inbox?status=closed&page=2&flash=x", nil))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rec.Code)
+	}
+	if tk.lastInboxStatus != domain.StatusClosed {
+		t.Errorf("status filter = %q, want closed", tk.lastInboxStatus)
+	}
+	body := rec.Body.String()
+	if got := strings.Count(body, `href="/tickets/t1"`); got != 40 { // 20 rows, title + action links
+		t.Errorf("ticket links = %d, want 40 (20 rows)", got)
+	}
+	if !strings.Contains(body, "/tickets/inbox?page=1&amp;status=closed") || !strings.Contains(body, "/tickets/inbox?page=3&amp;status=closed") {
+		t.Errorf("pagination links must keep status and drop flash: %s", body)
+	}
+	if strings.Contains(body, "flash=x") && strings.Contains(body, "page=3&amp;flash") {
+		t.Error("flash must not be carried into pagination links")
+	}
+}
+
+func TestInboxGETPageClamps(t *testing.T) {
+	u2, s2 := syndicSession()
+	tk := &fakeTickets{listInbox: manyTickets(25)}
+	rec := httptest.NewRecorder()
+	ticketsRouter(u2, s2, baseDeps(tk, model.RoleSyndic)).
+		ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/tickets/inbox?page=99", nil))
+	if got := strings.Count(rec.Body.String(), `href="/tickets/t1"`); got != 10 { // last page: 5 rows
+		t.Errorf("ticket links = %d, want 10 (5 rows on last page)", got)
+	}
+}
+
+func TestMineGETPaginates(t *testing.T) {
+	user, sess := ownerSession()
+	tk := &fakeTickets{listMine: manyTickets(21)}
+	rec := httptest.NewRecorder()
+	ticketsRouter(user, sess, baseDeps(tk, model.RoleOwner)).
+		ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/tickets", nil))
+	body := rec.Body.String()
+	if got := strings.Count(body, `href="/tickets/t1"`); got != 20 {
+		t.Errorf("ticket links = %d, want 20", got)
+	}
+	if !strings.Contains(body, "/tickets?page=2") {
+		t.Errorf("expected next page link: %s", body)
+	}
+}
+
+func TestMineGETEmptyHasNoPagination(t *testing.T) {
+	user, sess := ownerSession()
+	rec := httptest.NewRecorder()
+	ticketsRouter(user, sess, baseDeps(&fakeTickets{}, model.RoleOwner)).
+		ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/tickets", nil))
+	if strings.Contains(rec.Body.String(), "page=") {
+		t.Error("empty list must not render pagination")
 	}
 }
 

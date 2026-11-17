@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // SupplierStore persists suppliers (fornecedores).
@@ -152,4 +154,41 @@ func (r *SupplierStore) SearchSuppliers(ctx context.Context, condoID, q string, 
 		out = append(out, s)
 	}
 	return out, rows.Err()
+}
+
+// SearchSuppliersPage is the paged variant of SearchSuppliers used by the
+// suppliers list page: same match and order, one page of pagination.PageSize
+// rows plus the clamped page (a page past the last resolves to the last).
+func (r *SupplierStore) SearchSuppliersPage(ctx context.Context, condoID, q string, requested int) ([]domain.Supplier, pagination.Page, error) {
+	q = strings.TrimSpace(q)
+	args := []any{condoID}
+	where := "condominium_id = $1"
+	if q != "" {
+		args = append(args, likePattern(q), likePattern(strings.ReplaceAll(q, " ", "")))
+		where += ` AND (name ILIKE $2 ESCAPE '\' OR nif ILIKE $3 ESCAPE '\')`
+	}
+	var total int
+	if err := r.db.QueryRowContext(ctx, `SELECT count(*) FROM suppliers WHERE `+where, args...).Scan(&total); err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("count suppliers: %w", err)
+	}
+	p := pagination.New(requested, total)
+	pageArgs := append(append([]any{}, args...), p.Size, p.Offset())
+	limit := "$" + strconv.Itoa(len(args)+1)
+	offset := "$" + strconv.Itoa(len(args)+2)
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT `+supplierCols+` FROM suppliers WHERE `+where+
+			` ORDER BY lower(name), id LIMIT `+limit+` OFFSET `+offset, pageArgs...)
+	if err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("search suppliers page: %w", err)
+	}
+	defer rows.Close()
+	var out []domain.Supplier
+	for rows.Next() {
+		s, err := scanSupplier(rows)
+		if err != nil {
+			return nil, pagination.Page{}, fmt.Errorf("scan supplier: %w", err)
+		}
+		out = append(out, s)
+	}
+	return out, p, rows.Err()
 }

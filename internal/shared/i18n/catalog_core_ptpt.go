@@ -231,7 +231,6 @@ var ptptMessages = map[MessageKey]string{
 	"home.error.load_session":         "Não foi possível carregar a sessão",
 
 	// Finance (contas a pagar e a receber)
-	"nav.finance":                         "Financeiro",
 	"nav.finance.my_charges":              "Conta corrente",
 	"finance.title":                       "Contas a pagar e a receber",
 	"finance.subtitle":                    "Acompanhe as despesas e as receitas do condomínio.",

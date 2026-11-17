@@ -10,6 +10,8 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 // directoryGET renders the directory list with search and category filters.
@@ -403,11 +405,13 @@ func (h *Handler) directoryData(
 	if err != nil {
 		return templates.DirectoryPageData{}, err
 	}
-	listings, err := h.deps.DirectoryListings.SearchListings(
+	locale := i18n.LanguageFrom(r.Context())
+	listings, page, err := h.deps.DirectoryListings.SearchListingsPage(
 		r.Context(),
 		sess.CondominiumID,
 		query,
 		categoryID,
+		pagination.Parse(r.URL.Query().Get("page")),
 	)
 	if err != nil {
 		return templates.DirectoryPageData{}, err
@@ -430,6 +434,7 @@ func (h *Handler) directoryData(
 		SelectedCategory: categoryID,
 		IsSyndic:         isSyndic,
 		Flash:            flash,
+		Pagination:       molecules.PaginationFrom(locale, page, "/directory", r.URL.Query(), "page"),
 	}, nil
 }
 
@@ -494,8 +499,10 @@ func (h *Handler) categoriesData(
 	if err != nil {
 		return templates.CategoriesPageData{}, err
 	}
-	views := make([]templates.CategoryView, 0, len(categories))
-	for _, c := range categories {
+	locale := i18n.LanguageFrom(r.Context())
+	pageItems, page := pagination.Slice(categories, pagination.Parse(r.URL.Query().Get("page")))
+	views := make([]templates.CategoryView, 0, len(pageItems))
+	for _, c := range pageItems {
 		views = append(views, templates.CategoryView{ID: c.ID, Name: c.Name, Active: c.Active})
 	}
 	return templates.CategoriesPageData{
@@ -505,6 +512,8 @@ func (h *Handler) categoriesData(
 		Categories: views,
 		Error:      errorMsg,
 		Flash:      flash,
+		// Fixed list path: this builder also serves POST error re-renders.
+		Pagination: molecules.PaginationFrom(locale, page, "/directory/categories", r.URL.Query(), "page"),
 	}, nil
 }
 

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -105,6 +106,40 @@ func TestUnitsListShowsSumAndDiff(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Errorf("list missing %q", want)
 		}
+	}
+}
+
+func TestUnitsListPaginates(t *testing.T) {
+	mem := &memUnits{}
+	for i := 1; i <= 25; i++ {
+		code := fmt.Sprintf("U%02d", i)
+		mem.units = append(mem.units, model.Unit{ID: code, Code: code, SharePPM: 10000})
+	}
+	r := unitsRouter([]model.Role{model.RoleSyndic}, mem, &fakeAudit{})
+
+	body := do(r, http.MethodGet, "/condominium/units", nil).Body.String()
+	if !strings.Contains(body, "U20") || strings.Contains(body, "U21") {
+		t.Errorf("page 1 should hold U01..U20 only")
+	}
+	if !strings.Contains(body, "page=2") {
+		t.Errorf("page 1 missing next link")
+	}
+	// The share sum covers all 25 units (250%), not just the page.
+	if !strings.Contains(body, "250") {
+		t.Errorf("sum should be computed over all units")
+	}
+
+	body = do(r, http.MethodGet, "/condominium/units?page=2&flash=created", nil).Body.String()
+	if !strings.Contains(body, "U21") || !strings.Contains(body, "U25") || strings.Contains(body, "U20") {
+		t.Errorf("page 2 should hold U21..U25 only")
+	}
+	if strings.Contains(body, "flash=") {
+		t.Errorf("pagination links must drop flash")
+	}
+
+	body = do(r, http.MethodGet, "/condominium/units?page=99", nil).Body.String()
+	if !strings.Contains(body, "U25") {
+		t.Errorf("out of range page should clamp to last page")
 	}
 }
 

@@ -9,7 +9,9 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/features/management/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 	"github.com/leoarkiteto/zelo/internal/shared/security"
+	"github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 func (h *Handler) invitationsGET(w http.ResponseWriter, r *http.Request) {
@@ -98,9 +100,10 @@ func (h *Handler) invitationsData(r *http.Request, flash string) (templates.Invi
 	for _, unit := range units {
 		unitOptions = append(unitOptions, templates.UnitOption{ID: unit.ID, Code: unit.Code})
 	}
-	views := make([]templates.InvitationView, 0, len(invitations))
 	locale := i18n.LanguageFrom(r.Context())
-	for _, inv := range invitations {
+	pageInvs, page := pagination.Slice(invitations, pagination.Parse(r.URL.Query().Get("page")))
+	views := make([]templates.InvitationView, 0, len(pageInvs))
+	for _, inv := range pageInvs {
 		views = append(views, templates.InvitationView{
 			ID:        inv.ID,
 			UnitCode:  unitCode[inv.UnitID],
@@ -110,12 +113,15 @@ func (h *Handler) invitationsData(r *http.Request, flash string) (templates.Invi
 			ExpiresAt: i18n.FormatDate(locale, inv.ExpiresAt),
 		})
 	}
+	// Pagination uses the fixed list path: this builder also serves POST
+	// re-renders, whose r.URL.Path is a POST-only route.
 	return templates.InvitationsPageData{
 		Shell:       shell,
 		Locale:      locale,
 		CSRF:        sess.CSRFToken,
 		Units:       unitOptions,
 		Invitations: views,
+		Pagination:  molecules.PaginationFrom(locale, page, "/invitations", r.URL.Query(), "page"),
 		Flash:       flash,
 	}, nil
 }

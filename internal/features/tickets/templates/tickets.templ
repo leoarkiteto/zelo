@@ -59,6 +59,7 @@ templ ticketsBody(data TicketsPageData) {
 						</tbody>
 					</table>
 				</div>
+				@molecules.Pagination(data.Pagination)
 			}
 		</section>
 	</div>
@@ -225,6 +226,7 @@ templ inboxBody(data TicketsInboxPageData) {
 						</tbody>
 					</table>
 				</div>
+				@molecules.Pagination(data.Pagination)
 			}
 		</section>
 	</div>

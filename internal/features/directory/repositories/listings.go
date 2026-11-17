@@ -5,9 +5,11 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/leoarkiteto/zelo/internal/features/directory/domain"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 	sharedstore "github.com/leoarkiteto/zelo/internal/shared/store"
 )
 
@@ -129,6 +131,61 @@ func (s *ListingStore) ListListings(
 	ctx context.Context,
 	condominiumID, query, categoryID string,
 ) ([]domain.ServiceProviderListing, error) {
+	whereSQL, params := listingsWhere(condominiumID, query, categoryID)
+	rows, err := s.db.QueryContext(ctx, listingsSelect+`
+		WHERE `+whereSQL+`
+		ORDER BY l.name, l.id`, params...)
+	if err != nil {
+		return nil, fmt.Errorf("list listings: %w", err)
+	}
+	defer rows.Close()
+	return scanListings(rows)
+}
+
+// ListListingsPage returns one page of listings under the same filter and
+// ordering as ListListings, with pagination metadata clamped against the total.
+func (s *ListingStore) ListListingsPage(
+	ctx context.Context,
+	condominiumID, query, categoryID string,
+	requested int,
+) ([]domain.ServiceProviderListing, pagination.Page, error) {
+	whereSQL, params := listingsWhere(condominiumID, query, categoryID)
+	var total int
+	if err := s.db.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM service_provider_listings l
+		JOIN service_categories c ON c.id = l.category_id
+		WHERE `+whereSQL, params...).Scan(&total); err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("count listings: %w", err)
+	}
+	p := pagination.New(requested, total)
+	n := len(params)
+	rows, err := s.db.QueryContext(ctx, listingsSelect+`
+		WHERE `+whereSQL+`
+		ORDER BY l.name, l.id
+		LIMIT $`+strconv.Itoa(n+1)+` OFFSET $`+strconv.Itoa(n+2),
+		append(params, p.Size, p.Offset())...)
+	if err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("list listings page: %w", err)
+	}
+	defer rows.Close()
+	out, err := scanListings(rows)
+	if err != nil {
+		return nil, pagination.Page{}, err
+	}
+	return out, p, nil
+}
+
+const listingsSelect = `
+		SELECT l.id, l.condominium_id, l.category_id, c.name, l.name, l.phone,
+			l.phone_digits, l.notes, l.recommended_by_unit_id, l.recommended_by_unit_code,
+			l.submitted_by, l.created_at, l.updated_at
+		FROM service_provider_listings l
+		JOIN service_categories c ON c.id = l.category_id`
+
+// listingsWhere builds the WHERE clause (without the keyword) and its params,
+// shared by the unpaged and paged listing queries.
+func listingsWhere(condominiumID, query, categoryID string) (string, []any) {
 	params := []any{condominiumID}
 	where := []string{"l.condominium_id = $1"}
 	next := 2
@@ -151,18 +208,10 @@ func (s *ListingStore) ListListings(
 		params = append(params, pattern)
 		next++
 	}
-	rows, err := s.db.QueryContext(ctx, `
-		SELECT l.id, l.condominium_id, l.category_id, c.name, l.name, l.phone,
-			l.phone_digits, l.notes, l.recommended_by_unit_id, l.recommended_by_unit_code,
-			l.submitted_by, l.created_at, l.updated_at
-		FROM service_provider_listings l
-		JOIN service_categories c ON c.id = l.category_id
-		WHERE `+strings.Join(where, " AND ")+`
-		ORDER BY l.name`, params...)
-	if err != nil {
-		return nil, fmt.Errorf("list listings: %w", err)
-	}
-	defer rows.Close()
+	return strings.Join(where, " AND "), params
+}
+
+func scanListings(rows *sql.Rows) ([]domain.ServiceProviderListing, error) {
 	var out []domain.ServiceProviderListing
 	for rows.Next() {
 		var l domain.ServiceProviderListing

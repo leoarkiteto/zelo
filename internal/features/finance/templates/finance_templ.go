@@ -912,6 +912,10 @@ func financeBody(data FinancePageData) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+			templ_7745c5c3_Err = molecules.Pagination(data.Pagination).Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "</section></div>")
 		if templ_7745c5c3_Err != nil {
@@ -978,7 +982,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var61 string
 		templ_7745c5c3_Var61, templ_7745c5c3_Err = templ.JoinStringErrs(formTitle(data))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 160, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 161, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var61))
 		if templ_7745c5c3_Err != nil {
@@ -991,7 +995,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var62 string
 		templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.subtitle"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 161, Col: 70}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 162, Col: 70}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 		if templ_7745c5c3_Err != nil {
@@ -1014,7 +1018,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var63 templ.SafeURL
 		templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL(formAction(data)))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 167, Col: 58}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 168, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
 		if templ_7745c5c3_Err != nil {
@@ -1027,7 +1031,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var64 string
 		templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CSRF)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 168, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 169, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var64)
 		if templ_7745c5c3_Err != nil {
@@ -1045,7 +1049,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var65 string
 			templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.ResolveAttributeValue(string(data.AccountType))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 170, Col: 69}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 171, Col: 69}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var65)
 			if templ_7745c5c3_Err != nil {
@@ -1063,7 +1067,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var66 string
 			templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.type"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 173, Col: 74}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 174, Col: 74}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 			if templ_7745c5c3_Err != nil {
@@ -1081,7 +1085,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 				var templ_7745c5c3_Var67 string
 				templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.ResolveAttributeValue(t.Key)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 176, Col: 28}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 177, Col: 28}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var67)
 				if templ_7745c5c3_Err != nil {
@@ -1094,7 +1098,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 				var templ_7745c5c3_Var68 string
 				templ_7745c5c3_Var68, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.Type == t.Key)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 176, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 177, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var68)
 				if templ_7745c5c3_Err != nil {
@@ -1107,7 +1111,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 				var templ_7745c5c3_Var69 string
 				templ_7745c5c3_Var69, templ_7745c5c3_Err = templ.JoinStringErrs(t.Label)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 176, Col: 79}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 177, Col: 79}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var69))
 				if templ_7745c5c3_Err != nil {
@@ -1130,7 +1134,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var70 string
 		templ_7745c5c3_Var70, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.col.title"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 182, Col: 79}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 183, Col: 79}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var70))
 		if templ_7745c5c3_Err != nil {
@@ -1143,7 +1147,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var71 string
 		templ_7745c5c3_Var71, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 183, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 184, Col: 86}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var71)
 		if templ_7745c5c3_Err != nil {
@@ -1156,7 +1160,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var72 string
 		templ_7745c5c3_Var72, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.category"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 186, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 187, Col: 80}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var72))
 		if templ_7745c5c3_Err != nil {
@@ -1174,7 +1178,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var73 string
 			templ_7745c5c3_Var73, templ_7745c5c3_Err = templ.ResolveAttributeValue(c.Key)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 189, Col: 27}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 190, Col: 27}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var73)
 			if templ_7745c5c3_Err != nil {
@@ -1187,7 +1191,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var74 string
 			templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.Category == c.Key)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 189, Col: 70}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 190, Col: 70}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var74)
 			if templ_7745c5c3_Err != nil {
@@ -1200,7 +1204,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var75 string
 			templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.JoinStringErrs(c.Label)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 189, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 190, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var75))
 			if templ_7745c5c3_Err != nil {
@@ -1218,7 +1222,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var76 string
 		templ_7745c5c3_Var76, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.amount"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 195, Col: 78}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 196, Col: 78}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var76))
 		if templ_7745c5c3_Err != nil {
@@ -1231,7 +1235,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var77 string
 		templ_7745c5c3_Var77, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 196, Col: 90}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 197, Col: 90}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var77)
 		if templ_7745c5c3_Err != nil {
@@ -1244,7 +1248,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var78 string
 		templ_7745c5c3_Var78, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.due_date"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 199, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 200, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var78))
 		if templ_7745c5c3_Err != nil {
@@ -1257,7 +1261,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var79 string
 		templ_7745c5c3_Var79, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.DueDate)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 200, Col: 95}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 201, Col: 95}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var79)
 		if templ_7745c5c3_Err != nil {
@@ -1275,7 +1279,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var80 string
 			templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.initial_status"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 206, Col: 87}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 207, Col: 87}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var80))
 			if templ_7745c5c3_Err != nil {
@@ -1288,7 +1292,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var81 string
 			templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.Status == "" || data.Values.Status == "pending")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 208, Col: 101}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 209, Col: 101}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var81)
 			if templ_7745c5c3_Err != nil {
@@ -1301,7 +1305,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var82 string
 			templ_7745c5c3_Var82, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.status.pending"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 208, Col: 151}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 209, Col: 151}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var82))
 			if templ_7745c5c3_Err != nil {
@@ -1314,7 +1318,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var83 string
 			templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.Status == "settled")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 209, Col: 73}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 210, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var83)
 			if templ_7745c5c3_Err != nil {
@@ -1327,7 +1331,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var84 string
 			templ_7745c5c3_Var84, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.status.settled"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 209, Col: 123}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 210, Col: 123}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var84))
 			if templ_7745c5c3_Err != nil {
@@ -1340,7 +1344,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var85 string
 			templ_7745c5c3_Var85, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.settlement_date"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 213, Col: 97}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 214, Col: 97}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var85))
 			if templ_7745c5c3_Err != nil {
@@ -1353,7 +1357,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var86 string
 			templ_7745c5c3_Var86, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.SettlementDate)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 214, Col: 117}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 215, Col: 117}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var86)
 			if templ_7745c5c3_Err != nil {
@@ -1372,7 +1376,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var87 string
 			templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.supplier_payee"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 220, Col: 94}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 221, Col: 94}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 			if templ_7745c5c3_Err != nil {
@@ -1385,7 +1389,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var88 string
 			templ_7745c5c3_Var88, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.SupplierPayee)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 221, Col: 113}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 222, Col: 113}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var88)
 			if templ_7745c5c3_Err != nil {
@@ -1398,7 +1402,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var89 string
 			templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.receipt"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 224, Col: 80}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 225, Col: 80}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var89))
 			if templ_7745c5c3_Err != nil {
@@ -1416,7 +1420,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var90 string
 			templ_7745c5c3_Var90, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.unit_responsible"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 229, Col: 89}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 230, Col: 89}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var90))
 			if templ_7745c5c3_Err != nil {
@@ -1434,7 +1438,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 				var templ_7745c5c3_Var91 string
 				templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.ResolveAttributeValue(u.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 233, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 234, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var91)
 				if templ_7745c5c3_Err != nil {
@@ -1447,7 +1451,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 				var templ_7745c5c3_Var92 string
 				templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.UnitID == u.ID)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 233, Col: 67}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 234, Col: 67}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var92)
 				if templ_7745c5c3_Err != nil {
@@ -1460,7 +1464,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 				var templ_7745c5c3_Var93 string
 				templ_7745c5c3_Var93, templ_7745c5c3_Err = templ.JoinStringErrs(u.Code)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 233, Col: 78}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 234, Col: 78}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var93))
 				if templ_7745c5c3_Err != nil {
@@ -1478,7 +1482,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var94 string
 			templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.payment_code"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 238, Col: 90}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 239, Col: 90}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var94))
 			if templ_7745c5c3_Err != nil {
@@ -1491,7 +1495,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 			var templ_7745c5c3_Var95 string
 			templ_7745c5c3_Var95, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Values.PaymentCode)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 239, Col: 107}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 240, Col: 107}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var95)
 			if templ_7745c5c3_Err != nil {
@@ -1509,7 +1513,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var96 string
 		templ_7745c5c3_Var96, templ_7745c5c3_Err = templ.JoinStringErrs(submitLabel(data))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 243, Col: 69}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 244, Col: 69}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var96))
 		if templ_7745c5c3_Err != nil {
@@ -1522,7 +1526,7 @@ func financeFormBody(data FinanceFormData) templ.Component {
 		var templ_7745c5c3_Var97 string
 		templ_7745c5c3_Var97, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.cancel"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 244, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 245, Col: 87}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var97))
 		if templ_7745c5c3_Err != nil {
@@ -1593,7 +1597,7 @@ func settleBody(data SettleData) templ.Component {
 		var templ_7745c5c3_Var100 string
 		templ_7745c5c3_Var100, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.settle"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 258, Col: 66}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 259, Col: 66}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var100))
 		if templ_7745c5c3_Err != nil {
@@ -1606,7 +1610,7 @@ func settleBody(data SettleData) templ.Component {
 		var templ_7745c5c3_Var101 string
 		templ_7745c5c3_Var101, templ_7745c5c3_Err = templ.JoinStringErrs(data.Account.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 259, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 260, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var101))
 		if templ_7745c5c3_Err != nil {
@@ -1619,7 +1623,7 @@ func settleBody(data SettleData) templ.Component {
 		var templ_7745c5c3_Var102 string
 		templ_7745c5c3_Var102, templ_7745c5c3_Err = templ.JoinStringErrs(data.Account.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 259, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 260, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var102))
 		if templ_7745c5c3_Err != nil {
@@ -1642,7 +1646,7 @@ func settleBody(data SettleData) templ.Component {
 		var templ_7745c5c3_Var103 templ.SafeURL
 		templ_7745c5c3_Var103, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/finance/" + data.Account.ID + "/settle"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 265, Col: 83}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 266, Col: 83}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var103))
 		if templ_7745c5c3_Err != nil {
@@ -1655,7 +1659,7 @@ func settleBody(data SettleData) templ.Component {
 		var templ_7745c5c3_Var104 string
 		templ_7745c5c3_Var104, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CSRF)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 266, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 267, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var104)
 		if templ_7745c5c3_Err != nil {
@@ -1673,7 +1677,7 @@ func settleBody(data SettleData) templ.Component {
 			var templ_7745c5c3_Var105 string
 			templ_7745c5c3_Var105, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.settle_confirm"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 268, Col: 103}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 269, Col: 103}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var105))
 			if templ_7745c5c3_Err != nil {
@@ -1691,7 +1695,7 @@ func settleBody(data SettleData) templ.Component {
 		var templ_7745c5c3_Var106 string
 		templ_7745c5c3_Var106, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.settlement_date"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 271, Col: 95}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 272, Col: 95}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var106))
 		if templ_7745c5c3_Err != nil {
@@ -1709,7 +1713,7 @@ func settleBody(data SettleData) templ.Component {
 			var templ_7745c5c3_Var107 string
 			templ_7745c5c3_Var107, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Date)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 273, Col: 100}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 274, Col: 100}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var107)
 			if templ_7745c5c3_Err != nil {
@@ -1722,7 +1726,7 @@ func settleBody(data SettleData) templ.Component {
 			var templ_7745c5c3_Var108 string
 			templ_7745c5c3_Var108, templ_7745c5c3_Err = templ.ResolveAttributeValue("/finance/" + data.Account.ID + "/settle/late-fee")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 273, Col: 171}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 274, Col: 171}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var108)
 			if templ_7745c5c3_Err != nil {
@@ -1740,7 +1744,7 @@ func settleBody(data SettleData) templ.Component {
 			var templ_7745c5c3_Var109 string
 			templ_7745c5c3_Var109, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.Date)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 275, Col: 100}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 276, Col: 100}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var109)
 			if templ_7745c5c3_Err != nil {
@@ -1768,7 +1772,7 @@ func settleBody(data SettleData) templ.Component {
 			var templ_7745c5c3_Var110 string
 			templ_7745c5c3_Var110, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.settle_confirm"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 282, Col: 99}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 283, Col: 99}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var110))
 			if templ_7745c5c3_Err != nil {
@@ -1781,7 +1785,7 @@ func settleBody(data SettleData) templ.Component {
 			var templ_7745c5c3_Var111 string
 			templ_7745c5c3_Var111, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.cancel"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 283, Col: 89}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 284, Col: 89}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var111))
 			if templ_7745c5c3_Err != nil {
@@ -1842,7 +1846,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var113 string
 			templ_7745c5c3_Var113, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "quotas.late_fee.heading"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 300, Col: 96}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 301, Col: 96}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var113))
 			if templ_7745c5c3_Err != nil {
@@ -1855,7 +1859,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var114 string
 			templ_7745c5c3_Var114, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "quotas.late_fee.hint"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 301, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 302, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var114))
 			if templ_7745c5c3_Err != nil {
@@ -1868,7 +1872,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var115 string
 			templ_7745c5c3_Var115, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "quotas.late_fee.fine"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 304, Col: 81}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 305, Col: 81}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var115))
 			if templ_7745c5c3_Err != nil {
@@ -1881,7 +1885,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var116 string
 			templ_7745c5c3_Var116, templ_7745c5c3_Err = templ.JoinStringErrs(d.Fine)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 305, Col: 51}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 306, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var116))
 			if templ_7745c5c3_Err != nil {
@@ -1894,7 +1898,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var117 string
 			templ_7745c5c3_Var117, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "quotas.late_fee.interest"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 308, Col: 85}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 309, Col: 85}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var117))
 			if templ_7745c5c3_Err != nil {
@@ -1907,7 +1911,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var118 string
 			templ_7745c5c3_Var118, templ_7745c5c3_Err = templ.JoinStringErrs(d.Interest)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 309, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 310, Col: 55}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var118))
 			if templ_7745c5c3_Err != nil {
@@ -1920,7 +1924,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var119 string
 			templ_7745c5c3_Var119, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "quotas.late_fee.days_late"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 312, Col: 86}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 313, Col: 86}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var119))
 			if templ_7745c5c3_Err != nil {
@@ -1933,7 +1937,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var120 string
 			templ_7745c5c3_Var120, templ_7745c5c3_Err = templ.JoinStringErrs(itoa(d.DaysLate))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 313, Col: 61}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 314, Col: 61}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var120))
 			if templ_7745c5c3_Err != nil {
@@ -1946,7 +1950,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var121 string
 			templ_7745c5c3_Var121, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "quotas.late_fee.total"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 316, Col: 82}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 317, Col: 82}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var121))
 			if templ_7745c5c3_Err != nil {
@@ -1959,7 +1963,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var122 string
 			templ_7745c5c3_Var122, templ_7745c5c3_Err = templ.JoinStringErrs(d.Total)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 317, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 318, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var122))
 			if templ_7745c5c3_Err != nil {
@@ -1972,7 +1976,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var123 string
 			templ_7745c5c3_Var123, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "quotas.late_fee.apply"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 322, Col: 132}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 323, Col: 132}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var123))
 			if templ_7745c5c3_Err != nil {
@@ -1985,7 +1989,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var124 string
 			templ_7745c5c3_Var124, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "quotas.late_fee.waive"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 323, Col: 134}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 324, Col: 134}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var124))
 			if templ_7745c5c3_Err != nil {
@@ -1998,7 +2002,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var125 string
 			templ_7745c5c3_Var125, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "common.cancel"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 324, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 325, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var125))
 			if templ_7745c5c3_Err != nil {
@@ -2016,7 +2020,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var126 string
 			templ_7745c5c3_Var126, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "finance.settle_confirm"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 328, Col: 94}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 329, Col: 94}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var126))
 			if templ_7745c5c3_Err != nil {
@@ -2029,7 +2033,7 @@ func SettleLateFee(d SettleLateFeeData) templ.Component {
 			var templ_7745c5c3_Var127 string
 			templ_7745c5c3_Var127, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(d.Locale, "common.cancel"))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 329, Col: 84}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 330, Col: 84}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var127))
 			if templ_7745c5c3_Err != nil {
@@ -2105,7 +2109,7 @@ func cancelBody(data CancelData) templ.Component {
 		var templ_7745c5c3_Var130 string
 		templ_7745c5c3_Var130, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.cancel_confirm_title"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 343, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 344, Col: 80}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var130))
 		if templ_7745c5c3_Err != nil {
@@ -2118,7 +2122,7 @@ func cancelBody(data CancelData) templ.Component {
 		var templ_7745c5c3_Var131 string
 		templ_7745c5c3_Var131, templ_7745c5c3_Err = templ.JoinStringErrs(data.Account.Title)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 344, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 345, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var131))
 		if templ_7745c5c3_Err != nil {
@@ -2131,7 +2135,7 @@ func cancelBody(data CancelData) templ.Component {
 		var templ_7745c5c3_Var132 string
 		templ_7745c5c3_Var132, templ_7745c5c3_Err = templ.JoinStringErrs(data.Account.Amount)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 344, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 345, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var132))
 		if templ_7745c5c3_Err != nil {
@@ -2154,7 +2158,7 @@ func cancelBody(data CancelData) templ.Component {
 		var templ_7745c5c3_Var133 string
 		templ_7745c5c3_Var133, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.cancel_confirm_copy"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 350, Col: 78}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 351, Col: 78}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var133))
 		if templ_7745c5c3_Err != nil {
@@ -2177,7 +2181,7 @@ func cancelBody(data CancelData) templ.Component {
 		var templ_7745c5c3_Var134 templ.SafeURL
 		templ_7745c5c3_Var134, templ_7745c5c3_Err = templ.JoinURLErrs(templ.URL("/finance/" + data.Account.ID + "/cancel"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 354, Col: 83}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 355, Col: 83}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var134))
 		if templ_7745c5c3_Err != nil {
@@ -2190,7 +2194,7 @@ func cancelBody(data CancelData) templ.Component {
 		var templ_7745c5c3_Var135 string
 		templ_7745c5c3_Var135, templ_7745c5c3_Err = templ.ResolveAttributeValue(data.CSRF)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 355, Col: 59}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 356, Col: 59}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var135)
 		if templ_7745c5c3_Err != nil {
@@ -2203,7 +2207,7 @@ func cancelBody(data CancelData) templ.Component {
 		var templ_7745c5c3_Var136 string
 		templ_7745c5c3_Var136, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "finance.cancel"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 356, Col: 87}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 357, Col: 87}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var136))
 		if templ_7745c5c3_Err != nil {
@@ -2216,7 +2220,7 @@ func cancelBody(data CancelData) templ.Component {
 		var templ_7745c5c3_Var137 string
 		templ_7745c5c3_Var137, templ_7745c5c3_Err = templ.JoinStringErrs(i18n.T(data.Locale, "common.cancel"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 357, Col: 86}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `internal/features/finance/templates/finance.templ`, Line: 358, Col: 86}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var137))
 		if templ_7745c5c3_Err != nil {

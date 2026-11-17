@@ -10,6 +10,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
 	"github.com/leoarkiteto/zelo/internal/features/invoices/repositories"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // SupplierService implements the supplier use cases (FR-5, FR-6).
@@ -96,4 +97,10 @@ func (s *SupplierService) Get(ctx context.Context, condoID, id string) (domain.S
 // empty q lists all. limit <= 0 means the repository default.
 func (s *SupplierService) Search(ctx context.Context, condoID, q string, limit int) ([]domain.Supplier, error) {
 	return s.Suppliers.SearchSuppliers(ctx, condoID, q, limit)
+}
+
+// SearchPage returns one page of the suppliers matching q (the suppliers list
+// page); requested is the raw page number, clamped by the repository.
+func (s *SupplierService) SearchPage(ctx context.Context, condoID, q string, requested int) ([]domain.Supplier, pagination.Page, error) {
+	return s.Suppliers.SearchSuppliersPage(ctx, condoID, q, requested)
 }

@@ -19,6 +19,8 @@ type RolesPageData struct {
 	Locale i18n.Language
 	CSRF   string
 	Users  []UserRoleView
+	// Pagination is the nav for the current page of Users.
+	Pagination molecules.PaginationProps
 	Error  string
 }
 
@@ -96,6 +98,7 @@ templ rolesBody(data RolesPageData) {
 						</tbody>
 					</table>
 				</div>
+				@molecules.Pagination(data.Pagination)
 			}
 		</div>
 	</div>

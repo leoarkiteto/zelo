@@ -1,0 +1,48 @@
+package molecules
+
+import (
+	"fmt"
+	"net/url"
+
+	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
+)
+
+// PaginationProps drives the shared list pagination nav. An empty PrevHref or
+// NextHref hides the matching link.
+type PaginationProps struct {
+	Locale     i18n.Language
+	Current    int
+	TotalPages int
+	PrevHref   string
+	NextHref   string
+}
+
+// PaginationFrom builds PaginationProps from a Page; links keep the active
+// params of q (dropping flash) and use param as the page query key.
+func PaginationFrom(l i18n.Language, p pagination.Page, path string, q url.Values, param string) PaginationProps {
+	props := PaginationProps{Locale: l, Current: p.Number, TotalPages: p.TotalPages}
+	if p.HasPrev() {
+		props.PrevHref = pagination.URL(path, q, param, p.Number-1)
+	}
+	if p.HasNext() {
+		props.NextHref = pagination.URL(path, q, param, p.Number+1)
+	}
+	return props
+}
+
+templ Pagination(p PaginationProps) {
+	if p.TotalPages > 1 {
+		<nav class="flex items-center justify-between" aria-label={ i18n.T(p.Locale, "pagination.label") }>
+			<p class="text-sm text-ink-600">{ fmt.Sprintf(i18n.T(p.Locale, "pagination.page_of"), p.Current, p.TotalPages) }</p>
+			<div class="flex gap-2">
+				if p.PrevHref != "" {
+					<a class="btn btn-secondary btn-sm" href={ templ.URL(p.PrevHref) }>{ i18n.T(p.Locale, "pagination.previous") }</a>
+				}
+				if p.NextHref != "" {
+					<a class="btn btn-secondary btn-sm" href={ templ.URL(p.NextHref) }>{ i18n.T(p.Locale, "pagination.next") }</a>
+				}
+			</div>
+		</nav>
+	}
+}

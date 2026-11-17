@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/leoarkiteto/zelo/internal/features/directory/domain"
@@ -111,6 +112,40 @@ func TestCategoryStoreDeactivate(t *testing.T) {
 	all, _ := store.ListCategories(ctx, condoID)
 	if len(all) != 1 || all[0].Active {
 		t.Fatalf("ListCategories() = %v, want one inactive category", all)
+	}
+}
+
+func TestListingStoreListListingsPage(t *testing.T) {
+	db := openTestDB(t)
+	ctx := context.Background()
+	condoID, unitID, userID, categoryID := seedDirectoryFixture(t, db, "Plumber")
+	store := NewListingStore(db)
+	for i := 0; i < 25; i++ {
+		_, err := store.CreateListing(ctx, domain.ServiceProviderListing{
+			CondominiumID:         condoID,
+			CategoryID:            categoryID,
+			Name:                  fmt.Sprintf("Pro %02d", i),
+			Phone:                 "+55",
+			PhoneDigits:           fmt.Sprintf("5511%05d", i),
+			RecommendedByUnitID:   unitID,
+			RecommendedByUnitCode: "A-2",
+			SubmittedBy:           userID,
+		})
+		if err != nil {
+			t.Fatalf("CreateListing(%d) = %v", i, err)
+		}
+	}
+	rows, p, err := store.ListListingsPage(ctx, condoID, "", categoryID, 1)
+	if err != nil || len(rows) != 20 || p.Total != 25 || p.TotalPages != 2 || rows[0].Name != "Pro 00" {
+		t.Fatalf("page 1 = %d rows, %+v, %v", len(rows), p, err)
+	}
+	rows, p, err = store.ListListingsPage(ctx, condoID, "pro", "", 99)
+	if err != nil || len(rows) != 5 || p.Number != 2 || rows[0].Name != "Pro 20" {
+		t.Fatalf("clamped page = %d rows, %+v, %v", len(rows), p, err)
+	}
+	rows, p, err = store.ListListingsPage(ctx, condoID, "zzz-none", "", 1)
+	if err != nil || len(rows) != 0 || p.Total != 0 {
+		t.Fatalf("no match = %d rows, %+v, %v", len(rows), p, err)
 	}
 }
 

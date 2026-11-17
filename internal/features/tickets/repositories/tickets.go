@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/leoarkiteto/zelo/internal/features/tickets/domain"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 	sharedstore "github.com/leoarkiteto/zelo/internal/shared/store"
 )
 
@@ -100,6 +101,70 @@ func (s *TicketStore) ListInbox(ctx context.Context, condominiumID string, statu
 	}
 	defer rows.Close()
 	return scanTickets(rows)
+}
+
+// ListMinePage returns one page of a user's own tickets, newest first, with
+// the pagination metadata clamped against the total row count.
+func (s *TicketStore) ListMinePage(ctx context.Context, condominiumID, authorID string, requested int) ([]domain.Ticket, pagination.Page, error) {
+	const where = "condominium_id = $1 AND author_id = $2"
+	var total int
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM tickets WHERE `+where,
+		condominiumID, authorID).Scan(&total); err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("count my tickets: %w", err)
+	}
+	p := pagination.New(requested, total)
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT id, condominium_id, author_id, unit_id, title, category, description,
+			status, closed_at, closed_by, created_at, updated_at
+		FROM tickets
+		WHERE `+where+`
+		ORDER BY created_at DESC, id
+		LIMIT $3 OFFSET $4`, condominiumID, authorID, p.Size, p.Offset())
+	if err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("list my tickets: %w", err)
+	}
+	defer rows.Close()
+	out, err := scanTickets(rows)
+	if err != nil {
+		return nil, pagination.Page{}, err
+	}
+	return out, p, nil
+}
+
+// ListInboxPage returns one page of a condominium's tickets, optionally
+// filtered by status, with the same ordering as ListInbox plus an id tiebreaker.
+func (s *TicketStore) ListInboxPage(ctx context.Context, condominiumID string, status domain.TicketStatus, requested int) ([]domain.Ticket, pagination.Page, error) {
+	order := "created_at DESC, id"
+	if status == domain.StatusOpen {
+		order = "created_at ASC, id"
+	}
+	where := "condominium_id = $1"
+	args := []any{condominiumID}
+	if status != "" && status.Valid() {
+		where += " AND status = $2"
+		args = append(args, status)
+	}
+	var total int
+	if err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM tickets WHERE "+where, args...).Scan(&total); err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("count inbox: %w", err)
+	}
+	p := pagination.New(requested, total)
+	query := `
+		SELECT id, condominium_id, author_id, unit_id, title, category, description,
+			status, closed_at, closed_by, created_at, updated_at
+		FROM tickets WHERE ` + where + " ORDER BY " + order +
+		fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+	args = append(args, p.Size, p.Offset())
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, pagination.Page{}, fmt.Errorf("list inbox: %w", err)
+	}
+	defer rows.Close()
+	out, err := scanTickets(rows)
+	if err != nil {
+		return nil, pagination.Page{}, err
+	}
+	return out, p, nil
 }
 
 // AddReply appends a reply to an open ticket. Closed or missing tickets yield

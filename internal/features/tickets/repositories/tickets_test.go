@@ -145,6 +145,55 @@ func TestTicketStoreListMineAndInbox(t *testing.T) {
 	}
 }
 
+func TestTicketStoreListPages(t *testing.T) {
+	db := openTicketsTestDB(t)
+	store := NewTicketStore(db)
+	condoID, unitID, authorID, _ := seedTicketsFixture(t, db)
+	ctx := context.Background()
+
+	for i := 0; i < 45; i++ {
+		if _, err := store.Create(ctx, baseTicket(condoID, unitID, authorID)); err != nil {
+			t.Fatalf("create %d: %v", i, err)
+		}
+	}
+
+	seen := map[string]bool{}
+	for page := 1; page <= 3; page++ {
+		rows, p, err := store.ListMinePage(ctx, condoID, authorID, page)
+		if err != nil {
+			t.Fatalf("mine page %d: %v", page, err)
+		}
+		want := 20
+		if page == 3 {
+			want = 5
+		}
+		if len(rows) != want || p.Total != 45 || p.TotalPages != 3 || p.Number != page {
+			t.Errorf("mine page %d = %d rows %+v", page, len(rows), p)
+		}
+		for _, r := range rows {
+			if seen[r.ID] {
+				t.Errorf("ticket %s repeated across pages", r.ID)
+			}
+			seen[r.ID] = true
+		}
+	}
+
+	rows, p, err := store.ListInboxPage(ctx, condoID, domain.StatusOpen, 99)
+	if err != nil {
+		t.Fatalf("inbox page: %v", err)
+	}
+	if len(rows) != 5 || p.Number != 3 {
+		t.Errorf("inbox clamp = %d rows page %d, want 5 rows page 3", len(rows), p.Number)
+	}
+	rows, p, err = store.ListInboxPage(ctx, condoID, domain.StatusClosed, 1)
+	if err != nil {
+		t.Fatalf("closed inbox page: %v", err)
+	}
+	if len(rows) != 0 || p.Total != 0 || p.TotalPages != 1 {
+		t.Errorf("closed inbox = %d rows %+v, want empty", len(rows), p)
+	}
+}
+
 func TestTicketStoreReplyAndCloseLifecycle(t *testing.T) {
 	db := openTicketsTestDB(t)
 	store := NewTicketStore(db)

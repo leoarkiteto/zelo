@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +20,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/finance/services"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 type fakeRoles struct{ roles []model.Role }
@@ -69,6 +71,7 @@ type fakeFinance struct {
 	lastCancel        string
 	lastEdit          string
 	lastFilter        services.AccountFilter
+	lastPage          int
 }
 
 func (f *fakeFinance) CreateAccount(_ context.Context, _, _ string, in services.AccountInput) (domain.FinancialAccount, error) {
@@ -98,10 +101,12 @@ func (f *fakeFinance) CancelAccount(_ context.Context, _, id, _ string) error {
 	return f.cancelErr
 }
 
-func (f *fakeFinance) ListAccountsWithFlags(_ context.Context, _ string, filter services.AccountFilter) ([]services.AccountRow, error) {
+func (f *fakeFinance) ListAccountsPageWithFlags(_ context.Context, _ string, filter services.AccountFilter, requested int) ([]services.AccountRow, pagination.Page, error) {
 	f.lastFilter = filter
-	rows := make([]services.AccountRow, len(f.list))
-	for i, a := range f.list {
+	f.lastPage = requested
+	items, page := pagination.Slice(f.list, requested)
+	rows := make([]services.AccountRow, len(items))
+	for i, a := range items {
 		rows[i] = services.AccountRow{Account: a, IsQuota: f.quotaIDs[a.ID]}
 		if origin, ok := f.lateFees[a.ID]; ok {
 			rows[i].IsLateFee, rows[i].LateFeeOrigin = true, domain.LateFeeOrigin{Origin: origin}
@@ -110,7 +115,7 @@ func (f *fakeFinance) ListAccountsWithFlags(_ context.Context, _ string, filter 
 			rows[i].Period = domain.QuotaPeriod{Year: 2026, Periodicity: domain.PeriodicityQuarterly, Index: 2, UnitCode: "A"}
 		}
 	}
-	return rows, nil
+	return rows, page, nil
 }
 
 func (f *fakeFinance) IsQuotaAccount(_ context.Context, id string) (bool, error) {
@@ -607,6 +612,74 @@ func TestFinanceInadimplentesFilter(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), `value="inadimplentes" selected`) {
 		t.Errorf("inadimplentes option is not shown as selected")
+	}
+}
+
+func manyAccounts(n int) []domain.FinancialAccount {
+	out := make([]domain.FinancialAccount, n)
+	for i := range out {
+		out[i] = domain.FinancialAccount{
+			ID: fmt.Sprintf("a%02d", i), Type: domain.AccountTypePayable, Title: fmt.Sprintf("Conta %02d", i),
+			Category: domain.Category("water"), Status: domain.StatusPending, DueDate: time.Now(),
+		}
+	}
+	return out
+}
+
+func TestFinancePagination(t *testing.T) {
+	user, sess := syndicSession()
+	fin := &fakeFinance{list: manyAccounts(45), sum: services.MonthSummary{TotalPayableCents: 12345}}
+	router := financeRouter(user, sess, baseDeps(fin))
+	get := func(target string) (int, string) {
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
+		return rec.Code, rec.Body.String()
+	}
+
+	code, body1 := get("/finance")
+	if code != http.StatusOK || strings.Count(body1, "/settle") != 20 {
+		t.Fatalf("page 1: code=%d settle links=%d, want 200 and 20", code, strings.Count(body1, "/settle"))
+	}
+	if !strings.Contains(body1, "Page 1 of 3") {
+		t.Errorf("page 1 nav missing 'Page 1 of 3'")
+	}
+	code, body3 := get("/finance?page=3")
+	if code != http.StatusOK || strings.Count(body3, "/settle") != 5 {
+		t.Fatalf("page 3: code=%d settle links=%d, want 200 and 5", code, strings.Count(body3, "/settle"))
+	}
+	for _, raw := range []string{"abc", "0", "-3"} {
+		if code, body := get("/finance?page=" + raw); code != http.StatusOK || strings.Count(body, "/settle") != 20 {
+			t.Errorf("page=%s: code=%d rows=%d, want page 1", raw, code, strings.Count(body, "/settle"))
+		}
+	}
+	if code, body := get("/finance?page=999"); code != http.StatusOK || strings.Count(body, "/settle") != 5 {
+		t.Errorf("page=999: code=%d rows=%d, want last page", code, strings.Count(body, "/settle"))
+	}
+
+	// Summary unchanged across pages (AC-7): same figure rendered on page 1 and 3.
+	if !strings.Contains(body1, "123.45") || !strings.Contains(body3, "123.45") {
+		t.Errorf("summary card differs across pages")
+	}
+
+	// Links keep filters and drop flash (AC-4).
+	_, body := get("/finance?type=payable&status=pending&q=agua&flash=created&page=1")
+	if fin.lastFilter.Query != "agua" || fin.lastPage != 1 {
+		t.Fatalf("filter/page not parsed: %+v page=%d", fin.lastFilter, fin.lastPage)
+	}
+	if !strings.Contains(body, "page=2") {
+		t.Fatalf("next link missing")
+	}
+	for _, want := range []string{"type=payable", "status=pending", "q=agua"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("pagination links lack %q", want)
+		}
+	}
+	if i := strings.Index(body, "page=2"); i >= 0 {
+		start := strings.LastIndex(body[:i], `href="`)
+		end := i + strings.Index(body[i:], `"`)
+		if start >= 0 && strings.Contains(body[start:end], "flash") {
+			t.Errorf("next link keeps flash: %s", body[start:end])
+		}
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/tickets/services"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // Units resolves a user's active unit and lists a condominium's units.
@@ -23,6 +24,8 @@ type Tickets interface {
 	CloseTicket(ctx context.Context, actorID, ticketID, condominiumID string) error
 	ListMine(ctx context.Context, userID, condominiumID string) ([]domain.Ticket, error)
 	ListInbox(ctx context.Context, condominiumID string, status domain.TicketStatus) ([]domain.Ticket, error)
+	ListMinePage(ctx context.Context, userID, condominiumID string, requested int) ([]domain.Ticket, pagination.Page, error)
+	ListInboxPage(ctx context.Context, condominiumID string, status domain.TicketStatus, requested int) ([]domain.Ticket, pagination.Page, error)
 	GetTicket(ctx context.Context, ticketID string) (domain.Ticket, error)
 	ListReplies(ctx context.Context, ticketID string) ([]domain.TicketReply, error)
 }

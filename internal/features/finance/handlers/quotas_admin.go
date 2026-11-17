@@ -15,9 +15,11 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/money"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 	"github.com/leoarkiteto/zelo/internal/shared/percent"
 	"github.com/leoarkiteto/zelo/internal/shared/permille"
 	atoms "github.com/leoarkiteto/zelo/internal/shared/templates/atoms"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 const budgetsPath = "/finance/budgets"
@@ -185,8 +187,9 @@ func (h *Handler) budgetsGET(w http.ResponseWriter, r *http.Request) {
 		httpx.RenderError(w, r, http.StatusInternalServerError, i18n.T(locale, "quotas.error.load_failed"))
 		return
 	}
-	rows := make([]financetemplates.BudgetRowView, 0, len(list))
-	for _, b := range list {
+	pageList, page := pagination.Slice(list, pagination.Parse(r.URL.Query().Get("page")))
+	rows := make([]financetemplates.BudgetRowView, 0, len(pageList))
+	for _, b := range pageList {
 		label, variant := budgetStatusBadge(locale, b.Status)
 		rows = append(rows, financetemplates.BudgetRowView{
 			ID: b.ID, Year: b.Year, Periodicity: periodicityLabel(locale, b.Periodicity),
@@ -196,6 +199,7 @@ func (h *Handler) budgetsGET(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.Render(w, r, financetemplates.BudgetsPage(financetemplates.BudgetsPageData{
 		Shell: shell, Locale: locale, Budgets: rows, Flash: quotaFlash(r, locale),
+		Pagination: molecules.PaginationFrom(locale, page, r.URL.Path, r.URL.Query(), "page"),
 	}))
 }
 

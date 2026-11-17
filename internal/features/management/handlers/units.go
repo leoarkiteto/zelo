@@ -9,7 +9,9 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/management/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 	"github.com/leoarkiteto/zelo/internal/shared/permille"
+	"github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 const unitsPath = "/condominium/units"
@@ -43,18 +45,20 @@ func (h *Handler) unitsGET(w http.ResponseWriter, r *http.Request) {
 	case list.DiffPPM < 0:
 		status = templates.ShareStatusExcess
 	}
-	rows := make([]templates.UnitRowView, 0, len(list.Units))
-	for _, u := range list.Units {
+	pageUnits, page := pagination.Slice(list.Units, pagination.Parse(r.URL.Query().Get("page")))
+	rows := make([]templates.UnitRowView, 0, len(pageUnits))
+	for _, u := range pageUnits {
 		rows = append(rows, templates.UnitRowView{ID: u.ID, Code: u.Code, Share: permille.Format(u.SharePPM, locale)})
 	}
 	httpx.Render(w, r, templates.UnitsPage(templates.UnitsPageData{
-		Shell:  shell,
-		Locale: locale,
-		Units:  rows,
-		Sum:    permille.Format(list.SumPPM, locale),
-		Diff:   permille.Format(list.DiffPPM, locale),
-		Status: status,
-		Flash:  flash,
+		Shell:      shell,
+		Locale:     locale,
+		Units:      rows,
+		Pagination: molecules.PaginationFrom(locale, page, r.URL.Path, r.URL.Query(), "page"),
+		Sum:        permille.Format(list.SumPPM, locale),
+		Diff:       permille.Format(list.DiffPPM, locale),
+		Status:     status,
+		Flash:      flash,
 	}))
 }
 

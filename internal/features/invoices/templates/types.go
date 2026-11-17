@@ -71,8 +71,11 @@
 package templates
 
 import (
+	"net/url"
+
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 	organisms "github.com/leoarkiteto/zelo/internal/shared/templates/organisms"
 )
 
@@ -230,8 +233,10 @@ type ListPageData struct {
 	Locale i18n.Language
 	CSRF   string
 	Filter domain.ListFilter
-	Flash  string
-	Error  string
+	// Query is the request query, kept by the pagination links.
+	Query url.Values
+	Flash string
+	Error string
 }
 
 // PaymentValues are the raw values of the payment form.
@@ -267,6 +272,7 @@ type SupplierListData struct {
 	CSRF      string
 	Query     string
 	Suppliers []domain.Supplier
+	Page      pagination.Page
 	Flash     string
 }
 

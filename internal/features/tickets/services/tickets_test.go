@@ -9,6 +9,7 @@ import (
 
 	"github.com/leoarkiteto/zelo/internal/features/tickets/domain"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 type fakeTicketStore struct {
@@ -57,6 +58,18 @@ func (f *fakeTicketStore) ListInbox(_ context.Context, condominiumID string, sta
 		}
 	}
 	return out, nil
+}
+
+func (f *fakeTicketStore) ListMinePage(ctx context.Context, condominiumID, authorID string, requested int) ([]domain.Ticket, pagination.Page, error) {
+	all, _ := f.ListMine(ctx, condominiumID, authorID)
+	rows, p := pagination.Slice(all, requested)
+	return rows, p, nil
+}
+
+func (f *fakeTicketStore) ListInboxPage(ctx context.Context, condominiumID string, status domain.TicketStatus, requested int) ([]domain.Ticket, pagination.Page, error) {
+	all, _ := f.ListInbox(ctx, condominiumID, status)
+	rows, p := pagination.Slice(all, requested)
+	return rows, p, nil
 }
 
 func (f *fakeTicketStore) AddReply(_ context.Context, r domain.TicketReply) (string, error) {
@@ -293,6 +306,31 @@ func TestCloseTicketRejectsClosed(t *testing.T) {
 	svc := newService(store, &fakeUnitResolver{}, &fakeAudit{})
 	if err := svc.CloseTicket(context.Background(), "syndic", id, "c1"); !errors.Is(err, ErrClosed) {
 		t.Errorf("err = %v, want ErrClosed", err)
+	}
+}
+
+func TestListMinePageAndInboxPage(t *testing.T) {
+	store := newFakeTicketStore()
+	svc := newService(store, &fakeUnitResolver{}, &fakeAudit{})
+	ctx := context.Background()
+	for i := 0; i < 25; i++ {
+		store.tickets["m"+string(rune('a'+i))] = domain.Ticket{CondominiumID: "c1", AuthorID: "a1", Status: domain.StatusOpen}
+	}
+
+	rows, p, err := svc.ListMinePage(ctx, "a1", "c1", 2)
+	if err != nil {
+		t.Fatalf("list mine page: %v", err)
+	}
+	if len(rows) != 5 || p.Number != 2 || p.TotalPages != 2 || p.Total != 25 {
+		t.Errorf("mine page 2 = %d rows %+v, want 5 rows page 2/2 of 25", len(rows), p)
+	}
+
+	rows, p, err = svc.ListInboxPage(ctx, "c1", domain.StatusOpen, 9)
+	if err != nil {
+		t.Fatalf("list inbox page: %v", err)
+	}
+	if len(rows) != 5 || p.Number != 2 {
+		t.Errorf("inbox clamp = %d rows page %d, want 5 rows page 2", len(rows), p.Number)
 	}
 }
 

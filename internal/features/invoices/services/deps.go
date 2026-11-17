@@ -11,6 +11,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/invoices/domain"
 	"github.com/leoarkiteto/zelo/internal/features/invoices/repositories"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // SupplierRepo is the supplier persistence consumed by the services.
@@ -20,6 +21,7 @@ type SupplierRepo interface {
 	UpdateSupplier(ctx context.Context, s domain.Supplier, actor string) error
 	GetSupplier(ctx context.Context, condoID, id string) (domain.Supplier, error)
 	SearchSuppliers(ctx context.Context, condoID, q string, limit int) ([]domain.Supplier, error)
+	SearchSuppliersPage(ctx context.Context, condoID, q string, requested int) ([]domain.Supplier, pagination.Page, error)
 }
 
 // InvoiceRepo is the invoice persistence consumed by the services. Every write

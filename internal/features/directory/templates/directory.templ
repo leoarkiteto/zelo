@@ -32,6 +32,7 @@ type DirectoryPageData struct {
 	SelectedCategory string
 	IsSyndic         bool
 	Flash            string
+	Pagination       molecules.PaginationProps
 }
 
 type ListingFormValues struct {
@@ -66,6 +67,7 @@ type CategoriesPageData struct {
 	Categories []CategoryView
 	Error      string
 	Flash      string
+	Pagination molecules.PaginationProps
 }
 
 type DeleteConfirmData struct {
@@ -186,6 +188,7 @@ templ directoryBody(data DirectoryPageData) {
 						</tbody>
 					</table>
 				</div>
+				@molecules.Pagination(data.Pagination)
 			}
 		</section>
 	</div>
@@ -334,6 +337,7 @@ templ categoriesBody(data CategoriesPageData) {
 						</tbody>
 					</table>
 				</div>
+				@molecules.Pagination(data.Pagination)
 			}
 		</section>
 	</div>

@@ -283,7 +283,6 @@ var enMessages = map[MessageKey]string{
 	"home.error.load_session":         "Failed to load session",
 
 	// Finance (accounts payable & receivable)
-	"nav.finance":                                    "Finance",
 	"nav.finance.my_charges":                         "Account statement",
 	"finance.title":                                  "Accounts payable & receivable",
 	"finance.subtitle":                               "Track condominium expenses and revenue.",
@@ -693,7 +692,6 @@ var ptbrMessages = map[MessageKey]string{
 	"home.error.load_session":         "Não foi possível carregar a sessão",
 
 	// Finance (contas a pagar e receber)
-	"nav.finance":                                    "Financeiro",
 	"nav.finance.my_charges":                         "Conta corrente",
 	"finance.title":                                  "Contas a pagar e receber",
 	"finance.subtitle":                               "Acompanhe as despesas e receitas do condomínio.",

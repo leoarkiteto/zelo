@@ -9,6 +9,7 @@ import (
 	"github.com/leoarkiteto/zelo/internal/features/finance/services"
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
 )
 
 // Finance is the use-case surface the finance handlers depend on.
@@ -23,7 +24,7 @@ type Finance interface {
 	IsLateFeeAccount(ctx context.Context, accountID string) (bool, error)
 	LateFeeOrigin(ctx context.Context, accountID string) (domain.LateFeeOrigin, bool, error)
 	Summary(ctx context.Context, condominiumID string, month time.Time) (services.MonthSummary, error)
-	ListAccountsWithFlags(ctx context.Context, condominiumID string, f services.AccountFilter) ([]services.AccountRow, error)
+	ListAccountsPageWithFlags(ctx context.Context, condominiumID string, f services.AccountFilter, requested int) ([]services.AccountRow, pagination.Page, error)
 	Overview(ctx context.Context, condominiumID string, p domain.Period) (services.Overview, error)
 	ResolvePeriod(raw string) domain.Period
 }

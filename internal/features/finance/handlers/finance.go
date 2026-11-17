@@ -13,6 +13,8 @@ import (
 	financetemplates "github.com/leoarkiteto/zelo/internal/features/finance/templates"
 	"github.com/leoarkiteto/zelo/internal/shared/httpx"
 	"github.com/leoarkiteto/zelo/internal/shared/i18n"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 // financeGET renders the dashboard and account list with filters.
@@ -290,7 +292,7 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 		}
 	}
 
-	accounts, err := h.deps.Finance.ListAccountsWithFlags(r.Context(), sess.CondominiumID, f)
+	accounts, page, err := h.deps.Finance.ListAccountsPageWithFlags(r.Context(), sess.CondominiumID, f, pagination.Parse(q.Get("page")))
 	if err != nil {
 		return financetemplates.FinancePageData{}, err
 	}
@@ -324,7 +326,8 @@ func (h *Handler) financeData(r *http.Request, flash string) (financetemplates.F
 			ProjectedBalance: financetemplates.Money(r.Context(), locale, sum.ProjectedBalanceCents),
 			RealizedBalance:  financetemplates.Money(r.Context(), locale, sum.RealizedBalanceCents),
 		},
-		Flash: flash,
+		Flash:      flash,
+		Pagination: molecules.PaginationFrom(locale, page, "/finance", q, "page"),
 	}
 	for _, row := range accounts {
 		view := h.accountView(r.Context(), locale, row.Account)

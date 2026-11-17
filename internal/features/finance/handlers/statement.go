@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/leoarkiteto/zelo/internal/features/finance/domain"
@@ -15,6 +16,8 @@ import (
 	"github.com/leoarkiteto/zelo/internal/shared/middleware"
 	"github.com/leoarkiteto/zelo/internal/shared/model"
 	"github.com/leoarkiteto/zelo/internal/shared/money"
+	"github.com/leoarkiteto/zelo/internal/shared/pagination"
+	molecules "github.com/leoarkiteto/zelo/internal/shared/templates/molecules"
 )
 
 // viewer builds the statement/receipt/card viewer from the request: the syndic
@@ -98,9 +101,20 @@ func (h *Handler) myChargesGET(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		data.UnitID, data.UnitCode = st.Unit.ID, st.Unit.Code
 		data.Units = financetemplates.UnitOptions(st.Units)
-		data.Pending = h.statementRows(ctx, locale, st.Pending, false)
-		data.Settled = h.statementRows(ctx, locale, st.Settled, true)
-		data.Canceled = h.statementRows(ctx, locale, st.Canceled, false)
+		q := url.Values{}
+		for k, v := range r.URL.Query() {
+			q[k] = v
+		}
+		q.Set("unit", st.Unit.ID)
+		pending, pp := pagination.Slice(st.Pending, pagination.Parse(q.Get("pending_page")))
+		settled, sp := pagination.Slice(st.Settled, pagination.Parse(q.Get("settled_page")))
+		canceled, cp := pagination.Slice(st.Canceled, pagination.Parse(q.Get("canceled_page")))
+		data.Pending = h.statementRows(ctx, locale, pending, false)
+		data.Settled = h.statementRows(ctx, locale, settled, true)
+		data.Canceled = h.statementRows(ctx, locale, canceled, false)
+		data.PendingPagination = molecules.PaginationFrom(locale, pp, r.URL.Path, q, "pending_page")
+		data.SettledPagination = molecules.PaginationFrom(locale, sp, r.URL.Path, q, "settled_page")
+		data.CanceledPagination = molecules.PaginationFrom(locale, cp, r.URL.Path, q, "canceled_page")
 		data.PendingTotal = financetemplates.Money(ctx, locale, st.PendingTotalCents)
 		data.OverdueTotal = financetemplates.Money(ctx, locale, st.OverdueTotalCents)
 		data.OverdueCount = st.OverdueCount
